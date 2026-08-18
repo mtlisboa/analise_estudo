@@ -14,7 +14,10 @@ RUN addgroup --system django \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY --chown=django:django docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY --chown=django:django src ./src
+
+RUN chmod +x /app/docker-entrypoint.sh
 
 USER django
 WORKDIR /app/src
@@ -23,4 +26,5 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["sh", "-c", "exec uvicorn config.asgi:application --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-2}"]

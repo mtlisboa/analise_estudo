@@ -112,7 +112,8 @@ Docker Compose descrito abaixo.
 docker compose up --build
 ```
 
-O serviço aplica as migrações antes de iniciar o Gunicorn. O banco SQLite fica
+O entrypoint aplica as migrações antes de iniciar o Uvicorn, tanto no Railway
+quanto no Docker Compose. O banco SQLite fica
 armazenado no volume nomeado `sqlite_data`, portanto os dados persistem entre
 reinicializações dos containers. Para encerrar:
 
