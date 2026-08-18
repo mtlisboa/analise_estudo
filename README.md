@@ -33,6 +33,20 @@ usuário novo pode ser criado em `/conta/cadastro/`.
 python src/manage.py test
 ```
 
+## Imagem Docker
+
+```bash
+docker build -t analise-estudo:local .
+docker run --rm -p 8000:8000 \
+  -e DJANGO_SECRET_KEY=chave-local \
+  -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
+  analise-estudo:local
+```
+
+A imagem executa a aplicação com Gunicorn na porta `8000` usando um usuário
+não-root. Antes da primeira execução, aplique as migrações ou utilize o
+Docker Compose descrito abaixo.
+
 ## Estrutura
 
 ```text
