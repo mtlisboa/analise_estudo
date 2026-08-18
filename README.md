@@ -24,8 +24,12 @@ python src/manage.py migrate
 python src/manage.py runserver
 ```
 
-Acesse `http://127.0.0.1:8000/`. A página inicial exige autenticação; um
-usuário novo pode ser criado em `/conta/cadastro/`.
+Acesse `http://127.0.0.1:8000/` para ver a landing page. O painel individual
+fica em `/painel/` e exige autenticação; uma nova conta pode ser criada em
+`/conta/cadastro/`.
+
+O tema claro/escuro acompanha a preferência do sistema no primeiro acesso e a
+escolha feita no botão do cabeçalho fica salva no navegador.
 
 ## Testes
 

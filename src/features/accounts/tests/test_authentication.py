@@ -21,6 +21,13 @@ class SessionAuthenticationTests(TestCase):
             f'{reverse("accounts:login")}?next={reverse("accounts:dashboard")}',
         )
 
+    def test_landing_page_is_public(self) -> None:
+        response = self.client.get(reverse("accounts:landing"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cada aluno aprende de um jeito")
+        self.assertContains(response, reverse("accounts:sign-up"))
+
     def test_login_creates_authenticated_session(self) -> None:
         response = self.client.post(
             reverse("accounts:login"),

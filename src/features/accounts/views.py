@@ -9,6 +9,10 @@ from django.urls import reverse_lazy
 from .forms import LoginForm, SignUpForm
 
 
+def landing(request: HttpRequest) -> HttpResponse:
+    return render(request, "accounts/landing.html")
+
+
 class SessionLoginView(LoginView):
     authentication_form = LoginForm
     template_name = "accounts/login.html"

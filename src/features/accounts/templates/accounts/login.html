@@ -1,24 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}Entrar | Análise de Estudo{% endblock %}
+{% block title %}Entrar | Lumini{% endblock %}
+{% block main_class %}auth-page{% endblock %}
 
 {% block content %}
-<section class="card auth-card">
-    <h1>Entrar</h1>
-    <p>Acesse sua conta para continuar.</p>
-    <form method="post">
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-            <div class="form-errors">{{ form.non_field_errors }}</div>
-        {% endif %}
-        {% for field in form %}
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {{ field.errors }}
-        {% endfor %}
-        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-        <button type="submit">Entrar</button>
-    </form>
-    <p class="form-footer">Ainda não tem conta? <a href="{% url 'accounts:sign-up' %}">Cadastre-se</a>.</p>
+<section class="auth-layout">
+    <div class="auth-intro">
+        <span class="pill"><span></span> Sua jornada continua aqui</span>
+        <h1>Bom ter você<br><em>de volta.</em></h1>
+        <p>Acesse seu espaço e acompanhe cada avanço na sua aprendizagem.</p>
+        <div class="auth-quote">
+            <span>✦</span>
+            <p>“O progresso fica mais leve quando sabemos qual é o próximo passo.”</p>
+        </div>
+    </div>
+    <div class="card auth-card">
+        <div class="auth-card-heading"><span>ACESSAR CONTA</span><h2>Entre na Lumini</h2><p>Use seus dados para continuar.</p></div>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+            <button class="button form-submit" type="submit">Entrar <span>→</span></button>
+        </form>
+        <p class="form-footer">Ainda não tem uma conta? <a href="{% url 'accounts:sign-up' %}">Comece gratuitamente</a></p>
+    </div>
 </section>
 {% endblock %}
