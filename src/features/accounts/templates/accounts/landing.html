@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Lumini — Inteligência para cada jornada de aprendizagem{% endblock %}
+{% block main_class %}landing-page{% endblock %}
+
+{% block navigation %}
+<nav class="nav-actions" aria-label="Navegação principal">
+    <div class="nav-links">
+        <a class="nav-link" href="#como-funciona">Como funciona</a>
+        <a class="nav-link" href="#para-quem">Soluções</a>
+        <a class="nav-link" href="#resultados">Resultados</a>
+    </div>
+    {% if user.is_authenticated %}
+        <a class="button button-small" href="{% url 'accounts:dashboard' %}">Acessar painel</a>
+    {% else %}
+        <a class="nav-link nav-login" href="{% url 'accounts:login' %}">Entrar</a>
+        <a class="button button-small" href="{% url 'accounts:sign-up' %}">Começar agora</a>
+    {% endif %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<section class="hero section-shell">
+    <div class="hero-copy">
+        <div class="pill"><span></span> Inteligência que transforma aprendizagem</div>
+        <h1>Cada aluno aprende de um jeito. <em>Agora você pode enxergar.</em></h1>
+        <p class="hero-lead">Acompanhe o progresso, identifique lacunas e receba caminhos personalizados com IA — para o aluno e para toda a instituição.</p>
+        <div class="hero-actions">
+            <a class="button button-large" href="{% url 'accounts:sign-up' %}">
+                Começar gratuitamente
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7 4 6 6-6 6"/></svg>
+            </a>
+            <a class="text-link" href="#como-funciona">Ver como funciona <span>↓</span></a>
+        </div>
+        <div class="trust-row">
+            <div class="avatar-stack" aria-hidden="true">
+                <span class="avatar avatar-one">AM</span><span class="avatar avatar-two">RL</span><span class="avatar avatar-three">JS</span>
+            </div>
+            <p><strong>+2.400 estudantes</strong><br>aprendendo com mais clareza</p>
+        </div>
+    </div>
+
+    <div class="hero-visual" aria-label="Prévia do painel de progresso da Lumini">
+        <div class="glow glow-one"></div>
+        <div class="glow glow-two"></div>
+        <div class="dashboard-preview">
+            <div class="preview-topbar">
+                <div class="preview-brand"><span class="mini-mark"></span> lumini</div>
+                <div class="preview-profile"><span></span><i></i></div>
+            </div>
+            <div class="preview-body">
+                <aside class="preview-sidebar">
+                    <span class="active"></span><span></span><span></span><span></span><span></span>
+                </aside>
+                <div class="preview-content">
+                    <div class="preview-heading"><div><span>Olá, Marina!</span><small>Veja como está o seu progresso.</small></div><i>7 dias</i></div>
+                    <div class="metric-row">
+                        <div class="mini-card"><span>Progresso geral</span><strong>78%</strong><small>↗ 12% este mês</small></div>
+                        <div class="mini-card"><span>Sequência atual</span><strong>12 <i>dias</i></strong><small>Seu melhor: 18 dias</small></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-title"><span>Evolução semanal</span><small>Últimas 5 semanas</small></div>
+                        <div class="chart-area">
+                            <div class="chart-grid"><i></i><i></i><i></i><i></i></div>
+                            <svg viewBox="0 0 460 150" preserveAspectRatio="none" aria-hidden="true">
+                                <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7c5cff" stop-opacity=".28"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></linearGradient></defs>
+                                <path class="area" d="M0 122 C55 112 67 90 115 96 S182 80 230 85 S300 64 345 60 S400 30 460 27 V150 H0Z"/>
+                                <path class="line" d="M0 122 C55 112 67 90 115 96 S182 80 230 85 S300 64 345 60 S400 30 460 27"/>
+                                <circle cx="460" cy="27" r="5"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="insight-card floating-card">
+            <span class="insight-icon">✦</span>
+            <div><strong>Insight da IA</strong><p>Você evoluiu <b>23%</b> em Matemática esta semana!</p></div>
+        </div>
+        <div class="score-card floating-card"><span>Desempenho</span><strong>8,7</strong><small>↑ 1,2 pontos</small></div>
+    </div>
+</section>
+
+<section class="statement-section section-shell" id="resultados">
+    <p class="section-kicker">MENOS ACHISMO. MAIS CLAREZA.</p>
+    <h2>Dados que contam a história por trás de cada aprendizado.</h2>
+    <div class="stat-grid">
+        <article><strong>3x</strong><p>mais clareza sobre onde focar os estudos</p></article>
+        <article><strong>+32%</strong><p>de evolução média no primeiro trimestre</p></article>
+        <article><strong>8h</strong><p>economizadas por educador a cada semana</p></article>
+    </div>
+</section>
+
+<section class="how-section" id="como-funciona">
+    <div class="section-shell">
+        <div class="section-heading">
+            <div><p class="section-kicker">COMO FUNCIONA</p><h2>Da resposta ao próximo passo.</h2></div>
+            <p>A Lumini transforma questionários em diagnósticos claros e ações que respeitam o ritmo de cada estudante.</p>
+        </div>
+        <div class="steps-grid">
+            <article class="step-card">
+                <span class="step-number">01</span>
+                <div class="step-icon">✓</div>
+                <h3>Responda e descubra</h3>
+                <p>Questionários inteligentes mapeiam conhecimentos, rotina e estilo de aprendizagem.</p>
+            </article>
+            <article class="step-card featured">
+                <span class="step-number">02</span>
+                <div class="step-icon">✦</div>
+                <h3>A IA encontra os padrões</h3>
+                <p>O desempenho vira um diagnóstico simples, com forças, lacunas e prioridades.</p>
+            </article>
+            <article class="step-card">
+                <span class="step-number">03</span>
+                <div class="step-icon">↗</div>
+                <h3>Evolua com direção</h3>
+                <p>Planos personalizados e acompanhamento contínuo mostram o melhor próximo passo.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="solutions-section section-shell" id="para-quem">
+    <div class="section-heading centered">
+        <div><p class="section-kicker">UMA PLATAFORMA. DUAS PERSPECTIVAS.</p><h2>Feita para quem aprende.<br>E para quem torna isso possível.</h2></div>
+    </div>
+    <div class="solution-grid">
+        <article class="solution-card student-card">
+            <div class="solution-tag">PARA ESTUDANTES</div>
+            <div class="solution-icon">◎</div>
+            <h3>Seu progresso, no seu ritmo.</h3>
+            <p>Entenda como você aprende, acompanhe sua evolução e saiba exatamente onde concentrar energia.</p>
+            <ul>
+                <li>Diagnóstico individual com IA</li>
+                <li>Metas e trilhas personalizadas</li>
+                <li>Evolução visual e motivadora</li>
+            </ul>
+            <a href="{% url 'accounts:sign-up' %}">Criar minha conta <span>→</span></a>
+        </article>
+        <article class="solution-card institution-card">
+            <div class="solution-tag">PARA INSTITUIÇÕES</div>
+            <div class="solution-icon">▦</div>
+            <h3>Visão ampla sem perder o indivíduo.</h3>
+            <p>Enxergue tendências, antecipe dificuldades e dê aos educadores dados para agir no momento certo.</p>
+            <ul>
+                <li>Painel por turma, curso e unidade</li>
+                <li>Alertas de risco e engajamento</li>
+                <li>Relatórios acionáveis para a equipe</li>
+            </ul>
+            <a href="mailto:contato@lumini.edu.br">Falar com especialista <span>→</span></a>
+        </article>
+    </div>
+</section>
+
+<section class="cta-section section-shell">
+    <div class="cta-card">
+        <span class="cta-orb orb-one"></span><span class="cta-orb orb-two"></span>
+        <p class="section-kicker">COMECE HOJE</p>
+        <h2>Aprender melhor começa por<br>entender melhor.</h2>
+        <p>Descubra o que os dados podem revelar sobre a sua jornada.</p>
+        <a class="button button-light button-large" href="{% url 'accounts:sign-up' %}">Criar conta gratuita <span>→</span></a>
+    </div>
+</section>
+
+<footer class="site-footer section-shell">
+    <a class="brand" href="#"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M8 21.5V12l8-4.5 8 4.5v9.5L16 26l-8-4.5Z"/><path d="M11.5 14 16 16.5l4.5-2.5M16 16.5V22"/></svg></span><span>Lumini</span></a>
+    <p>Inteligência para cada jornada de aprendizagem.</p>
+    <span>© 2026 Lumini</span>
+</footer>
+{% endblock %}
