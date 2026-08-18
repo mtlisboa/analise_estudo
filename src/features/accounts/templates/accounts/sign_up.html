@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Criar conta | Análise de Estudo{% endblock %}
+
+{% block content %}
+<section class="card auth-card">
+    <h1>Criar conta</h1>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}
+            {{ field.errors }}
+        {% endfor %}
+        <button type="submit">Cadastrar</button>
+    </form>
+    <p class="form-footer">Já possui conta? <a href="{% url 'accounts:login' %}">Entrar</a>.</p>
+</section>
+{% endblock %}
