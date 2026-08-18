@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Meu painel | Lumini{% endblock %}
+{% block main_class %}dashboard-page{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+    <div class="dashboard-welcome">
+        <div><p class="section-kicker">VISÃO GERAL</p><h1>Olá, {{ user.first_name|default:user.username }}! <span>👋</span></h1><p>Acompanhe sua jornada e continue avançando.</p></div>
+        <a class="button button-small" href="#questionario">Novo questionário <span>＋</span></a>
+    </div>
+    <div class="dashboard-metrics">
+        <article class="dash-card metric-card"><div class="metric-label"><span>Progresso geral</span><i>↗</i></div><strong>78%</strong><div class="progress-track"><span style="width:78%"></span></div><small>12% a mais neste mês</small></article>
+        <article class="dash-card metric-card"><div class="metric-label"><span>Questionários</span><i>✓</i></div><strong>24</strong><p>3 concluídos esta semana</p></article>
+        <article class="dash-card metric-card"><div class="metric-label"><span>Sequência atual</span><i>◉</i></div><strong>12 <small>dias</small></strong><p>Seu recorde é de 18 dias</p></article>
+    </div>
+    <div class="dashboard-grid">
+        <article class="dash-card evolution-card">
+            <div class="dash-card-title"><div><h2>Sua evolução</h2><p>Desempenho nos últimos 30 dias</p></div><span>Último mês⌄</span></div>
+            <div class="real-chart">
+                <div class="y-labels"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div>
+                <div class="chart-plot"><i></i><i></i><i></i><i></i><i></i><svg viewBox="0 0 600 190" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="dash-area" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7558e8" stop-opacity=".22"/><stop offset="1" stop-color="#7558e8" stop-opacity="0"/></linearGradient></defs><path class="area" d="M0 155 C70 142 82 128 145 134 S230 115 300 109 S385 93 445 78 S530 51 600 39 V190 H0Z"/><path class="line" d="M0 155 C70 142 82 128 145 134 S230 115 300 109 S385 93 445 78 S530 51 600 39"/><circle cx="600" cy="39" r="5"/></svg><div class="x-labels"><span>Sem 1</span><span>Sem 2</span><span>Sem 3</span><span>Sem 4</span></div></div>
+            </div>
+        </article>
+        <article class="dash-card ai-card" id="questionario">
+            <div class="ai-heading"><span>✦</span><div><small>INSIGHT DA IA</small><h2>Você está no caminho certo!</h2></div></div>
+            <p>Seu desempenho em <strong>Matemática</strong> cresceu 23%. Para manter o ritmo, revise equações antes do próximo desafio.</p>
+            <a href="#">Ver recomendação completa <span>→</span></a>
+        </article>
+    </div>
+    <div class="dash-card next-step">
+        <div class="next-icon">◎</div><div><small>PRÓXIMO PASSO</small><h2>Descubra seu perfil de aprendizagem</h2><p>Responda ao diagnóstico inicial e receba sua primeira trilha personalizada.</p></div><button class="button button-small" type="button">Começar diagnóstico <span>→</span></button>
+    </div>
+</section>
+{% endblock %}

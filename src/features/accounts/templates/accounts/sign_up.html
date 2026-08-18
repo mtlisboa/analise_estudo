@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Criar conta | Lumini{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+
+{% block content %}
+<section class="auth-layout signup-layout">
+    <div class="auth-intro">
+        <span class="pill"><span></span> Comece gratuitamente</span>
+        <h1>Seu aprendizado.<br><em>Com mais direção.</em></h1>
+        <p>Crie sua conta e transforme respostas em um plano claro para evoluir.</p>
+        <ul class="auth-benefits">
+            <li><span>✓</span> Diagnóstico individual de aprendizagem</li>
+            <li><span>✓</span> Insights personalizados com IA</li>
+            <li><span>✓</span> Acompanhamento visual do progresso</li>
+        </ul>
+    </div>
+    <div class="card auth-card signup-card">
+        <div class="auth-card-heading"><span>CRIAR CONTA</span><h2>Comece sua jornada</h2><p>Leva menos de dois minutos.</p></div>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <button class="button form-submit" type="submit">Criar minha conta <span>→</span></button>
+        </form>
+        <p class="form-footer">Já possui uma conta? <a href="{% url 'accounts:login' %}">Entrar</a></p>
+    </div>
+</section>
+{% endblock %}
