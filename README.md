@@ -6,6 +6,8 @@ Base de uma aplicação para análise da capacidade e do desempenho de estudante
 
 - Python 3.12+
 - Django 5.2
+- Django Channels (WebSocket/ASGI)
+- MCP Python SDK v2
 - SQLite
 - Autenticação por sessão
 
@@ -52,6 +54,44 @@ Organizações não fazem parte deste módulo.
 python src/manage.py test
 ```
 
+## Chatbot com agente MCP
+
+O bounded context `ia-integrations` fica em `src/contexts/ia_integrations` e
+contém a feature `chat_bot`. O navegador se comunica com a aplicação por
+WebSocket, enquanto a aplicação consulta o agente externo pelo transporte MCP
+Streamable HTTP. A obtenção e indexação da documentação pertencem ao agente MCP
+e podem ser implementadas depois sem alterar o contrato WebSocket.
+
+Configure a conexão no `.env`:
+
+```dotenv
+IA_MCP_SERVER_URL=http://localhost:9000/mcp
+IA_MCP_CHAT_TOOL=answer_from_documentation
+IA_MCP_TIMEOUT_SECONDS=30
+```
+
+O socket exige uma sessão Django autenticada e está disponível em:
+
+```text
+ws://localhost:8000/ws/ia-integrations/chat-bot/
+```
+
+Contrato de entrada:
+
+```json
+{
+  "type": "chat.message",
+  "message": "Como posso melhorar meu desempenho?",
+  "conversation_id": "identificador-opcional"
+}
+```
+
+Quando `conversation_id` não é informado, o servidor cria um UUID. Uma resposta
+bem-sucedida usa `chat.response`; falhas de validação ou indisponibilidade do
+agente usam `chat.error`. O tool MCP configurado deve aceitar `message`,
+`conversation_id` e `user_id`, retornando texto ou um objeto com uma das chaves
+`message`, `answer` ou `result`.
+
 ## Imagem Docker
 
 ```bash
@@ -88,6 +128,10 @@ Para também remover os dados persistidos, execute conscientemente
 ```text
 src/
 ├── config/                 # configuração e roteamento global
+├── contexts/
+│   └── ia_integrations/    # contexto ia-integrations
+│       └── features/
+│           └── chat_bot/   # WebSocket, aplicação e adaptador MCP
 ├── features/
 │   ├── accounts/           # feature de identidade e acesso
 │   │   ├── migrations/

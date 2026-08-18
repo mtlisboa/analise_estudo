@@ -17,6 +17,7 @@ ALLOWED_HOSTS = [
 ]
 
 INSTALLED_APPS = [
+    "channels",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -25,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "features.accounts.apps.AccountsConfig",
     "features.users_manager.apps.UsersManagerConfig",
+    "contexts.ia_integrations.apps.IaIntegrationsConfig",
 ]
 
 MIDDLEWARE = [
@@ -57,6 +59,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
+
+IA_MCP_SERVER_URL = os.getenv("IA_MCP_SERVER_URL", "")
+IA_MCP_CHAT_TOOL = os.getenv("IA_MCP_CHAT_TOOL", "answer_from_documentation")
+IA_MCP_TIMEOUT_SECONDS = float(os.getenv("IA_MCP_TIMEOUT_SECONDS", "30"))
 
 DATABASES = {
     "default": {

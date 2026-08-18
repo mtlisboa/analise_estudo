@@ -10,12 +10,15 @@ services:
     command: >-
       sh -c "python manage.py collectstatic --noinput &&
       python manage.py migrate --noinput &&
-      gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+      uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --workers 2"
     environment:
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-unsafe-compose-development-key}"
       DJANGO_DEBUG: "${DJANGO_DEBUG:-True}"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
       SQLITE_PATH: /data/db.sqlite3
+      IA_MCP_SERVER_URL: "${IA_MCP_SERVER_URL:-}"
+      IA_MCP_CHAT_TOOL: "${IA_MCP_CHAT_TOOL:-answer_from_documentation}"
+      IA_MCP_TIMEOUT_SECONDS: "${IA_MCP_TIMEOUT_SECONDS:-30}"
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:

@@ -1,4 +1,7 @@
 Django==5.2.5
+channels[daphne]==4.3.2
 gunicorn==23.0.0
+mcp==2.0.0
 python-dotenv==1.1.1
+uvicorn==0.52.3
 whitenoise==6.9.0

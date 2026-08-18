@@ -1,0 +1,1 @@
+"""Application bounded contexts."""
