@@ -13,7 +13,7 @@
             document.documentElement.dataset.theme = theme;
         }());
     </script>
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=3">
 </head>
 <body>
     <header class="site-header">
@@ -28,8 +28,9 @@
             {% block navigation %}
             <nav class="nav-actions" aria-label="Navegação principal">
                 {% if user.is_authenticated %}
-                    <a class="nav-link" href="{% url 'accounts:dashboard' %}">Meu painel</a>
-                    <a class="nav-link" href="{% url 'users-manager:dashboard' %}">Pessoas e turmas</a>
+                    <a class="nav-link nav-dashboard" href="{% url 'accounts:dashboard' %}">Meu painel</a>
+                    <a class="nav-link nav-chat" href="{% url 'ia-integrations:chat-bot' %}">Assistente IA</a>
+                    <a class="nav-link nav-manager" href="{% url 'users-manager:dashboard' %}">Pessoas e turmas</a>
                     <form method="post" action="{% url 'accounts:logout' %}">
                         {% csrf_token %}
                         <button class="nav-link logout-button" type="submit">Sair</button>
