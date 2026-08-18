@@ -123,6 +123,23 @@ docker compose down
 Para também remover os dados persistidos, execute conscientemente
 `docker compose down --volumes`.
 
+## Deploy no Railway
+
+O processo ASGI usa `config.settings.production` por padrão. Nesse modo, a
+aplicação confia no proxy HTTPS do Railway, ativa cookies seguros e adiciona
+automaticamente `https://$RAILWAY_PUBLIC_DOMAIN` a `CSRF_TRUSTED_ORIGINS`. Não é
+necessário copiar manualmente o domínio gerado pelo Railway.
+
+Para domínios próprios, informe as origens completas, incluindo o esquema
+`https://`, separadas por vírgula:
+
+```dotenv
+DJANGO_CSRF_TRUSTED_ORIGINS=https://app.exemplo.com,https://admin.exemplo.com
+```
+
+Mantenha `DJANGO_SECRET_KEY` configurada no serviço. O domínio público do
+Railway também é incluído automaticamente em `ALLOWED_HOSTS`.
+
 ## Estrutura
 
 ```text
