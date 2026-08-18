@@ -47,6 +47,23 @@ A imagem executa a aplicação com Gunicorn na porta `8000` usando um usuário
 não-root. Antes da primeira execução, aplique as migrações ou utilize o
 Docker Compose descrito abaixo.
 
+## Docker Compose
+
+```bash
+docker compose up --build
+```
+
+O serviço aplica as migrações antes de iniciar o Gunicorn. O banco SQLite fica
+armazenado no volume nomeado `sqlite_data`, portanto os dados persistem entre
+reinicializações dos containers. Para encerrar:
+
+```bash
+docker compose down
+```
+
+Para também remover os dados persistidos, execute conscientemente
+`docker compose down --volumes`.
+
 ## Estrutura
 
 ```text

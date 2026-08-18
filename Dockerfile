@@ -7,7 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN addgroup --system django \
-    && adduser --system --ingroup django django
+    && adduser --system --ingroup django django \
+    && mkdir /data \
+    && chown django:django /data
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
