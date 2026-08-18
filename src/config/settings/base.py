@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .environment import csv_values, railway_origin
+from .environment import csrf_origins, csv_values, railway_origin
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 PROJECT_DIR = BASE_DIR.parent
@@ -20,7 +20,7 @@ RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
 if RAILWAY_PUBLIC_DOMAIN and RAILWAY_PUBLIC_DOMAIN not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
 
-CSRF_TRUSTED_ORIGINS = csv_values(os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", ""))
+CSRF_TRUSTED_ORIGINS = csrf_origins(os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", ""))
 if railway_public_origin := railway_origin(RAILWAY_PUBLIC_DOMAIN):
     if railway_public_origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(railway_public_origin)

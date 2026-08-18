@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
-from config.settings.environment import csv_values, railway_origin
+from config.settings.environment import csrf_origins, csv_values, railway_origin
 
 
 class EnvironmentSettingsTests(SimpleTestCase):
@@ -19,6 +19,12 @@ class EnvironmentSettingsTests(SimpleTestCase):
 
     def test_railway_origin_ignores_empty_domain(self) -> None:
         self.assertEqual(railway_origin(""), "")
+
+    def test_csrf_origins_ignores_wildcard_without_scheme(self) -> None:
+        self.assertEqual(
+            csrf_origins("*,https://analiseestudo-production.up.railway.app"),
+            ["https://analiseestudo-production.up.railway.app"],
+        )
 
 
 class RailwayCsrfIntegrationTests(TestCase):
