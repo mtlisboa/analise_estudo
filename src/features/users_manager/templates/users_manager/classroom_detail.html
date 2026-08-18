@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}{{ classroom.name }} | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell narrow-shell">
+    <a class="back-link" href="{% url 'users-manager:dashboard' %}">← Voltar para pessoas e turmas</a>
+    <div class="manager-topbar">
+        <div class="manager-heading"><p class="section-kicker">TURMA</p><h1>{{ classroom.name }}</h1><p>{{ classroom.description|default:"Espaço de aprendizagem" }}</p></div>
+        {% if can_manage %}<a class="button button-small" href="{% url 'users-manager:classroom-invite' classroom.pk %}">Convidar pessoa</a>{% endif %}
+    </div>
+    <article class="dash-card manager-card full-card">
+        <div class="manager-card-title"><div><span>PARTICIPANTES</span><h2>Professores e alunos</h2></div><strong>{{ memberships|length }}</strong></div>
+        <div class="manager-list">
+            {% for membership in memberships %}
+                <div class="manager-list-item">
+                    <div class="avatar-letter">{{ membership.user.username|first|upper }}</div>
+                    <div class="list-copy"><strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong><small>{{ membership.get_role_display }} · {{ membership.get_status_display }}</small></div>
+                </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+{% endblock %}

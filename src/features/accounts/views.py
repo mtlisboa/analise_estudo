@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 
-from .forms import LoginForm, SignUpForm
+from .forms import LoginForm, SignUpForm, SysAdminLoginForm
 
 
 def landing(request: HttpRequest) -> HttpResponse:
@@ -17,6 +17,15 @@ class SessionLoginView(LoginView):
     authentication_form = LoginForm
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
+
+
+class SysAdminLoginView(LoginView):
+    authentication_form = SysAdminLoginForm
+    template_name = "accounts/sysadmin_login.html"
+    redirect_authenticated_user = True
+
+    def get_success_url(self) -> str:
+        return str(reverse_lazy("admin:index"))
 
 
 class SessionLogoutView(LogoutView):

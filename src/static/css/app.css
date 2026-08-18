@@ -338,6 +338,51 @@ svg { display: block; }
 .ai-card { padding: 28px; background: var(--primary); color: #fff; }.ai-heading { display: flex; align-items: center; gap: 12px; }.ai-heading > span { display: grid; width: 39px; height: 39px; place-items: center; border-radius: 11px; background: var(--lime); color: var(--lime-ink); }.ai-heading small { color: var(--lime); font-size: 8px; font-weight: 850; letter-spacing: .12em; }.ai-heading h2 { margin: 3px 0 0; font-family: Georgia, serif; font-size: 19px; font-weight: 500; line-height: 1.15; }.ai-card > p { margin: 28px 0; color: rgba(255,255,255,.75); font-size: 12px; }.ai-card > p strong { color: #fff; }.ai-card > a { color: #fff; font-size: 11px; font-weight: 750; text-decoration: none; }.ai-card > a span { color: var(--lime); }
 .next-step { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; margin-top: 17px; padding: 22px 25px; align-items: center; }.next-icon { display: grid; width: 45px; height: 45px; place-items: center; border-radius: 12px; background: var(--primary-soft); color: var(--primary); font-size: 21px; }.next-step small { color: var(--primary); font-size: 8px; font-weight: 850; letter-spacing: .13em; }.next-step p { margin: 2px 0 0; color: var(--text-soft); font-size: 10px; }
 
+/* Users manager */
+.manager-page { min-height: calc(100vh - 77px); background: var(--bg-soft); }
+.manager-shell { width: min(calc(100% - 48px), var(--max-width)); margin: auto; padding: 52px 0 80px; }
+.narrow-shell { width: min(calc(100% - 48px), 860px); }
+.manager-topbar { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 28px; }
+.manager-heading .section-kicker { margin-bottom: 5px; }
+.manager-heading h1 { margin: 0; font-family: Georgia, serif; font-size: 36px; font-weight: 500; letter-spacing: -.035em; }
+.manager-heading > p:last-child { margin: 4px 0 0; color: var(--text-soft); font-size: 13px; }
+.manager-actions { display: flex; gap: 10px; }
+.button-secondary { border-color: var(--border-strong); background: var(--surface); box-shadow: none; color: var(--primary); }
+.button-secondary:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.manager-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+.manager-card { overflow: hidden; padding: 25px; }
+.full-card { margin-top: 20px; }
+.manager-card-title { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.manager-card-title span, .assessment-card > div > span { color: var(--primary); font-size: 8px; font-weight: 850; letter-spacing: .14em; }
+.manager-card-title h2, .assessment-card h2 { margin: 3px 0 0; font-family: Georgia, serif; font-size: 20px; font-weight: 600; }
+.manager-card-title > strong { color: var(--primary); font-family: Georgia, serif; font-size: 28px; font-weight: 500; }
+.manager-list { display: grid; }
+.manager-list-item { display: flex; min-width: 0; gap: 11px; padding: 15px 0; align-items: center; border-bottom: 1px solid var(--border); }
+.manager-list-item:last-child { border-bottom: 0; }
+.avatar-letter { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border-radius: 11px; background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 800; }
+.list-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.list-copy strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.list-copy small { color: var(--text-faint); font-size: 9px; }
+.list-link { color: inherit; text-decoration: none; }
+.list-link > span { color: var(--primary); }
+.inline-actions { display: flex; gap: 7px; }
+.inline-actions form { margin: 0; }
+.inline-actions button { padding: 4px 7px; border: 0; background: transparent; color: var(--primary); font-size: 9px; font-weight: 750; cursor: pointer; }
+.inline-actions .danger-link { color: #c34455; }
+.empty-state { margin: 20px 0 4px; color: var(--text-faint); font-size: 11px; }
+.assessment-card { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 25px; margin-top: 17px; padding: 25px; align-items: center; }
+.assessment-card p { margin: 4px 0 0; color: var(--text-soft); font-size: 11px; }
+.assessment-history { display: flex; gap: 8px; justify-content: flex-end; }
+.assessment-history > span { display: flex; min-width: 58px; padding: 7px; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; text-align: center; }
+.assessment-history strong { font-family: Georgia, serif; font-size: 15px; }
+.assessment-history small { color: var(--text-faint); font-size: 7px; }
+.back-link { display: inline-block; margin-bottom: 22px; color: var(--primary); font-size: 11px; font-weight: 750; text-decoration: none; }
+.manager-form-card { max-width: 620px; margin: auto; padding: 38px; }
+.form-field select, .form-field textarea { width: 100%; padding: 11px 13px; border: 1px solid var(--border-strong); border-radius: 9px; outline: none; background: var(--bg); color: var(--text); }
+.form-field select { min-height: 48px; }
+.form-field textarea { resize: vertical; }
+.form-field select:focus, .form-field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent); }
+
 @media (max-width: 980px) {
     .nav-links { display: none; }
     .hero { grid-template-columns: 1fr; padding-top: 70px; text-align: center; }
@@ -359,6 +404,13 @@ svg { display: block; }
     .cta-section { padding-bottom: 75px; }.cta-card { padding: 65px 22px; }.site-footer { grid-template-columns: 1fr; gap: 5px; text-align: center; }.site-footer .brand { justify-self: center; }.site-footer p { margin: 8px 0; }.site-footer > span { text-align: center; }
     .auth-layout { grid-template-columns: 1fr; width: min(calc(100% - 32px), 520px); padding: 55px 0 70px; }.auth-intro { text-align: center; }.auth-intro > p, .auth-quote { margin-inline: auto; }.auth-quote { text-align: left; }.auth-benefits { display: inline-grid; text-align: left; }.auth-card { max-width: none; justify-self: stretch; }
     .dashboard-shell { padding-top: 38px; }.dashboard-welcome { align-items: flex-start; flex-direction: column; }.dashboard-metrics { grid-template-columns: 1fr; }.next-step { grid-template-columns: auto 1fr; }.next-step .button { grid-column: 1 / -1; width: 100%; }
+    .manager-shell, .narrow-shell { width: min(calc(100% - 32px), var(--max-width)); }
+    .manager-topbar { align-items: stretch; flex-direction: column; }
+    .manager-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .manager-grid { grid-template-columns: 1fr; }
+    .assessment-card { grid-template-columns: 1fr; }
+    .assessment-history { justify-content: flex-start; }
+    .inline-actions { flex-direction: column; }
 }
 
 @media (max-width: 480px) {

@@ -81,3 +81,46 @@ class SessionAuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Este e-mail já está em uso.")
         self.assertFalse(User.objects.filter(username="outro_usuario").exists())
+
+    def test_sysadmin_cannot_use_common_login(self) -> None:
+        sysadmin = User.objects.create_user(
+            username="sistema",
+            email="sistema@example.com",
+            password="senha-sistema-123",
+            system_role=User.SystemRole.SYSADMIN,
+        )
+
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"username": sysadmin.username, "password": "senha-sistema-123"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "acesso exclusivo de sysadmin")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_only_sysadmin_can_use_separate_login(self) -> None:
+        response = self.client.post(
+            reverse("accounts:sysadmin-login"),
+            {"username": self.user.username, "password": "senha-forte-123"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "exclusivo para administradores de sistema")
+
+    def test_sysadmin_login_redirects_to_admin(self) -> None:
+        sysadmin = User.objects.create_user(
+            username="sistema",
+            email="sistema@example.com",
+            password="senha-sistema-123",
+            system_role=User.SystemRole.SYSADMIN,
+            is_staff=True,
+        )
+
+        response = self.client.post(
+            reverse("accounts:sysadmin-login"),
+            {"username": sysadmin.username, "password": "senha-sistema-123"},
+        )
+
+        self.assertRedirects(response, reverse("admin:index"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), sysadmin.pk)

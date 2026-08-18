@@ -31,6 +31,21 @@ fica em `/painel/` e exige autenticação; uma nova conta pode ser criada em
 O tema claro/escuro acompanha a preferência do sistema no primeiro acesso e a
 escolha feita no botão do cabeçalho fica salva no navegador.
 
+## Gestão de usuários
+
+O módulo `users_manager` mantém uma única identidade autenticável para cada
+pessoa. Professor e aluno são papéis contextuais definidos por vínculos e
+participações em turmas; gestor e administrador são papéis globais. O módulo
+permite:
+
+- solicitar e aceitar vínculos entre professores e alunos;
+- criar turmas e convidar participantes como professor ou aluno;
+- registrar autoavaliações de foco, organização, compreensão e motivação;
+- usar o login comum em `/conta/entrar/` para todas as contas, exceto sysadmin;
+- autenticar sysadmins exclusivamente em `/sysadmin/entrar/`.
+
+Organizações não fazem parte deste módulo.
+
 ## Testes
 
 ```bash
@@ -74,13 +89,14 @@ Para também remover os dados persistidos, execute conscientemente
 src/
 ├── config/                 # configuração e roteamento global
 ├── features/
-│   └── accounts/           # feature de identidade e acesso
-│       ├── migrations/
-│       ├── templates/accounts/
-│       ├── forms.py
-│       ├── models.py
-│       ├── urls.py
-│       └── views.py
+│   ├── accounts/           # feature de identidade e acesso
+│   │   ├── migrations/
+│   │   ├── templates/accounts/
+│   │   ├── forms.py
+│   │   ├── models.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   └── users_manager/      # vínculos, turmas e autoavaliações
 ├── static/css/
 ├── templates/
 └── manage.py

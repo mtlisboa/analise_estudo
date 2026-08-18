@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Pessoas e turmas | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell">
+    <div class="manager-topbar">
+        <div class="manager-heading">
+            <p class="section-kicker">USERS MANAGER</p>
+            <h1>Pessoas e turmas</h1>
+            <p>Administre seus vínculos de aprendizagem em um só lugar.</p>
+        </div>
+        <div class="manager-actions">
+            <a class="button button-small button-secondary" href="{% url 'users-manager:relationship-create' %}">Novo vínculo</a>
+            <a class="button button-small" href="{% url 'users-manager:classroom-create' %}">Nova turma</a>
+        </div>
+    </div>
+
+    <div class="manager-grid">
+        <article class="dash-card manager-card">
+            <div class="manager-card-title"><div><span>RELAÇÕES</span><h2>Professores e alunos</h2></div><strong>{{ relationships|length }}</strong></div>
+            <div class="manager-list">
+                {% for relationship in relationships %}
+                    <div class="manager-list-item">
+                        <div class="avatar-letter">{% if relationship.teacher_id == user.id %}{{ relationship.student.username|first|upper }}{% else %}{{ relationship.teacher.username|first|upper }}{% endif %}</div>
+                        <div class="list-copy">
+                            <strong>{% if relationship.teacher_id == user.id %}{{ relationship.student.get_full_name|default:relationship.student.username }}{% else %}{{ relationship.teacher.get_full_name|default:relationship.teacher.username }}{% endif %}</strong>
+                            <small>Você é {% if relationship.teacher_id == user.id %}professor{% else %}aluno{% endif %} · {{ relationship.get_status_display }}</small>
+                        </div>
+                        {% if relationship.status == "PENDING" and relationship.requested_by_id != user.id %}
+                            <div class="inline-actions">
+                                <form method="post" action="{% url 'users-manager:relationship-decide' relationship.pk 'accept' %}">{% csrf_token %}<button type="submit">Aceitar</button></form>
+                                <form method="post" action="{% url 'users-manager:relationship-decide' relationship.pk 'reject' %}">{% csrf_token %}<button class="danger-link" type="submit">Recusar</button></form>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p class="empty-state">Você ainda não possui vínculos. Envie uma solicitação para um professor ou aluno.</p>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="dash-card manager-card">
+            <div class="manager-card-title"><div><span>TURMAS</span><h2>Seus espaços</h2></div><strong>{{ classrooms|length }}</strong></div>
+            <div class="manager-list">
+                {% for membership in memberships %}
+                    {% if membership.status == "PENDING" %}
+                    <div class="manager-list-item invitation-item">
+                        <div class="avatar-letter">{{ membership.classroom.name|first|upper }}</div>
+                        <div class="list-copy"><strong>{{ membership.classroom.name }}</strong><small>Convite para ser {{ membership.get_role_display|lower }}</small></div>
+                        <div class="inline-actions">
+                            <form method="post" action="{% url 'users-manager:classroom-invitation-decide' membership.pk 'accept' %}">{% csrf_token %}<button type="submit">Aceitar</button></form>
+                            <form method="post" action="{% url 'users-manager:classroom-invitation-decide' membership.pk 'reject' %}">{% csrf_token %}<button class="danger-link" type="submit">Recusar</button></form>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                {% for classroom in classrooms %}
+                    <a class="manager-list-item list-link" href="{% url 'users-manager:classroom-detail' classroom.pk %}">
+                        <div class="avatar-letter">{{ classroom.name|first|upper }}</div>
+                        <div class="list-copy"><strong>{{ classroom.name }}</strong><small>{{ classroom.memberships.count }} participante{{ classroom.memberships.count|pluralize }}</small></div>
+                        <span>→</span>
+                    </a>
+                {% empty %}
+                    <p class="empty-state">Nenhuma turma ativa. Crie um espaço para acompanhar alunos.</p>
+                {% endfor %}
+            </div>
+        </article>
+    </div>
+
+    <article class="dash-card assessment-card">
+        <div>
+            <span>AUTOAVALIAÇÃO</span>
+            <h2>Como está sua aprendizagem hoje?</h2>
+            <p>Avalie foco, organização, compreensão e motivação em poucos minutos.</p>
+        </div>
+        <div class="assessment-history">
+            {% for assessment in assessments %}<span><strong>{{ assessment.score }}%</strong><small>{{ assessment.created_at|date:"d/m/Y" }}</small></span>{% endfor %}
+        </div>
+        <a class="button button-small" href="{% url 'users-manager:assessment-create' %}">Me autoavaliar</a>
+    </article>
+</section>
+{% endblock %}
