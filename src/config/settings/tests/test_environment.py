@@ -56,3 +56,37 @@ class RailwayCsrfIntegrationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
+
+    @override_settings(
+        ALLOWED_HOSTS=[domain],
+        CSRF_TRUSTED_ORIGINS=[origin],
+        SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https"),
+        SESSION_COOKIE_SECURE=True,
+        CSRF_COOKIE_SECURE=True,
+    )
+    def test_accepts_sign_up_post_from_railway_public_origin(self) -> None:
+        client = Client(enforce_csrf_checks=True)
+        request_headers = {
+            "HTTP_HOST": self.domain,
+            "HTTP_X_FORWARDED_PROTO": "https",
+        }
+        response = client.get(reverse("accounts:sign-up"), **request_headers)
+        csrf_token = response.cookies["csrftoken"].value
+
+        response = client.post(
+            reverse("accounts:sign-up"),
+            {
+                "username": "new-railway-user",
+                "email": "new-railway-user@example.com",
+                "password1": "safe-password-456",
+                "password2": "safe-password-456",
+                "csrfmiddlewaretoken": csrf_token,
+            },
+            HTTP_ORIGIN=self.origin,
+            **request_headers,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            get_user_model().objects.filter(username="new-railway-user").exists()
+        )
