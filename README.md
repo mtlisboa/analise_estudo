@@ -33,6 +33,21 @@ fica em `/painel/` e exige autenticação; uma nova conta pode ser criada em
 O tema claro/escuro acompanha a preferência do sistema no primeiro acesso e a
 escolha feita no botão do cabeçalho fica salva no navegador.
 
+### Sysadmin por variáveis de ambiente
+
+Uma conta de sistema pode ser criada ou atualizada automaticamente depois das
+migrations. Configure as quatro variáveis no ambiente de execução:
+
+```dotenv
+DJANGO_SYSADMIN_NAME=Administrador do Sistema
+DJANGO_SYSADMIN_LOGIN=sysadmin
+DJANGO_SYSADMIN_EMAIL=sysadmin@example.com
+DJANGO_SYSADMIN_PASSWORD=uma-senha-forte
+```
+
+O provisionamento é idempotente e permite rotacionar a senha alterando a
+variável. O acesso dessa conta é exclusivo pela rota `/sysadmin/entrar/`.
+
 ## Organizações, usuários, turmas e testes
 
 O módulo `users_manager` mantém uma única identidade autenticável para cada
