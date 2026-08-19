@@ -22,9 +22,10 @@
 {% block content %}
 <section class="hero section-shell">
     <div class="hero-copy">
+        <div class="hero-index"><strong>01</strong><span></span></div>
         <div class="pill"><span></span> Inteligência que transforma aprendizagem</div>
-        <h1>Cada aluno aprende de um jeito. <em>Agora você pode enxergar.</em></h1>
-        <p class="hero-lead">Acompanhe o progresso, identifique lacunas e receba caminhos personalizados com IA — para o aluno e para toda a instituição.</p>
+        <h1>Enxergar a lacuna.<br><em>Iluminar o caminho.</em></h1>
+        <p class="hero-lead">Cada aluno aprende de um jeito. A LuminiAI transforma cada resposta em <strong>diagnóstico preciso</strong> e <strong>caminhos de aprendizagem personalizados</strong>.</p>
         <div class="hero-actions">
             <a class="button button-large" href="{% url 'accounts:sign-up' %}">
                 Começar gratuitamente
@@ -40,44 +41,21 @@
         </div>
     </div>
 
-    <div class="hero-visual" aria-label="Prévia do painel de progresso da Lumini">
-        <div class="glow glow-one"></div>
-        <div class="glow glow-two"></div>
-        <div class="dashboard-preview">
-            <div class="preview-topbar">
-                <div class="preview-brand"><span class="mini-mark"></span> lumini</div>
-                <div class="preview-profile"><span></span><i></i></div>
-            </div>
-            <div class="preview-body">
-                <aside class="preview-sidebar">
-                    <span class="active"></span><span></span><span></span><span></span><span></span>
-                </aside>
-                <div class="preview-content">
-                    <div class="preview-heading"><div><span>Olá, Marina!</span><small>Veja como está o seu progresso.</small></div><i>7 dias</i></div>
-                    <div class="metric-row">
-                        <div class="mini-card"><span>Progresso geral</span><strong>78%</strong><small>↗ 12% este mês</small></div>
-                        <div class="mini-card"><span>Sequência atual</span><strong>12 <i>dias</i></strong><small>Seu melhor: 18 dias</small></div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-title"><span>Evolução semanal</span><small>Últimas 5 semanas</small></div>
-                        <div class="chart-area">
-                            <div class="chart-grid"><i></i><i></i><i></i><i></i></div>
-                            <svg viewBox="0 0 460 150" preserveAspectRatio="none" aria-hidden="true">
-                                <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7c5cff" stop-opacity=".28"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></linearGradient></defs>
-                                <path class="area" d="M0 122 C55 112 67 90 115 96 S182 80 230 85 S300 64 345 60 S400 30 460 27 V150 H0Z"/>
-                                <path class="line" d="M0 122 C55 112 67 90 115 96 S182 80 230 85 S300 64 345 60 S400 30 460 27"/>
-                                <circle cx="460" cy="27" r="5"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="insight-card floating-card">
-            <span class="insight-icon">✦</span>
-            <div><strong>Insight da IA</strong><p>Você evoluiu <b>23%</b> em Matemática esta semana!</p></div>
-        </div>
-        <div class="score-card floating-card"><span>Desempenho</span><strong>8,7</strong><small>↑ 1,2 pontos</small></div>
+    <div class="hero-visual brand-monument" aria-label="Símbolo da LuminiAI: um caminho contínuo em laranja">
+        <span class="brand-orbit orbit-one" aria-hidden="true"></span>
+        <span class="brand-orbit orbit-two" aria-hidden="true"></span>
+        <svg viewBox="0 0 640 430" fill="none" aria-hidden="true">
+            <defs>
+                <linearGradient id="infinity-orange" x1="86" y1="74" x2="554" y2="350" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#ff9d00"/>
+                    <stop offset=".55" stop-color="#ff6a00"/>
+                    <stop offset="1" stop-color="#ff7b00"/>
+                </linearGradient>
+            </defs>
+            <circle cx="148" cy="70" r="28" fill="url(#infinity-orange)"/>
+            <path d="M148 315C67 306 55 209 105 151c48-56 108-10 178 78 69 86 145 126 228 75 101-62 47-180-45-169-78 9-124 84-179 142-49 51-85 44-139 38Z" stroke="url(#infinity-orange)" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="monument-wordmark"><strong>Lumini<span>AI</span></strong><small>ENXERGAR A LACUNA. <b>ILUMINAR</b> O CAMINHO.</small></div>
     </div>
 </section>
 
@@ -163,7 +141,7 @@
 </section>
 
 <footer class="site-footer section-shell">
-    <a class="brand" href="#"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M8 21.5V12l8-4.5 8 4.5v9.5L16 26l-8-4.5Z"/><path d="M11.5 14 16 16.5l4.5-2.5M16 16.5V22"/></svg></span><span>Lumini</span></a>
+    <a class="brand" href="#"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 40" fill="none"><circle cx="13" cy="5" r="3" fill="currentColor" stroke="none"/><path d="M13 31C5 30 4 20 9 14c5-6 11-1 18 8 7 9 15 13 23 8 10-7 5-19-4-18-8 1-12 9-18 15-5 5-9 5-15 4Z"/></svg></span><span class="brand-word">Lumini<span>AI</span></span></a>
     <p>Inteligência para cada jornada de aprendizagem.</p>
     <span>© 2026 Lumini</span>
 </footer>
