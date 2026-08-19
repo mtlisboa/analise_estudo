@@ -31,7 +31,7 @@
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
                 <span class="sidebar-label">Meu painel</span>
             </a>
-            <a class="sidebar-link{% if request.resolver_match.namespace == 'users-manager' %} active{% endif %}" href="{% url 'users-manager:dashboard' %}"{% if request.resolver_match.namespace == 'users-manager' %} aria-current="page"{% endif %} title="Organizações e turmas">
+            <a class="sidebar-link{% if request.resolver_match.namespace == 'users-manager' or request.resolver_match.namespace == 'organization-settings' %} active{% endif %}" href="{% url 'users-manager:dashboard' %}"{% if request.resolver_match.namespace == 'users-manager' or request.resolver_match.namespace == 'organization-settings' %} aria-current="page"{% endif %} title="Organizações e turmas">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20v-9l8-5 8 5v9"/><path d="M8 20v-5h8v5M9 11h.01M15 11h.01"/></svg>
                 <span class="sidebar-label">Organizações e turmas</span>
             </a>

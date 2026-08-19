@@ -80,7 +80,11 @@ class UsersManagerTests(TestCase):
     def test_user_can_create_organization_and_becomes_teacher_member(self) -> None:
         response = self.client.post(
             reverse("users-manager:organization-create"),
-            {"name": "Escola Lumini", "description": "Unidade João Pessoa"},
+            {
+                "name": "Escola Lumini",
+                "description": "Unidade João Pessoa",
+                "is_teacher": "on",
+            },
         )
         organization = Organization.objects.get(name="Escola Lumini")
         self.assertRedirects(
@@ -90,6 +94,25 @@ class UsersManagerTests(TestCase):
         membership = organization.memberships.get(user=self.owner)
         self.assertTrue(membership.is_teacher)
         self.assertFalse(membership.is_student)
+
+    def test_creator_can_join_new_organization_only_as_student(self) -> None:
+        response = self.client.post(
+            reverse("users-manager:organization-create"),
+            {
+                "name": "Grupo de estudos",
+                "description": "",
+                "is_student": "on",
+            },
+        )
+
+        organization = Organization.objects.get(name="Grupo de estudos")
+        membership = organization.memberships.get(user=self.owner)
+        self.assertRedirects(
+            response,
+            reverse("users-manager:organization-detail", kwargs={"pk": organization.pk}),
+        )
+        self.assertFalse(membership.is_teacher)
+        self.assertTrue(membership.is_student)
 
     def test_owner_can_add_user_with_teacher_and_student_flags(self) -> None:
         organization = self.create_organization()

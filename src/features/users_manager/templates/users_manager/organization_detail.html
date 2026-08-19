@@ -9,6 +9,7 @@
     <div class="manager-topbar">
         <div class="manager-heading"><p class="section-kicker">ORGANIZAÇÃO</p><h1>{{ organization.name }}</h1><p>{{ organization.description|default:"Contexto educacional" }}</p></div>
         <div class="manager-actions">
+            {% if can_manage %}<a class="button button-small button-secondary" href="{% url 'organization-settings:detail' organization.pk %}">Configurações</a>{% endif %}
             {% if can_manage %}<a class="button button-small button-secondary" href="{% url 'users-manager:organization-member-add' organization.pk %}">Adicionar membro</a>{% endif %}
             {% if can_create_classroom %}<a class="button button-small" href="{% url 'users-manager:classroom-create' organization.pk %}">Nova turma</a>{% endif %}
         </div>

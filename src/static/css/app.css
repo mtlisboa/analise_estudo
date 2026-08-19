@@ -374,6 +374,7 @@ svg { display: block; }
 .auth-card-heading > span { color: var(--primary); font-size: 10px; font-weight: 850; letter-spacing: .14em; }.auth-card-heading h2 { margin: 7px 0 3px; font-family: Georgia, serif; font-size: 32px; font-weight: 500; letter-spacing: -.03em; }.auth-card-heading p { margin: 0 0 29px; color: var(--text-soft); font-size: 13px; }
 .form-field { margin-top: 17px; }.form-field label { display: block; margin: 0 0 7px; color: var(--text); font-size: 12px; font-weight: 750; }
 .form-field input { width: 100%; min-height: 48px; padding: 11px 13px; border: 1px solid var(--border-strong); border-radius: 9px; outline: none; background: var(--bg); color: var(--text); transition: border-color .2s, box-shadow .2s; }.form-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent); }
+.form-field input[type="checkbox"] { width: 19px; min-height: 19px; padding: 0; accent-color: var(--primary); vertical-align: middle; }
 .form-field small { display: block; margin-top: 6px; color: var(--text-faint); font-size: 10px; line-height: 1.4; }.form-field small ul { margin: 5px 0 0; padding-left: 18px; }
 .errorlist { margin: 6px 0 0; padding-left: 18px; color: #c34455; font-size: 11px; }.form-errors { padding: 10px 12px; border-radius: 8px; background: #ffe9ec; color: #a12d3e; font-size: 12px; }.form-errors .errorlist { margin: 0; }
 .form-submit { width: 100%; min-height: 49px; margin-top: 26px; }.form-submit span { margin-left: auto; }

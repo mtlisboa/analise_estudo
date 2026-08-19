@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "features.accounts.apps.AccountsConfig",
     "features.users_manager.apps.UsersManagerConfig",
+    "features.organization_settings.apps.OrganizationSettingsConfig",
     "contexts.ia_integrations.apps.IaIntegrationsConfig",
 ]
 

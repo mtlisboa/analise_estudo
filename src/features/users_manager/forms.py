@@ -71,9 +71,23 @@ class RelationshipRequestForm(forms.Form):
 
 
 class OrganizationForm(forms.ModelForm):
+    is_teacher = forms.BooleanField(label="Quero participar como professor", required=False)
+    is_student = forms.BooleanField(label="Quero participar como aluno", required=False)
+
     class Meta:
         model = Organization
         fields = ("name", "description")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.is_bound:
+            self.initial["is_teacher"] = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get("is_teacher") and not cleaned_data.get("is_student"):
+            raise forms.ValidationError("Escolha pelo menos um papel: professor ou aluno.")
+        return cleaned_data
 
 
 class OrganizationMemberForm(forms.Form):

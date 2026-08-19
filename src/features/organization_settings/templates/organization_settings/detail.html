@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações de {{ organization.name }} | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell narrow-shell">
+    <a class="back-link" href="{% url 'users-manager:organization-detail' organization.pk %}">← Voltar para {{ organization.name }}</a>
+    <div class="manager-topbar">
+        <div class="manager-heading">
+            <p class="section-kicker">SETTINGS</p>
+            <h1>Configurações</h1>
+            <p>Edite a organização e escolha como você participa dela.</p>
+        </div>
+    </div>
+    <article class="card manager-form-card">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <button class="button form-submit" type="submit">Salvar configurações</button>
+        </form>
+    </article>
+</section>
+{% endblock %}

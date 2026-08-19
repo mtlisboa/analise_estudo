@@ -72,7 +72,8 @@ def create_organization(request: HttpRequest) -> HttpResponse:
         OrganizationMembership.objects.create(
             organization=organization,
             user=request.user,
-            is_teacher=True,
+            is_teacher=form.cleaned_data["is_teacher"],
+            is_student=form.cleaned_data["is_student"],
             added_by=request.user,
         )
         messages.success(request, "Organização criada com sucesso.")

@@ -40,6 +40,8 @@ pessoa. Professor e aluno são flags contextuais atribuídas dentro de cada
 organização; gestor e administrador continuam sendo papéis globais. O fluxo é:
 
 - qualquer usuário autenticado pode criar uma organização;
+- ao criar a organização, o responsável escolhe participar como professor,
+  aluno ou ambos e pode alterar essa escolha nas configurações;
 - o responsável adiciona usuários existentes e marca as flags de professor,
   aluno ou ambas;
 - somente professores da organização podem criar turmas dentro dela;
@@ -145,6 +147,7 @@ src/
 │   │   ├── models.py
 │   │   ├── urls.py
 │   │   └── views.py
+│   ├── organization_settings/ # dados e papéis do criador da organização
 │   └── users_manager/      # organizações, membros, turmas, testes e autoavaliações
 ├── static/css/
 ├── templates/
