@@ -37,6 +37,21 @@ class SessionAuthenticationTests(TestCase):
         self.assertRedirects(response, reverse("accounts:dashboard"))
         self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
 
+    def test_authenticated_area_uses_vertical_sidebar(self) -> None:
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("accounts:dashboard"))
+
+        self.assertContains(response, 'class="app-sidebar"')
+        self.assertContains(response, "Organizações e turmas")
+        self.assertContains(response, 'class="has-sidebar"')
+
+    def test_public_login_keeps_horizontal_header(self) -> None:
+        response = self.client.get(reverse("accounts:login"))
+
+        self.assertContains(response, 'class="site-header"')
+        self.assertNotContains(response, 'class="app-sidebar"')
+
     def test_logout_accepts_post_and_removes_session(self) -> None:
         self.client.force_login(self.user)
 

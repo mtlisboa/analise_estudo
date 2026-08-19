@@ -13,9 +13,54 @@
             document.documentElement.dataset.theme = theme;
         }());
     </script>
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=4">
 </head>
-<body>
+<body{% if user.is_authenticated %} class="has-sidebar"{% endif %}>
+    {% if user.is_authenticated %}
+    <aside class="app-sidebar" aria-label="Navegação principal">
+        <a class="brand sidebar-brand" href="{% url 'accounts:dashboard' %}" aria-label="Lumini, meu painel">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none"><path d="M8 21.5V12l8-4.5 8 4.5v9.5L16 26l-8-4.5Z"/><path d="M11.5 14 16 16.5l4.5-2.5M16 16.5V22"/></svg>
+            </span>
+            <span class="sidebar-label">Lumini</span>
+        </a>
+
+        <nav class="sidebar-nav">
+            <span class="sidebar-section-label">NAVEGAÇÃO</span>
+            <a class="sidebar-link{% if request.resolver_match.namespace == 'accounts' %} active{% endif %}" href="{% url 'accounts:dashboard' %}"{% if request.resolver_match.namespace == 'accounts' %} aria-current="page"{% endif %} title="Meu painel">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+                <span class="sidebar-label">Meu painel</span>
+            </a>
+            <a class="sidebar-link{% if request.resolver_match.namespace == 'users-manager' %} active{% endif %}" href="{% url 'users-manager:dashboard' %}"{% if request.resolver_match.namespace == 'users-manager' %} aria-current="page"{% endif %} title="Organizações e turmas">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20v-9l8-5 8 5v9"/><path d="M8 20v-5h8v5M9 11h.01M15 11h.01"/></svg>
+                <span class="sidebar-label">Organizações e turmas</span>
+            </a>
+            <a class="sidebar-link{% if request.resolver_match.namespace == 'ia-integrations' %} active{% endif %}" href="{% url 'ia-integrations:chat-bot' %}"{% if request.resolver_match.namespace == 'ia-integrations' %} aria-current="page"{% endif %} title="Assistente IA">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v3a7 7 0 0 0 7 7h6l2 2V10a7 7 0 0 0-7-7h-1Z"/><path d="M9 11h.01M12.5 11h.01M16 11h.01"/></svg>
+                <span class="sidebar-label">Assistente IA</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="theme-toggle sidebar-theme" type="button" aria-label="Ativar tema escuro" title="Alternar tema">
+                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 15.1A8.5 8.5 0 0 1 8.9 3.5 8.5 8.5 0 1 0 20.5 15.1Z"/></svg>
+                <span class="sidebar-label">Alternar tema</span>
+            </button>
+            <div class="sidebar-user">
+                <span class="sidebar-avatar">{{ user.first_name|default:user.username|first|upper }}</span>
+                <span class="sidebar-user-copy sidebar-label"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.email|default:"Conta Lumini" }}</small></span>
+            </div>
+            <form class="sidebar-logout" method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button class="sidebar-link" type="submit" title="Sair">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
+                    <span class="sidebar-label">Sair</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+    {% else %}
     <header class="site-header">
         <div class="nav-shell">
             <a class="brand" href="{% url 'accounts:landing' %}" aria-label="Lumini, página inicial">
@@ -48,7 +93,8 @@
             </button>
         </div>
     </header>
-    <main class="{% block main_class %}container{% endblock %}">
+    {% endif %}
+    <main class="app-main {% block main_class %}container{% endblock %}">
         {% for message in messages %}
             <p class="message {{ message.tags }}">{{ message }}</p>
         {% endfor %}

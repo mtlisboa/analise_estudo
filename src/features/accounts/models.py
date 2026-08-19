@@ -32,12 +32,16 @@ class User(AbstractUser):
 
     @property
     def is_teacher(self) -> bool:
-        return self.teaching_relationships.filter(status="ACTIVE").exists() or self.classroom_memberships.filter(
-            role="TEACHER", status="ACTIVE"
-        ).exists()
+        return (
+            self.organization_memberships.filter(is_teacher=True).exists()
+            or self.teaching_relationships.filter(status="ACTIVE").exists()
+            or self.classroom_memberships.filter(role="TEACHER", status="ACTIVE").exists()
+        )
 
     @property
     def is_student(self) -> bool:
-        return self.learning_relationships.filter(status="ACTIVE").exists() or self.classroom_memberships.filter(
-            role="STUDENT", status="ACTIVE"
-        ).exists()
+        return (
+            self.organization_memberships.filter(is_student=True).exists()
+            or self.learning_relationships.filter(status="ACTIVE").exists()
+            or self.classroom_memberships.filter(role="STUDENT", status="ACTIVE").exists()
+        )

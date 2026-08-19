@@ -13,6 +13,78 @@ class MembershipStatus(models.TextChoices):
     REMOVED = "REMOVED", "Removido"
 
 
+class Organization(models.Model):
+    name = models.CharField("nome", max_length=120)
+    description = models.TextField("descrição", blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="owned_organizations",
+        verbose_name="responsável",
+    )
+    is_active = models.BooleanField("ativa", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class OrganizationMembership(models.Model):
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+        verbose_name="organização",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="organization_memberships",
+        verbose_name="usuário",
+    )
+    is_teacher = models.BooleanField("professor", default=False)
+    is_student = models.BooleanField("aluno", default=False)
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="organization_members_added",
+        verbose_name="adicionado por",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("user__username",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "user"),
+                name="unique_user_per_organization",
+            ),
+            models.CheckConstraint(
+                condition=Q(is_teacher=True) | Q(is_student=True),
+                name="organization_member_has_educational_role",
+            ),
+        ]
+
+    def clean(self) -> None:
+        if not self.is_teacher and not self.is_student:
+            raise ValidationError("O membro deve ser professor, aluno ou ambos.")
+
+    @property
+    def roles_display(self) -> str:
+        roles = []
+        if self.is_teacher:
+            roles.append("Professor")
+        if self.is_student:
+            roles.append("Aluno")
+        return " e ".join(roles)
+
+    def __str__(self) -> str:
+        return f"{self.user} em {self.organization} ({self.roles_display})"
+
+
 class EducationalRelationship(models.Model):
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -74,6 +146,12 @@ class EducationalRelationship(models.Model):
 class Classroom(models.Model):
     name = models.CharField("nome", max_length=120)
     description = models.TextField("descrição", blank=True)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="classrooms",
+        verbose_name="organização",
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -87,7 +165,7 @@ class Classroom(models.Model):
         ordering = ("name",)
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.name} · {self.organization}"
 
 
 class ClassroomMembership(models.Model):
@@ -132,6 +210,36 @@ class ClassroomMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} em {self.classroom} ({self.get_role_display()})"
+
+
+class ClassroomTest(models.Model):
+    classroom = models.ForeignKey(
+        Classroom,
+        on_delete=models.CASCADE,
+        related_name="tests",
+        verbose_name="turma",
+    )
+    title = models.CharField("título", max_length=160)
+    instructions = models.TextField("instruções", blank=True)
+    max_score = models.PositiveSmallIntegerField(
+        "pontuação máxima",
+        default=10,
+        validators=(MinValueValidator(1),),
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_classroom_tests",
+        verbose_name="criado por",
+    )
+    is_published = models.BooleanField("publicado", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.title} · {self.classroom}"
 
 
 class SelfAssessment(models.Model):

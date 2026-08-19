@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}{{ organization.name }} | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell narrow-shell">
+    <a class="back-link" href="{% url 'users-manager:dashboard' %}">← Voltar para organizações</a>
+    <div class="manager-topbar">
+        <div class="manager-heading"><p class="section-kicker">ORGANIZAÇÃO</p><h1>{{ organization.name }}</h1><p>{{ organization.description|default:"Contexto educacional" }}</p></div>
+        <div class="manager-actions">
+            {% if can_manage %}<a class="button button-small button-secondary" href="{% url 'users-manager:organization-member-add' organization.pk %}">Adicionar membro</a>{% endif %}
+            {% if can_create_classroom %}<a class="button button-small" href="{% url 'users-manager:classroom-create' organization.pk %}">Nova turma</a>{% endif %}
+        </div>
+    </div>
+
+    <article class="dash-card manager-card full-card">
+        <div class="manager-card-title"><div><span>MEMBROS</span><h2>Professores e alunos</h2></div><strong>{{ organization_memberships|length }}</strong></div>
+        <div class="manager-list">
+            {% for membership in organization_memberships %}
+                <div class="manager-list-item"><div class="avatar-letter">{{ membership.user.username|first|upper }}</div><div class="list-copy"><strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong><small>{{ membership.roles_display }}</small></div></div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="dash-card manager-card full-card">
+        <div class="manager-card-title"><div><span>TURMAS</span><h2>Turmas da organização</h2></div><strong>{{ classrooms|length }}</strong></div>
+        <div class="manager-list">
+            {% for classroom in classrooms %}
+                <a class="manager-list-item list-link" href="{% url 'users-manager:classroom-detail' classroom.pk %}"><div class="avatar-letter">{{ classroom.name|first|upper }}</div><div class="list-copy"><strong>{{ classroom.name }}</strong><small>Professor responsável: {{ classroom.owner.get_full_name|default:classroom.owner.username }}</small></div><span>→</span></a>
+            {% empty %}<p class="empty-state">Nenhuma turma criada.</p>{% endfor %}
+        </div>
+    </article>
+</section>
+{% endblock %}
