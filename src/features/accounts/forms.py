@@ -47,3 +47,50 @@ class SignUpForm(UserCreationForm):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("Este e-mail já está em uso.")
         return email
+
+
+class OnboardingForm(forms.ModelForm):
+    app_goal_details = forms.CharField(
+        label="Conte um pouco mais (opcional)",
+        required=False,
+        max_length=240,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": "Ex.: passar no ENEM, acompanhar uma turma ou criar uma rotina de estudos.",
+            }
+        ),
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            "onboarding_role",
+            "discovery_source",
+            "education_level",
+            "app_goal",
+            "app_goal_details",
+        )
+        labels = {
+            "onboarding_role": "Quem é você?",
+            "discovery_source": "Como conheceu a Lumini?",
+            "education_level": "Qual é o seu grau de escolaridade?",
+            "app_goal": "Qual é o seu principal objetivo com o app?",
+        }
+        widgets = {
+            "onboarding_role": forms.RadioSelect,
+            "discovery_source": forms.Select,
+            "education_level": forms.Select,
+            "app_goal": forms.Select,
+        }
+
+    def clean(self) -> dict:
+        cleaned_data = super().clean()
+        if cleaned_data.get("app_goal") == User.AppGoal.OTHER and not cleaned_data.get(
+            "app_goal_details"
+        ):
+            self.add_error(
+                "app_goal_details",
+                "Descreva brevemente o seu objetivo.",
+            )
+        return cleaned_data

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Primeiros passos | Lumini{% endblock %}
+{% block main_class %}onboarding-page{% endblock %}
+
+{% block content %}
+<section class="onboarding-shell">
+    <header class="onboarding-heading">
+        <span class="pill"><span></span> PRIMEIRO ACESSO</span>
+        <p class="onboarding-step">ETAPA 1 DE 1</p>
+        <h1>Vamos personalizar sua <em>experiência.</em></h1>
+        <p>Suas respostas ajudam a Lumini a adaptar o painel, as orientações e o teste diagnóstico ao que você precisa agora.</p>
+    </header>
+
+    <form method="post" class="card onboarding-card">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+
+        <fieldset class="onboarding-fieldset">
+            <legend>{{ form.onboarding_role.label }}</legend>
+            <p>Escolha a opção que melhor representa você neste momento.</p>
+            <div class="role-options">
+                {% for radio in form.onboarding_role %}
+                    <label class="role-option" for="{{ radio.id_for_label }}">
+                        {{ radio.tag }}
+                        <span class="role-option-copy"><strong>{{ radio.choice_label }}</strong><small>{% if radio.data.value == 'STUDENT' %}Quero aprender e acompanhar minha evolução.{% elif radio.data.value == 'TEACHER' %}Quero criar turmas e acompanhar alunos.{% elif radio.data.value == 'MANAGER' %}Quero organizar pessoas, turmas e resultados.{% elif radio.data.value == 'GUARDIAN' %}Quero acompanhar a aprendizagem de alguém.{% else %}Meu perfil não está nas opções anteriores.{% endif %}</small></span>
+                        <span class="role-check" aria-hidden="true">✓</span>
+                    </label>
+                {% endfor %}
+            </div>
+            {{ form.onboarding_role.errors }}
+        </fieldset>
+
+        <div class="onboarding-grid">
+            <div class="form-field">
+                <label for="{{ form.discovery_source.id_for_label }}">{{ form.discovery_source.label }}</label>
+                {{ form.discovery_source }}
+                {{ form.discovery_source.errors }}
+            </div>
+            <div class="form-field">
+                <label for="{{ form.education_level.id_for_label }}">{{ form.education_level.label }}</label>
+                {{ form.education_level }}
+                {{ form.education_level.errors }}
+            </div>
+        </div>
+
+        <div class="form-field">
+            <label for="{{ form.app_goal.id_for_label }}">{{ form.app_goal.label }}</label>
+            {{ form.app_goal }}
+            {{ form.app_goal.errors }}
+        </div>
+        <div class="form-field">
+            <label for="{{ form.app_goal_details.id_for_label }}">{{ form.app_goal_details.label }}</label>
+            {{ form.app_goal_details }}
+            <small>Até 240 caracteres. Essa informação será usada para personalizar suas orientações.</small>
+            {{ form.app_goal_details.errors }}
+        </div>
+
+        <section class="diagnostic-choice">
+            <span class="diagnostic-icon" aria-hidden="true">✦</span>
+            <div>
+                <small>TESTE DIAGNÓSTICO COM IA</small>
+                <h2>Quer descobrir seu ponto de partida?</h2>
+                <p>A IA fará perguntas adaptadas ao seu perfil e, ao final, indicará pontos fortes e próximos passos. Você também pode fazer isso depois.</p>
+            </div>
+        </section>
+
+        <div class="onboarding-actions">
+            <button class="button button-secondary" type="submit" name="action" value="later">Deixar para depois</button>
+            <button class="button" type="submit" name="action" value="start-test">Fazer teste com IA <span>→</span></button>
+        </div>
+    </form>
+</section>
+{% endblock %}

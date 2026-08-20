@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -11,6 +12,7 @@ class SessionAuthenticationTests(TestCase):
             username="matheus",
             email="matheus@example.com",
             password="senha-forte-123",
+            onboarding_completed_at=timezone.now(),
         )
 
     def test_dashboard_redirects_anonymous_user_to_login(self) -> None:
@@ -78,9 +80,92 @@ class SessionAuthenticationTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("accounts:dashboard"))
+        self.assertRedirects(response, reverse("accounts:onboarding"))
         self.assertTrue(User.objects.filter(username="novo_usuario").exists())
         self.assertIn("_auth_user_id", self.client.session)
+
+    def test_first_login_redirects_to_onboarding(self) -> None:
+        first_access_user = User.objects.create_user(
+            username="primeiro_acesso",
+            email="primeiro@example.com",
+            password="senha-forte-123",
+        )
+
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"username": first_access_user.username, "password": "senha-forte-123"},
+        )
+
+        self.assertRedirects(response, reverse("accounts:onboarding"))
+
+    def test_onboarding_later_saves_profile_and_redirects_to_dashboard(self) -> None:
+        user = User.objects.create_user(username="novo", password="senha-forte-123")
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("accounts:onboarding"),
+            {
+                "onboarding_role": User.OnboardingRole.STUDENT,
+                "discovery_source": User.DiscoverySource.SEARCH,
+                "education_level": User.EducationLevel.UNDERGRADUATE,
+                "app_goal": User.AppGoal.ORGANIZE_STUDIES,
+                "app_goal_details": "Criar uma rotina semanal.",
+                "action": "later",
+            },
+        )
+
+        self.assertRedirects(response, reverse("accounts:dashboard"))
+        user.refresh_from_db()
+        self.assertTrue(user.has_completed_onboarding)
+        self.assertEqual(user.diagnostic_test_choice, User.DiagnosticTestChoice.LATER)
+
+    def test_onboarding_start_test_redirects_to_ai_diagnostic(self) -> None:
+        user = User.objects.create_user(username="aluna", password="senha-forte-123")
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("accounts:onboarding"),
+            {
+                "onboarding_role": User.OnboardingRole.STUDENT,
+                "discovery_source": User.DiscoverySource.RECOMMENDATION,
+                "education_level": User.EducationLevel.HIGH_SCHOOL,
+                "app_goal": User.AppGoal.PREPARE_EXAM,
+                "app_goal_details": "Preparação para o ENEM.",
+                "action": "start-test",
+            },
+        )
+
+        self.assertRedirects(response, f'{reverse("ia-integrations:chat-bot")}?mode=diagnostic')
+        user.refresh_from_db()
+        self.assertEqual(user.diagnostic_test_choice, User.DiagnosticTestChoice.STARTED)
+
+    def test_completed_user_does_not_repeat_onboarding(self) -> None:
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("accounts:onboarding"))
+
+        self.assertRedirects(response, reverse("accounts:dashboard"))
+
+    def test_other_goal_requires_details(self) -> None:
+        user = User.objects.create_user(username="outro", password="senha-forte-123")
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("accounts:onboarding"),
+            {
+                "onboarding_role": User.OnboardingRole.OTHER,
+                "discovery_source": User.DiscoverySource.OTHER,
+                "education_level": User.EducationLevel.OTHER,
+                "app_goal": User.AppGoal.OTHER,
+                "app_goal_details": "",
+                "action": "later",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Descreva brevemente o seu objetivo.")
+        user.refresh_from_db()
+        self.assertFalse(user.has_completed_onboarding)
 
     def test_sign_up_rejects_duplicate_email_case_insensitively(self) -> None:
         response = self.client.post(

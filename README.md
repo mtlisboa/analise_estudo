@@ -33,6 +33,15 @@ fica em `/painel/` e exige autenticação; uma nova conta pode ser criada em
 O tema claro/escuro acompanha a preferência do sistema no primeiro acesso e a
 escolha feita no botão do cabeçalho fica salva no navegador.
 
+## Onboarding do primeiro acesso
+
+No primeiro login, a pessoa informa seu perfil, como conheceu a plataforma,
+grau de escolaridade e objetivo principal. Ao concluir, pode entrar em um teste
+diagnóstico personalizado no assistente de IA ou seguir para o painel e fazer o
+teste depois. O perfil declarado no onboarding personaliza a experiência, mas
+não concede permissões administrativas nem substitui os papéis contextuais das
+organizações.
+
 ## Organizações, usuários, turmas e testes
 
 O módulo `users_manager` mantém uma única identidade autenticável para cada

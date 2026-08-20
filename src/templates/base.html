@@ -15,8 +15,8 @@
     </script>
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v=4">
 </head>
-<body{% if user.is_authenticated %} class="has-sidebar"{% endif %}>
-    {% if user.is_authenticated %}
+<body{% if user.is_authenticated and not onboarding_mode %} class="has-sidebar"{% endif %}>
+    {% if user.is_authenticated and not onboarding_mode %}
     <aside class="app-sidebar" aria-label="Navegação principal">
         <a class="brand sidebar-brand" href="{% url 'accounts:dashboard' %}" aria-label="Lumini, meu painel">
             <span class="brand-mark" aria-hidden="true">
