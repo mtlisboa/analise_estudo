@@ -35,6 +35,10 @@
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20v-9l8-5 8 5v9"/><path d="M8 20v-5h8v5M9 11h.01M15 11h.01"/></svg>
                 <span class="sidebar-label">Organizações e turmas</span>
             </a>
+            <a class="sidebar-link{% if request.resolver_match.namespace == 'analytics-dashboard' %} active{% endif %}" href="{% url 'analytics-dashboard:dashboard' %}"{% if request.resolver_match.namespace == 'analytics-dashboard' %} aria-current="page"{% endif %} title="Análises">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 7 6-4 6 6 5-5"/></svg>
+                <span class="sidebar-label">Análises</span>
+            </a>
             <a class="sidebar-link{% if request.resolver_match.namespace == 'ia-integrations' %} active{% endif %}" href="{% url 'ia-integrations:chat-bot' %}"{% if request.resolver_match.namespace == 'ia-integrations' %} aria-current="page"{% endif %} title="Assistente IA">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v3a7 7 0 0 0 7 7h6l2 2V10a7 7 0 0 0-7-7h-1Z"/><path d="M9 11h.01M12.5 11h.01M16 11h.01"/></svg>
                 <span class="sidebar-label">Assistente IA</span>
@@ -101,5 +105,6 @@
         {% block content %}{% endblock %}
     </main>
     <script src="{% static 'js/app.js' %}?v=2"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

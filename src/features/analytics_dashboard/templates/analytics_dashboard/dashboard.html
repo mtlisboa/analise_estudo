@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Análises | Lumini{% endblock %}
+{% block main_class %}analytics-page{% endblock %}
+
+{% block content %}
+<section class="analytics-shell">
+    <header class="analytics-header">
+        <div>
+            <p class="section-kicker">INTELIGÊNCIA EDUCACIONAL</p>
+            <h1>Dashboard de desempenho</h1>
+            <p>Compare organizações, turmas e alunos a partir de indicadores acadêmicos reais.</p>
+        </div>
+        <span class="analytics-scope">{{ scope_title }}</span>
+    </header>
+
+    <form class="analytics-filters" method="get" aria-label="Filtros do dashboard">
+        <label>
+            <span>Organização</span>
+            <select name="organization">
+                <option value="">Todas</option>
+                {% for organization in organizations %}
+                    <option value="{{ organization.pk }}"{% if filters.organization == organization.pk %} selected{% endif %}>{{ organization.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Turma</span>
+            <select name="classroom">
+                <option value="">Todas</option>
+                {% for classroom in classrooms %}
+                    <option value="{{ classroom.pk }}"{% if filters.classroom == classroom.pk %} selected{% endif %}>{{ classroom.name }} · {{ classroom.organization.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Aluno</span>
+            <select name="student">
+                <option value="">Todos</option>
+                {% for student in students %}
+                    <option value="{{ student.pk }}"{% if filters.student == student.pk %} selected{% endif %}>{{ student.get_full_name|default:student.username }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Período</span>
+            <select name="period">
+                {% for value, label in periods %}
+                    <option value="{{ value }}"{% if filters.period == value %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button class="button button-small" type="submit">Aplicar filtros</button>
+        <a class="analytics-clear" href="{% url 'analytics-dashboard:dashboard' %}">Limpar</a>
+    </form>
+
+    <div class="analytics-metrics" aria-label="Indicadores gerais">
+        <article><span>ORGANIZAÇÕES</span><strong>{{ metrics.organizations }}</strong><small>no escopo atual</small></article>
+        <article><span>TURMAS</span><strong>{{ metrics.classrooms }}</strong><small>ativas</small></article>
+        <article><span>ALUNOS</span><strong>{{ metrics.students }}</strong><small>com acesso permitido</small></article>
+        <article><span>PROFESSORES</span><strong>{{ metrics.teachers }}</strong><small>nos contextos</small></article>
+        <article><span>TESTES</span><strong>{{ metrics.tests }}</strong><small>criados</small></article>
+        <article class="highlight-metric"><span>ÍNDICE MÉDIO</span><strong>{% if metrics.assessment_average is not None %}{{ metrics.assessment_average }}%{% else %}—{% endif %}</strong><small>autoavaliações</small></article>
+    </div>
+
+    <div class="analytics-grid">
+        <article class="analytics-card analytics-wide">
+            <div class="analytics-card-heading"><div><span>LINHAS</span><h2>Evolução no tempo</h2></div><small>{{ analytics_payload.periodLabel }}</small></div>
+            <div id="timeline-chart" class="analytics-chart" role="img" aria-label="Gráfico de linhas da evolução das autoavaliações"></div>
+        </article>
+
+        <article class="analytics-card">
+            <div class="analytics-card-heading"><div><span>BARRAS</span><h2>Turmas e testes</h2></div></div>
+            <div id="classroom-chart" class="analytics-chart" role="img" aria-label="Gráfico de barras por turma"></div>
+        </article>
+
+        <article class="analytics-card">
+            <div class="analytics-card-heading"><div><span>DISTRIBUIÇÃO</span><h2>Papéis na organização</h2></div></div>
+            <div id="roles-chart" class="analytics-chart" role="img" aria-label="Gráfico de distribuição dos papéis"></div>
+        </article>
+
+        <article class="analytics-card">
+            <div class="analytics-card-heading"><div><span>BIDIMENSIONAL</span><h2>Foco × compreensão</h2></div><small>Bolha = motivação</small></div>
+            <div id="scatter-2d-chart" class="analytics-chart" role="img" aria-label="Distribuição bidimensional de foco e compreensão"></div>
+        </article>
+
+        <article class="analytics-card analytics-wide">
+            <div class="analytics-card-heading"><div><span>TRIDIMENSIONAL</span><h2>Mapa de desempenho dos alunos</h2></div><small>Arraste para rotacionar</small></div>
+            <div id="scatter-3d-chart" class="analytics-chart analytics-chart-3d" role="img" aria-label="Distribuição tridimensional de foco, compreensão e motivação"></div>
+        </article>
+
+        <article class="analytics-card analytics-wide">
+            <div class="analytics-card-heading"><div><span>MAPA DE CALOR</span><h2>Perfil acadêmico por aluno</h2></div><small>Última autoavaliação</small></div>
+            <div id="heatmap-chart" class="analytics-chart heatmap-chart" role="img" aria-label="Mapa de calor dos indicadores acadêmicos"></div>
+        </article>
+    </div>
+
+    <article class="analytics-card analytics-table-card">
+        <div class="analytics-card-heading"><div><span>DETALHAMENTO</span><h2>Resumo por aluno</h2></div><small>{{ ranking|length }} registro{{ ranking|length|pluralize }}</small></div>
+        <div class="analytics-table-wrap">
+            <table class="analytics-table">
+                <thead><tr><th>Aluno</th><th>Índice médio</th><th>Autoavaliações</th><th>Turmas</th><th>Último registro</th></tr></thead>
+                <tbody>
+                    {% for row in ranking %}
+                        <tr><td><strong>{{ row.name }}</strong></td><td><span class="score-pill">{{ row.score }}%</span></td><td>{{ row.assessments }}</td><td>{{ row.classrooms }}</td><td>{{ row.latest }}</td></tr>
+                    {% empty %}
+                        <tr><td class="analytics-empty-cell" colspan="5">Ainda não há autoavaliações no escopo escolhido.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    {% if analytics_payload.empty %}
+        <aside class="analytics-notice"><strong>Os gráficos acadêmicos aguardam dados.</strong> Estrutura de organizações, turmas e testes já aparece normalmente. Assim que os alunos fizerem autoavaliações, as distribuições 2D, 3D, temporal e o mapa de calor serão preenchidos.</aside>
+    {% endif %}
+</section>
+
+{{ analytics_payload|json_script:"analytics-dashboard-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+<script src="{% static 'js/analytics_dashboard.js' %}?v=1" defer></script>
+{% endblock %}

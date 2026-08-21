@@ -8,7 +8,7 @@
     <a class="back-link" href="{% url 'users-manager:organization-detail' classroom.organization.pk %}">← Voltar para {{ classroom.organization.name }}</a>
     <div class="manager-topbar">
         <div class="manager-heading"><p class="section-kicker">TURMA · {{ classroom.organization.name }}</p><h1>{{ classroom.name }}</h1><p>{{ classroom.description|default:"Espaço de aprendizagem" }}</p></div>
-        {% if can_manage %}<div class="manager-actions"><a class="button button-small button-secondary" href="{% url 'users-manager:classroom-invite' classroom.pk %}">Adicionar membro</a><a class="button button-small" href="{% url 'users-manager:classroom-test-create' classroom.pk %}">Novo teste</a></div>{% endif %}
+        <div class="manager-actions"><a class="button button-small button-secondary" href="{% url 'analytics-dashboard:dashboard' %}?organization={{ classroom.organization.pk }}&amp;classroom={{ classroom.pk }}">Análises</a>{% if can_manage %}<a class="button button-small button-secondary" href="{% url 'users-manager:classroom-invite' classroom.pk %}">Adicionar membro</a><a class="button button-small" href="{% url 'users-manager:classroom-test-create' classroom.pk %}">Novo teste</a>{% endif %}</div>
     </div>
     <article class="dash-card manager-card full-card">
         <div class="manager-card-title"><div><span>PARTICIPANTES</span><h2>Professores e alunos</h2></div><strong>{{ memberships|length }}</strong></div>

@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "features.accounts.apps.AccountsConfig",
     "features.users_manager.apps.UsersManagerConfig",
     "features.organization_settings.apps.OrganizationSettingsConfig",
+    "features.analytics_dashboard.apps.AnalyticsDashboardConfig",
     "contexts.ia_integrations.apps.IaIntegrationsConfig",
 ]
 
