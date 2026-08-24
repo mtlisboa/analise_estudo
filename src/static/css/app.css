@@ -1,25 +1,25 @@
 /* Lumini design system */
 :root {
     color-scheme: light;
-    --bg: #fbfaf7;
-    --bg-soft: #f4f1ec;
+    --bg: #fafafa;
+    --bg-soft: #f2f2f0;
     --surface: #ffffff;
     --surface-raised: #ffffff;
-    --surface-purple: #f1edff;
-    --text: #1d1930;
-    --text-soft: #686375;
-    --text-faint: #8f899b;
-    --primary: #6547d9;
-    --primary-strong: #5033bd;
-    --primary-soft: #e9e2ff;
-    --lime: #c8f04a;
-    --lime-ink: #26310c;
-    --border: #e8e4ee;
-    --border-strong: #dcd5e8;
-    --shadow: 0 24px 70px rgba(45, 32, 84, .10);
-    --shadow-soft: 0 10px 30px rgba(45, 32, 84, .07);
-    --header-bg: rgba(251, 250, 247, .88);
-    --chart-grid: #e9e5ef;
+    --surface-purple: #fff3e8;
+    --text: #111114;
+    --text-soft: #55555b;
+    --text-faint: #8a8a90;
+    --primary: #ff7200;
+    --primary-strong: #e85f00;
+    --primary-soft: #fff0e3;
+    --lime: #ffb14a;
+    --lime-ink: #2a1600;
+    --border: #e6e6e3;
+    --border-strong: #d7d7d3;
+    --shadow: 0 24px 70px rgba(31, 22, 14, .09);
+    --shadow-soft: 0 10px 30px rgba(31, 22, 14, .06);
+    --header-bg: rgba(250, 250, 250, .90);
+    --chart-grid: #e8e8e5;
     --max-width: 1180px;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
@@ -28,25 +28,25 @@
 
 :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #11101a;
-    --bg-soft: #191722;
-    --surface: #1d1a28;
-    --surface-raised: #252132;
-    --surface-purple: #2a2342;
-    --text: #f5f1fc;
-    --text-soft: #b7b0c4;
-    --text-faint: #8c8499;
-    --primary: #9b82ff;
-    --primary-strong: #b3a0ff;
-    --primary-soft: #332a52;
-    --lime: #c8f04a;
-    --lime-ink: #202909;
-    --border: #322e3e;
-    --border-strong: #454052;
+    --bg: #111111;
+    --bg-soft: #181817;
+    --surface: #1d1d1c;
+    --surface-raised: #242422;
+    --surface-purple: #2b2119;
+    --text: #f7f7f5;
+    --text-soft: #b7b7b2;
+    --text-faint: #858580;
+    --primary: #ff861c;
+    --primary-strong: #ff9b42;
+    --primary-soft: #3a281a;
+    --lime: #ffb14a;
+    --lime-ink: #2a1600;
+    --border: #333330;
+    --border-strong: #464642;
     --shadow: 0 24px 70px rgba(0, 0, 0, .32);
     --shadow-soft: 0 10px 30px rgba(0, 0, 0, .22);
-    --header-bg: rgba(17, 16, 26, .88);
-    --chart-grid: #373240;
+    --header-bg: rgba(17, 17, 17, .90);
+    --chart-grid: #373733;
 }
 
 * { box-sizing: border-box; }
@@ -569,4 +569,95 @@ svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* IluminyAI-inspired visual language: light, direct and orange-led. */
+.brand { gap: 7px; font-weight: 650; letter-spacing: -.055em; }
+.brand-mark { width: 46px; height: 34px; border-radius: 0; background: transparent; color: var(--primary); transform: none; }
+.brand-mark svg { width: 44px; stroke: currentColor; stroke-width: 4.6; stroke-linecap: round; stroke-linejoin: round; }
+.brand-word > span, .monument-wordmark strong > span { color: var(--primary); }
+.site-header { border-color: color-mix(in srgb, var(--border) 68%, transparent); }
+.nav-shell { height: 82px; }
+.nav-link { font-weight: 650; }
+.button { border-radius: 999px; box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 18%, transparent); }
+.button:hover { box-shadow: 0 14px 30px color-mix(in srgb, var(--primary) 24%, transparent); }
+.button-secondary { border-radius: 999px; }
+
+.hero { grid-template-columns: .9fr 1.1fr; gap: clamp(48px, 6vw, 96px); min-height: calc(100vh - 82px); padding-block: 72px 92px; }
+.hero-copy { position: relative; z-index: 2; }
+.hero-index { display: flex; width: 54px; margin-bottom: 34px; flex-direction: column; gap: 12px; color: var(--primary); }
+.hero-index strong { font-size: 21px; line-height: 1; }
+.hero-index span { width: 29px; height: 3px; border-radius: 3px; background: currentColor; }
+.hero .pill { margin-bottom: 18px; }
+.pill { border-color: color-mix(in srgb, var(--primary) 30%, var(--border)); background: color-mix(in srgb, var(--surface) 88%, var(--primary-soft)); }
+.pill > span { background: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
+.hero h1 { margin-top: 0; font-family: inherit; font-size: clamp(48px, 5.2vw, 76px); font-weight: 850; letter-spacing: -.065em; line-height: .98; }
+.hero h1 em { font-weight: 850; font-style: normal; }
+.hero-lead { max-width: 590px; color: var(--text); font-size: 19px; line-height: 1.7; }
+.hero-lead strong { color: var(--primary); font-weight: 800; }
+
+.brand-monument { position: relative; display: grid; min-height: 560px; padding: 32px; place-items: center; isolation: isolate; }
+.brand-monument::before { position: absolute; z-index: -2; inset: 8% 0 2% 4%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--primary-soft) 90%, transparent), transparent 67%); content: ""; filter: blur(4px); }
+.brand-monument > svg { width: min(100%, 640px); filter: drop-shadow(0 28px 30px color-mix(in srgb, var(--primary) 18%, transparent)); transform: rotate(-2deg); }
+.brand-orbit { position: absolute; z-index: -1; border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent); border-radius: 50%; }
+.orbit-one { width: 470px; height: 470px; }
+.orbit-two { width: 610px; height: 610px; }
+.monument-wordmark { display: flex; margin-top: -75px; align-items: center; flex-direction: column; text-align: center; }
+.monument-wordmark strong { font-size: clamp(40px, 5vw, 68px); font-weight: 550; letter-spacing: -.06em; line-height: 1; }
+.monument-wordmark small { max-width: 520px; margin-top: 22px; color: var(--text); font-size: 12px; letter-spacing: .32em; line-height: 2; }
+.monument-wordmark b { color: var(--primary); font-weight: 650; }
+
+.statement-section h2, .section-heading h2, .cta-card h2, .auth-intro h1, .auth-card-heading h2,
+.dashboard-welcome h1, .dash-card-title h2, .next-step h2, .manager-heading h1,
+.manager-card-title h2, .assessment-card h2, .chat-page-heading h1, .step-card h3,
+.solution-card h3, .metric-card strong, .stat-grid strong, .score-card strong,
+.assessment-history strong, .manager-card-title > strong { font-family: inherit; }
+.statement-section h2, .section-heading h2, .cta-card h2, .auth-intro h1, .manager-heading h1, .chat-page-heading h1 { font-weight: 800; }
+.section-kicker { color: var(--primary); }
+.stat-grid strong { font-weight: 800; }
+.how-section { background: var(--bg-soft); }
+.step-card, .solution-card, .card, .dash-card, .chat-layout { border-radius: 8px; }
+.step-card.featured { box-shadow: 0 22px 50px color-mix(in srgb, var(--primary) 22%, transparent); }
+.step-icon, .solution-icon, .avatar-letter, .metric-label i, .next-icon { border-radius: 50%; }
+.institution-card { background: linear-gradient(145deg, var(--surface-purple), var(--surface)); }
+.cta-card { border-radius: 10px; background: #111114; }
+.cta-card .section-kicker { color: var(--primary); }
+.button-light { border-color: var(--primary); background: var(--primary); color: #fff; }
+.button-light:hover { border-color: #fff; background: #fff; color: #111114; }
+
+.app-sidebar { border-right-color: color-mix(in srgb, var(--primary) 18%, var(--border)); box-shadow: none; }
+.sidebar-brand { min-height: 61px; }
+.sidebar-link.active { background: var(--primary); }
+.sidebar-avatar { border-radius: 50%; }
+.auth-page { background: radial-gradient(circle at 13% 26%, color-mix(in srgb, var(--primary-soft) 90%, transparent), transparent 31%), var(--bg); }
+.auth-card { border-top: 4px solid var(--primary); }
+.form-field input, .form-field select, .form-field textarea { border-radius: 6px; }
+.ai-card { background: linear-gradient(145deg, var(--primary), var(--primary-strong)); }
+.assistant-avatar, .message-avatar, .chat-composer > button { border-radius: 50%; }
+.chat-sidebar { background: color-mix(in srgb, var(--surface) 90%, var(--primary-soft)); }
+
+@media (max-width: 980px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-index { margin-inline: auto; align-items: center; }
+    .brand-monument { min-height: 500px; }
+}
+
+@media (max-width: 760px) {
+    .brand-mark { width: 40px; }
+    .brand-mark svg { width: 39px; }
+    .hero { min-height: 0; }
+    .hero-index { margin-bottom: 28px; }
+    .brand-monument { min-height: 420px; padding-inline: 0; }
+    .orbit-one { width: 350px; height: 350px; }
+    .orbit-two { width: 450px; height: 450px; }
+    .monument-wordmark { margin-top: -48px; }
+    .monument-wordmark small { max-width: 390px; font-size: 9px; }
+}
+
+@media (max-width: 480px) {
+    .hero h1 { font-size: 43px; }
+    .hero-lead { font-size: 16px; }
+    .brand-monument { min-height: 350px; }
+    .monument-wordmark { margin-top: -35px; }
+    .monument-wordmark small { font-size: 7px; letter-spacing: .22em; }
 }
