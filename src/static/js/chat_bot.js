@@ -9,6 +9,9 @@
     var thinking = root.querySelector('[data-chat-thinking]');
     var status = root.querySelector('[data-chat-status]');
     var clearButton = root.querySelector('[data-chat-clear]');
+    var diagnosticPromptElement = document.getElementById('diagnostic-prompt');
+    var diagnosticPrompt = diagnosticPromptElement ? JSON.parse(diagnosticPromptElement.textContent) : '';
+    var diagnosticStarted = false;
     var initialMessage = messages.innerHTML;
     var socket;
     var waiting = false;
@@ -75,6 +78,10 @@
 
             if (payload.type === 'chat.ready') {
                 setStatus('online', 'Online');
+                if (diagnosticPrompt && !diagnosticStarted) {
+                    diagnosticStarted = true;
+                    sendMessage(diagnosticPrompt);
+                }
             } else if (payload.type === 'chat.response') {
                 addMessage('assistant', payload.message);
                 finishWaiting();

@@ -6,6 +6,7 @@
 
 {% block content %}
 <section class="chat-shell" data-chat-root data-websocket-path="/ws/ia-integrations/chat-bot/">
+    {{ diagnostic_prompt|json_script:"diagnostic-prompt" }}
     <header class="chat-page-heading">
         <div>
             <p class="section-kicker">LUMINI IA</p>

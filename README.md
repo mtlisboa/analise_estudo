@@ -33,6 +33,30 @@ fica em `/painel/` e exige autenticação; uma nova conta pode ser criada em
 O tema claro/escuro acompanha a preferência do sistema no primeiro acesso e a
 escolha feita no botão do cabeçalho fica salva no navegador.
 
+### Sysadmin por variáveis de ambiente
+
+Uma conta de sistema pode ser criada ou atualizada automaticamente depois das
+migrations. Configure as quatro variáveis no ambiente de execução:
+
+```dotenv
+DJANGO_SYSADMIN_NAME=Administrador do Sistema
+DJANGO_SYSADMIN_LOGIN=sysadmin
+DJANGO_SYSADMIN_EMAIL=sysadmin@example.com
+DJANGO_SYSADMIN_PASSWORD=uma-senha-forte
+```
+
+O provisionamento é idempotente e permite rotacionar a senha alterando a
+variável. O acesso dessa conta é exclusivo pela rota `/sysadmin/entrar/`.
+
+## Onboarding do primeiro acesso
+
+No primeiro login, a pessoa informa seu perfil, como conheceu a plataforma,
+grau de escolaridade e objetivo principal. Ao concluir, pode entrar em um teste
+diagnóstico personalizado no assistente de IA ou seguir para o painel e fazer o
+teste depois. O perfil declarado no onboarding personaliza a experiência, mas
+não concede permissões administrativas nem substitui os papéis contextuais das
+organizações.
+
 ## Organizações, usuários, turmas e testes
 
 O módulo `users_manager` mantém uma única identidade autenticável para cada
@@ -60,6 +84,14 @@ com dados existentes, mas o novo fluxo é delimitado pela organização.
 ```bash
 python src/manage.py test
 ```
+
+## Avaliações
+
+O módulo `/avaliacoes/` permite buscar, criar e editar avaliações próprias. Cada
+avaliação registra matéria, assunto, uma lista de observações ou restrições e um
+ou mais tipos de questão (memorização, compreensão, dedução, aplicação, análise
+e pensamento crítico). A técnica avaliativa pode ser escolhida manualmente; se
+ficar em branco, o sistema aplica a técnica padrão do primeiro tipo selecionado.
 
 ## Chatbot com agente MCP
 

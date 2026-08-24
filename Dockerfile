@@ -17,7 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --chown=django:django docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY --chown=django:django src ./src
 
-RUN chmod +x /app/docker-entrypoint.sh
+# Git on Windows can check shell scripts out with CRLF. Normalize the script in
+# the image so Linux does not try to execute a non-existent `/bin/sh\r`.
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh \
+    && chmod +x /app/docker-entrypoint.sh
 
 USER django
 WORKDIR /app/src
