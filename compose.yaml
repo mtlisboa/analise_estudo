@@ -16,6 +16,9 @@ services:
       DJANGO_DEBUG: "${DJANGO_DEBUG:-True}"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
       DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-}"
+      DEPLOY_MODE: "${DEPLOY_MODE:-STANDARD}"
+      MOCK_USERNAME: "${MOCK_USERNAME:-demo}"
+      MOCK_PASSWORD: "${MOCK_PASSWORD:-demo-lumini-2026}"
       SQLITE_PATH: /data/db.sqlite3
       IA_MCP_SERVER_URL: "${IA_MCP_SERVER_URL:-}"
       IA_MCP_CHAT_TOOL: "${IA_MCP_CHAT_TOOL:-answer_from_documentation}"

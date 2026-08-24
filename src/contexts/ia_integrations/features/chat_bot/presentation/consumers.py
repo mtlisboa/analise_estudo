@@ -8,9 +8,12 @@ from ..application.contracts import ChatRequest
 from ..application.exceptions import AgentUnavailable, InvalidChatMessage
 from ..application.service import ChatBotService
 from ..infrastructure.mcp_agent_gateway import McpAgentGateway
+from ..infrastructure.mock_agent_gateway import MockAgentGateway
 
 
 def build_chat_bot_service() -> ChatBotService:
+    if settings.MOCK_MODE:
+        return ChatBotService(MockAgentGateway())
     gateway = McpAgentGateway(
         server_url=settings.IA_MCP_SERVER_URL,
         tool_name=settings.IA_MCP_CHAT_TOOL,

@@ -64,6 +64,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "config.context_processors.deploy_mode",
             ],
         },
     },
@@ -75,6 +76,11 @@ ASGI_APPLICATION = "config.asgi.application"
 IA_MCP_SERVER_URL = os.getenv("IA_MCP_SERVER_URL", "")
 IA_MCP_CHAT_TOOL = os.getenv("IA_MCP_CHAT_TOOL", "answer_from_documentation")
 IA_MCP_TIMEOUT_SECONDS = float(os.getenv("IA_MCP_TIMEOUT_SECONDS", "30"))
+
+DEPLOY_MODE = os.getenv("DEPLOY_MODE", "STANDARD").strip().upper()
+MOCK_MODE = DEPLOY_MODE == "MOCK"
+MOCK_USERNAME = os.getenv("MOCK_USERNAME", "demo")
+MOCK_PASSWORD = os.getenv("MOCK_PASSWORD", "demo-lumini-2026")
 
 DATABASES = {
     "default": {

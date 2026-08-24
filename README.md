@@ -33,6 +33,23 @@ fica em `/painel/` e exige autenticação; uma nova conta pode ser criada em
 O tema claro/escuro acompanha a preferência do sistema no primeiro acesso e a
 escolha feita no botão do cabeçalho fica salva no navegador.
 
+## Deploy demonstrativo com dados mockados
+
+Defina `DEPLOY_MODE=MOCK` para preparar automaticamente, depois das migrations,
+um conjunto idempotente de usuários, organizações, professores, alunos, turmas,
+testes, autoavaliações, avaliações e séries históricas para o dashboard. Nesse
+modo o assistente de IA também responde localmente, sem depender do servidor MCP.
+
+```dotenv
+DEPLOY_MODE=MOCK
+MOCK_USERNAME=demo
+MOCK_PASSWORD=demo-lumini-2026
+```
+
+As credenciais ficam visíveis na tela de login somente enquanto o modo mock
+estiver ativo. `DEPLOY_MODE=STANDARD` (valor padrão) mantém a aplicação e o
+provisionamento de dados de produção inalterados.
+
 ### Sysadmin por variáveis de ambiente
 
 Uma conta de sistema pode ser criada ou atualizada automaticamente depois das

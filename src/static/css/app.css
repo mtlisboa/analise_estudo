@@ -839,3 +839,17 @@ svg { display: block; }
 @media (max-width: 480px) {
     .diagnostic-choice { grid-template-columns: 1fr; }
 }
+/* Demo deployment credentials */
+.mock-access {
+    display: grid;
+    gap: .35rem;
+    margin: 0 0 1.25rem;
+    padding: .9rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent, #ff7300) 35%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--accent, #ff7300) 8%, transparent);
+    font-size: .88rem;
+}
+
+.mock-access strong { color: var(--accent, #ff7300); }
+.mock-access code { font: inherit; font-weight: 700; }

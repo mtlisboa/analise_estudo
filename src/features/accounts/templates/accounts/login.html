@@ -16,6 +16,13 @@
     </div>
     <div class="card auth-card">
         <div class="auth-card-heading"><span>{% block login_label %}ACESSAR CONTA{% endblock %}</span><h2>{% block login_heading %}Entre na Lumini{% endblock %}</h2><p>{% block login_help %}Use seus dados para continuar.{% endblock %}</p></div>
+        {% if mock_mode %}
+        <div class="mock-access" role="note">
+            <strong>Ambiente de demonstração</strong>
+            <span>Usuário: <code>{{ mock_username }}</code></span>
+            <span>Senha: <code>{{ mock_password }}</code></span>
+        </div>
+        {% endif %}
         <form method="post">
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
