@@ -61,6 +61,14 @@ com dados existentes, mas o novo fluxo é delimitado pela organização.
 python src/manage.py test
 ```
 
+## Avaliações
+
+O módulo `/avaliacoes/` permite buscar, criar e editar avaliações próprias. Cada
+avaliação registra matéria, assunto, uma lista de observações ou restrições e um
+ou mais tipos de questão (memorização, compreensão, dedução, aplicação, análise
+e pensamento crítico). A técnica avaliativa pode ser escolhida manualmente; se
+ficar em branco, o sistema aplica a técnica padrão do primeiro tipo selecionado.
+
 ## Chatbot com agente MCP
 
 O bounded context `ia-integrations` fica em `src/contexts/ia_integrations` e

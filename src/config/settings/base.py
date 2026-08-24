@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "features.accounts.apps.AccountsConfig",
+    "features.assessments.apps.AssessmentsConfig",
     "features.users_manager.apps.UsersManagerConfig",
     "features.organization_settings.apps.OrganizationSettingsConfig",
     "contexts.ia_integrations.apps.IaIntegrationsConfig",
