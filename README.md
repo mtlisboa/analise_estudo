@@ -191,11 +191,14 @@ MOCK_USER_PASSWORD=defina-uma-senha-segura
 ```
 
 O comando é idempotente e atualiza os mesmos registros a cada inicialização.
-Ele cria o usuário `demo_professor`, 12 alunos (`demo_ana`, `demo_bruno`, etc.),
-uma instituição com grupos aninhados, quatro turmas, testes, autoavaliações,
-avaliações e duas análises salvas. Todas as contas mock usam a senha definida em
-`MOCK_USER_PASSWORD`. Remova `DEPLOY_MODE=MOCK` para impedir novas cargas; os
-dados já persistidos não são apagados automaticamente.
+Ele cria os perfis `demo_professor`, `demo_professor_aux`, `demo_gestor`,
+`demo_responsavel` e 12 alunos (`demo_ana`, `demo_bruno`, etc.). A carga inclui
+duas instituições, grupos aninhados, turmas nos quatro turnos, membros e
+convites em estados diferentes, vínculos educacionais, testes publicados e em
+rascunho, histórico de autoavaliações, avaliações cobrindo todo o catálogo de
+tipos e técnicas e quatro análises salvas. Todas as contas mock usam a senha
+definida em `MOCK_USER_PASSWORD`. Remova `DEPLOY_MODE=MOCK` para impedir novas
+cargas; os dados já persistidos não são apagados automaticamente.
 
 ## Estrutura
 

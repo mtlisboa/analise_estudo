@@ -14,6 +14,7 @@ from features.users_manager.models import (
     ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
+    EducationalRelationship,
     MembershipStatus,
     Organization,
     OrganizationMembership,
@@ -53,6 +54,28 @@ class Command(BaseCommand):
             password,
             manager=True,
         )
+        assistant_teacher = self._upsert_user(
+            "demo_professor_aux",
+            "Rafael",
+            "Santos",
+            password,
+            onboarding_role=get_user_model().OnboardingRole.TEACHER,
+        )
+        manager = self._upsert_user(
+            "demo_gestor",
+            "Camila",
+            "Ferreira",
+            password,
+            manager=True,
+            onboarding_role=get_user_model().OnboardingRole.MANAGER,
+        )
+        guardian = self._upsert_user(
+            "demo_responsavel",
+            "Paulo",
+            "Lima",
+            password,
+            onboarding_role=get_user_model().OnboardingRole.GUARDIAN,
+        )
         students = [
             self._upsert_user(username, first_name, last_name, password)
             for username, first_name, last_name in self.students
@@ -70,6 +93,16 @@ class Command(BaseCommand):
             organization=organization,
             user=teacher,
             defaults={"is_teacher": True, "is_student": False, "added_by": teacher},
+        )
+        OrganizationMembership.objects.update_or_create(
+            organization=organization,
+            user=assistant_teacher,
+            defaults={"is_teacher": True, "is_student": False, "added_by": teacher},
+        )
+        OrganizationMembership.objects.update_or_create(
+            organization=organization,
+            user=manager,
+            defaults={"is_teacher": True, "is_student": True, "added_by": teacher},
         )
         for student in students:
             OrganizationMembership.objects.update_or_create(
@@ -115,6 +148,15 @@ class Command(BaseCommand):
                     "invited_by": teacher,
                 },
             )
+            ClassroomMembership.objects.update_or_create(
+                classroom=classroom,
+                user=assistant_teacher,
+                defaults={
+                    "role": ClassroomMembership.Role.TEACHER,
+                    "status": MembershipStatus.ACTIVE,
+                    "invited_by": teacher,
+                },
+            )
             for student in students[index * 3 : index * 3 + 3]:
                 ClassroomMembership.objects.update_or_create(
                     classroom=classroom,
@@ -125,21 +167,84 @@ class Command(BaseCommand):
                         "invited_by": teacher,
                     },
                 )
-            for test_index, title in enumerate(("Diagnóstico inicial", "Revisão bimestral")):
+            test_specs = (
+                ("Diagnóstico inicial", 10, True),
+                ("Revisão bimestral", 20, True),
+                ("Projeto interdisciplinar", 30, False),
+            )
+            for title, max_score, is_published in test_specs:
                 ClassroomTest.objects.update_or_create(
                     classroom=classroom,
                     title=title,
                     defaults={
                         "instructions": "Atividade demonstrativa gerada pela carga mock.",
-                        "max_score": 10 + test_index * 10,
+                        "max_score": max_score,
                         "created_by": teacher,
-                        "is_published": True,
+                        "is_published": is_published,
                     },
                 )
 
+        ClassroomMembership.objects.update_or_create(
+            classroom=classrooms[1],
+            user=students[0],
+            defaults={
+                "role": ClassroomMembership.Role.STUDENT,
+                "status": MembershipStatus.PENDING,
+                "invited_by": teacher,
+            },
+        )
+        ClassroomMembership.objects.update_or_create(
+            classroom=classrooms[2],
+            user=students[1],
+            defaults={
+                "role": ClassroomMembership.Role.STUDENT,
+                "status": MembershipStatus.REJECTED,
+                "invited_by": teacher,
+            },
+        )
+
+        preparatory = self._upsert_organization(
+            "Curso Preparatório Lumini",
+            manager,
+            "Contexto demonstrativo para preparação de vestibulares e ENEM.",
+        )
+        preparatory_members = (
+            (manager, True, False),
+            (teacher, True, False),
+            (assistant_teacher, True, False),
+            *((student, False, True) for student in students[:6]),
+        )
+        for member, is_teacher, is_student in preparatory_members:
+            OrganizationMembership.objects.update_or_create(
+                organization=preparatory,
+                user=member,
+                defaults={
+                    "is_teacher": is_teacher,
+                    "is_student": is_student,
+                    "added_by": manager,
+                },
+            )
+        prep_root = self._upsert_group("Preparatório", preparatory, manager)
+        prep_enem = self._upsert_group("Turmas ENEM", preparatory, manager, prep_root)
+        self._upsert_preparatory_classrooms(
+            preparatory,
+            prep_enem,
+            manager,
+            teacher,
+            assistant_teacher,
+            students,
+        )
+
+        self._upsert_relationships(
+            teacher,
+            assistant_teacher,
+            manager,
+            students,
+        )
+
         anchor = timezone.now().replace(microsecond=0)
         for student_index, student in enumerate(students):
-            for cycle in range(4):
+            for cycle in range(6):
                 focus = 2 + ((student_index + cycle) % 4)
                 organization_score = 2 + ((student_index * 2 + cycle) % 4)
                 comprehension = 2 + ((student_index + cycle * 2) % 4)
@@ -152,7 +257,7 @@ class Command(BaseCommand):
                         "organization": min(organization_score, 5),
                         "comprehension": min(comprehension, 5),
                         "motivation": min(motivation, 5),
-                        "created_at": anchor - timedelta(days=(3 - cycle) * 14),
+                        "created_at": anchor - timedelta(days=(5 - cycle) * 14),
                     },
                 )
 
@@ -161,6 +266,24 @@ class Command(BaseCommand):
             teacher,
             "Panorama geral demonstrativo",
             {"organization": str(organization.pk), "period": "all"},
+        )
+        self._upsert_saved_analysis(
+            teacher,
+            "Turma 8º A — manhã",
+            {
+                "organization": str(organization.pk),
+                "classroom": str(classrooms[0].pk),
+                "period": "90",
+            },
+        )
+        self._upsert_saved_analysis(
+            teacher,
+            "Preparatório ENEM",
+            {
+                "organization": str(preparatory.pk),
+                "group": str(prep_enem.pk),
+                "period": "all",
+            },
         )
         self._upsert_saved_analysis(
             teacher,
@@ -174,31 +297,57 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                "Dados mock atualizados: demo_professor e 12 alunos, "
-                "com grupos, turmas, avaliações e análises salvas."
+                "Dados mock atualizados: perfis demonstrativos, duas instituições, "
+                "grupos, turmas, convites, vínculos, avaliações e análises salvas."
             )
         )
 
-    def _upsert_user(self, username, first_name, last_name, password, *, manager=False):
+    def _upsert_user(
+        self,
+        username,
+        first_name,
+        last_name,
+        password,
+        *,
+        manager=False,
+        onboarding_role=None,
+    ):
         User = get_user_model()
         user, _ = User.objects.get_or_create(username=username)
         user.first_name = first_name
         user.last_name = last_name
         user.email = f"{username}@demo.lumini.local"
         user.system_role = User.SystemRole.MANAGER if manager else User.SystemRole.MEMBER
-        user.onboarding_role = (
+        user.onboarding_role = onboarding_role or (
             User.OnboardingRole.TEACHER if manager else User.OnboardingRole.STUDENT
         )
-        user.education_level = User.EducationLevel.HIGH_SCHOOL
-        user.app_goal = (
-            User.AppGoal.TEACH_OR_MANAGE if manager else User.AppGoal.IMPROVE_PERFORMANCE
+        user.discovery_source = User.DiscoverySource.SCHOOL
+        user.education_level = (
+            User.EducationLevel.UNDERGRADUATE
+            if user.onboarding_role in {User.OnboardingRole.TEACHER, User.OnboardingRole.MANAGER}
+            else User.EducationLevel.HIGH_SCHOOL
         )
+        user.app_goal = (
+            User.AppGoal.TEACH_OR_MANAGE
+            if user.onboarding_role in {User.OnboardingRole.TEACHER, User.OnboardingRole.MANAGER}
+            else User.AppGoal.IMPROVE_PERFORMANCE
+        )
+        user.app_goal_details = "Explorar todas as funcionalidades demonstrativas da plataforma."
+        user.diagnostic_test_choice = User.DiagnosticTestChoice.LATER
         user.onboarding_completed_at = user.onboarding_completed_at or timezone.now()
         user.is_active = True
         if not user.check_password(password):
             user.set_password(password)
         user.save()
         return user
+
+    def _upsert_organization(self, name, owner, description):
+        organization, _ = Organization.objects.update_or_create(
+            name=name,
+            owner=owner,
+            defaults={"description": description, "is_active": True},
+        )
+        return organization
 
     def _upsert_group(self, name, organization, teacher, parent=None):
         group, _ = ClassroomGroup.objects.update_or_create(
@@ -213,22 +362,152 @@ class Command(BaseCommand):
         )
         return group
 
-    def _upsert_assessments(self, teacher) -> None:
-        technique = AssessmentTechnique.objects.get(code="problem-solving")
-        types = AssessmentType.objects.filter(code__in=("deduction", "application", "analysis"))
-        subjects = (
-            ("Matemática", "Equações do primeiro grau"),
-            ("Ciências", "Ecossistemas"),
+    def _upsert_preparatory_classrooms(
+        self,
+        organization,
+        group,
+        manager,
+        teacher,
+        assistant_teacher,
+        students,
+    ) -> None:
+        classroom_specs = (
+            ("ENEM", "N1", Classroom.Shift.EVENING, students[:3]),
+            ("ENEM", "I1", Classroom.Shift.FULL_TIME, students[3:6]),
         )
-        for subject, topic in subjects:
+        for name, letter, shift, classroom_students in classroom_specs:
+            classroom, _ = Classroom.objects.update_or_create(
+                organization=organization,
+                group=group,
+                name=name,
+                letter=letter,
+                defaults={
+                    "shift": shift,
+                    "description": "Turma preparatória com simulados e acompanhamento contínuo.",
+                    "owner": manager,
+                    "is_active": True,
+                },
+            )
+            for classroom_teacher in (manager, teacher, assistant_teacher):
+                ClassroomMembership.objects.update_or_create(
+                    classroom=classroom,
+                    user=classroom_teacher,
+                    defaults={
+                        "role": ClassroomMembership.Role.TEACHER,
+                        "status": MembershipStatus.ACTIVE,
+                        "invited_by": manager,
+                    },
+                )
+            for student in classroom_students:
+                ClassroomMembership.objects.update_or_create(
+                    classroom=classroom,
+                    user=student,
+                    defaults={
+                        "role": ClassroomMembership.Role.STUDENT,
+                        "status": MembershipStatus.ACTIVE,
+                        "invited_by": manager,
+                    },
+                )
+            for title, instructions, max_score, is_published in (
+                ("Simulado ENEM", "Simulado completo por áreas do conhecimento.", 100, True),
+                ("Redação semanal", "Produção textual com tema contemporâneo.", 100, True),
+                ("Revisão de competências", "Rascunho para a próxima revisão guiada.", 20, False),
+            ):
+                ClassroomTest.objects.update_or_create(
+                    classroom=classroom,
+                    title=title,
+                    defaults={
+                        "instructions": instructions,
+                        "max_score": max_score,
+                        "created_by": manager,
+                        "is_published": is_published,
+                    },
+                )
+
+    def _upsert_relationships(self, teacher, assistant_teacher, manager, students) -> None:
+        relationship_specs = (
+            (teacher, students[0], teacher, MembershipStatus.ACTIVE),
+            (teacher, students[1], students[1], MembershipStatus.PENDING),
+            (assistant_teacher, students[2], assistant_teacher, MembershipStatus.REJECTED),
+            (manager, students[3], students[3], MembershipStatus.REMOVED),
+        )
+        for relationship_teacher, student, requested_by, status in relationship_specs:
+            EducationalRelationship.objects.update_or_create(
+                teacher=relationship_teacher,
+                student=student,
+                defaults={"requested_by": requested_by, "status": status},
+            )
+
+    def _upsert_assessments(self, teacher) -> None:
+        assessment_specs = (
+            (
+                "Matemática",
+                "Equações do primeiro grau",
+                "problem-solving",
+                ("deduction", "application"),
+                False,
+                ("Permitir calculadora simples", "Questões contextualizadas"),
+            ),
+            (
+                "Ciências",
+                "Ecossistemas",
+                "comparative-questions",
+                ("analysis", "comprehension"),
+                False,
+                ("Usar situações ambientais locais",),
+            ),
+            (
+                "Português",
+                "Classes gramaticais",
+                "active-recall",
+                ("memorization",),
+                True,
+                ("Evitar frases ambíguas",),
+            ),
+            (
+                "História",
+                "Revolução Industrial",
+                "socratic-questioning",
+                ("critical-thinking",),
+                True,
+                ("Relacionar causas e consequências", "Incluir fonte histórica curta"),
+            ),
+            (
+                "Geografia",
+                "Urbanização brasileira",
+                "comparative-questions",
+                ("comprehension", "analysis"),
+                False,
+                ("Comparar regiões brasileiras",),
+            ),
+            (
+                "Redação",
+                "Cidadania digital",
+                "scenario-application",
+                ("application",),
+                True,
+                ("Modelo dissertativo-argumentativo", "Máximo de 30 linhas"),
+            ),
+            (
+                "Física",
+                "Conservação de energia",
+                "spaced-review",
+                ("memorization", "application"),
+                False,
+                ("Distribuir a revisão em três blocos", "Incluir unidades no SI"),
+            ),
+        )
+        for subject, topic, technique_code, type_codes, automatic, observations in assessment_specs:
+            technique = AssessmentTechnique.objects.get(code=technique_code)
+            types = AssessmentType.objects.filter(code__in=type_codes)
             assessment, _ = Assessment.objects.update_or_create(
                 owner=teacher,
                 subject=subject,
                 topic=topic,
                 defaults={
-                    "observations": ["Dados demonstrativos", "Questões contextualizadas"],
+                    "observations": list(observations),
                     "technique": technique,
-                    "technique_selected_automatically": False,
+                    "technique_selected_automatically": automatic,
                 },
             )
             assessment.assessment_types.set(types)
