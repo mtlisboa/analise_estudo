@@ -45,11 +45,12 @@
 
     <article class="analytics-card analytics-selector-card">
         <div class="analytics-card-heading selector-heading">
-            <div><span>SELETOR VISUAL</span><h2>Mapa de dispersão por turma</h2><p>Clique em um aluno, selecione um grupo com o laço ou escolha uma turma.</p></div>
+            <div><span>SELETOR VISUAL</span><h2>Mapa de dispersão por turma</h2><p>Clique em um aluno, selecione um grupo com o laço ou escolha uma turma. Use a barra do gráfico ou a roda do mouse para controlar o zoom.</p></div>
             <div class="selector-controls">
                 <label for="classroom-scope-select">Turma</label>
                 <select id="classroom-scope-select"><option value="">Todas as turmas</option></select>
                 <button id="clear-analysis-selection" type="button">Limpar seleção</button>
+                <button id="toggle-analysis-chart-size" type="button" aria-expanded="false">Expandir gráfico</button>
             </div>
         </div>
         <div id="classroom-scatter-chart" class="analytics-chart classroom-scatter-chart" role="img" aria-label="Mapa de dispersão interativo dos alunos, colorido por turma"></div>
@@ -94,5 +95,5 @@
 
 {% block scripts %}
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-<script src="{% static 'js/analytics_dashboard.js' %}?v=3" defer></script>
+<script src="{% static 'js/analytics_dashboard.js' %}?v=4" defer></script>
 {% endblock %}

@@ -38,6 +38,14 @@ class Command(BaseCommand):
         ("demo_joao", "João", "Martins"),
         ("demo_karina", "Karina", "Barbosa"),
         ("demo_lucas", "Lucas", "Ferreira"),
+        ("demo_maria", "Maria", "Araújo"),
+        ("demo_nicolas", "Nicolas", "Cardoso"),
+        ("demo_olivia", "Olívia", "Monteiro"),
+        ("demo_pedro", "Pedro", "Ribeiro"),
+        ("demo_quiteria", "Quitéria", "Moura"),
+        ("demo_renato", "Renato", "Cavalcante"),
+        ("demo_sophia", "Sophia", "Teixeira"),
+        ("demo_thiago", "Thiago", "Correia"),
     )
 
     @transaction.atomic
@@ -117,21 +125,36 @@ class Command(BaseCommand):
         grade_8 = self._upsert_group("8º ano", organization, teacher, middle)
         grade_9 = self._upsert_group("9º ano", organization, teacher, middle)
         grade_1 = self._upsert_group("1ª série", organization, teacher, high)
+        grade_8_regular = self._upsert_group(
+            "8º ano · Ensino regular", organization, teacher, grade_8
+        )
+        grade_8_support = self._upsert_group(
+            "8º ano · Reforço e projetos", organization, teacher, grade_8
+        )
+        grade_9_regular = self._upsert_group(
+            "9º ano · Ensino regular", organization, teacher, grade_9
+        )
+        grade_1_general = self._upsert_group(
+            "1ª série · Formação geral", organization, teacher, grade_1
+        )
+        grade_1_exacts = self._upsert_group(
+            "1ª série · Itinerário de Exatas", organization, teacher, grade_1
+        )
 
         classroom_specs = (
-            ("8º ano", "A", Classroom.Shift.MORNING, grade_8),
-            ("8º ano", "B", Classroom.Shift.AFTERNOON, grade_8),
-            ("9º ano", "A", Classroom.Shift.MORNING, grade_9),
-            ("1ª série", "A", Classroom.Shift.MORNING, grade_1),
+            ("8º ano", "A", Classroom.Shift.MORNING, grade_8_regular),
+            ("8º ano", "B", Classroom.Shift.AFTERNOON, grade_8_regular),
+            ("9º ano", "A", Classroom.Shift.MORNING, grade_9_regular),
+            ("1ª série", "A", Classroom.Shift.MORNING, grade_1_general),
         )
         classrooms = []
         for index, (name, letter, shift, group) in enumerate(classroom_specs):
             classroom, _ = Classroom.objects.update_or_create(
                 organization=organization,
-                group=group,
                 name=name,
                 letter=letter,
                 defaults={
+                    "group": group,
                     "shift": shift,
                     "description": "Turma demonstrativa para visualização de indicadores.",
                     "owner": teacher,
@@ -184,6 +207,30 @@ class Command(BaseCommand):
                     },
                 )
 
+        self._upsert_classroom_with_content(
+            organization=organization,
+            group=grade_8_support,
+            name="Laboratório de aprendizagem",
+            letter="R1",
+            shift=Classroom.Shift.EVENING,
+            owner=teacher,
+            teachers=(teacher, assistant_teacher),
+            students=students[12:16],
+            invited_by=teacher,
+            description="Reforço interdisciplinar e desenvolvimento de projetos.",
+        )
+        self._upsert_classroom_with_content(
+            organization=organization,
+            group=grade_1_exacts,
+            name="Itinerário de Ciências Exatas",
+            letter="EX1",
+            shift=Classroom.Shift.FULL_TIME,
+            owner=teacher,
+            teachers=(teacher, assistant_teacher),
+            students=students[16:20],
+            invited_by=teacher,
+            description="Aprofundamento em matemática, física, tecnologia e investigação.",
+        )
         ClassroomMembership.objects.update_or_create(
             classroom=classrooms[1],
             user=students[0],
@@ -212,7 +259,7 @@ class Command(BaseCommand):
             (manager, True, False),
             (teacher, True, False),
             (assistant_teacher, True, False),
-            *((student, False, True) for student in students[:6]),
+            *((student, False, True) for student in students[:12]),
         )
         for member, is_teacher, is_student in preparatory_members:
             OrganizationMembership.objects.update_or_create(
@@ -228,6 +275,7 @@ class Command(BaseCommand):
         prep_enem = self._upsert_group("Turmas ENEM", preparatory, manager, prep_root)
         self._upsert_preparatory_classrooms(
             preparatory,
+            prep_root,
             prep_enem,
             manager,
             teacher,
@@ -266,6 +314,24 @@ class Command(BaseCommand):
             teacher,
             "Panorama geral demonstrativo",
             {"organization": str(organization.pk), "period": "all"},
+        )
+        self._upsert_saved_analysis(
+            teacher,
+            "Reforço do 8º ano",
+            {
+                "organization": str(organization.pk),
+                "group": str(grade_8_support.pk),
+                "period": "all",
+            },
+        )
+        self._upsert_saved_analysis(
+            teacher,
+            "Itinerário de Ciências Exatas",
+            {
+                "organization": str(organization.pk),
+                "group": str(grade_1_exacts.pk),
+                "period": "all",
+            },
         )
         self._upsert_saved_analysis(
             teacher,
@@ -365,23 +431,36 @@ class Command(BaseCommand):
     def _upsert_preparatory_classrooms(
         self,
         organization,
-        group,
+        root_group,
+        enem_group,
         manager,
         teacher,
         assistant_teacher,
         students,
     ) -> None:
-        classroom_specs = (
-            ("ENEM", "N1", Classroom.Shift.EVENING, students[:3]),
-            ("ENEM", "I1", Classroom.Shift.FULL_TIME, students[3:6]),
+        enem_extended = self._upsert_group(
+            "ENEM · Extensivo", organization, manager, enem_group
         )
-        for name, letter, shift, classroom_students in classroom_specs:
+        enem_intensive = self._upsert_group(
+            "ENEM · Intensivo", organization, manager, enem_group
+        )
+        ssa_group = self._upsert_group("Turmas SSA", organization, manager, root_group)
+        ssa_cycle = self._upsert_group(
+            "SSA · Ciclo seriado", organization, manager, ssa_group
+        )
+        classroom_specs = (
+            ("ENEM", "N1", Classroom.Shift.EVENING, enem_extended, students[:3]),
+            ("ENEM", "I1", Classroom.Shift.FULL_TIME, enem_intensive, students[3:6]),
+            ("SSA 1", "S1", Classroom.Shift.AFTERNOON, ssa_cycle, students[6:9]),
+            ("SSA 2", "S2", Classroom.Shift.MORNING, ssa_cycle, students[9:12]),
+        )
+        for name, letter, shift, group, classroom_students in classroom_specs:
             classroom, _ = Classroom.objects.update_or_create(
                 organization=organization,
-                group=group,
                 name=name,
                 letter=letter,
                 defaults={
+                    "group": group,
                     "shift": shift,
                     "description": "Turma preparatória com simulados e acompanhamento contínuo.",
                     "owner": manager,
@@ -423,6 +502,69 @@ class Command(BaseCommand):
                         "is_published": is_published,
                     },
                 )
+
+    def _upsert_classroom_with_content(
+        self,
+        *,
+        organization,
+        group,
+        name,
+        letter,
+        shift,
+        owner,
+        teachers,
+        students,
+        invited_by,
+        description,
+    ) -> Classroom:
+        classroom, _ = Classroom.objects.update_or_create(
+            organization=organization,
+            name=name,
+            letter=letter,
+            defaults={
+                "group": group,
+                "shift": shift,
+                "description": description,
+                "owner": owner,
+                "is_active": True,
+            },
+        )
+        for classroom_teacher in teachers:
+            ClassroomMembership.objects.update_or_create(
+                classroom=classroom,
+                user=classroom_teacher,
+                defaults={
+                    "role": ClassroomMembership.Role.TEACHER,
+                    "status": MembershipStatus.ACTIVE,
+                    "invited_by": invited_by,
+                },
+            )
+        for student in students:
+            ClassroomMembership.objects.update_or_create(
+                classroom=classroom,
+                user=student,
+                defaults={
+                    "role": ClassroomMembership.Role.STUDENT,
+                    "status": MembershipStatus.ACTIVE,
+                    "invited_by": invited_by,
+                },
+            )
+        for title, max_score, is_published in (
+            ("Diagnóstico da trilha", 10, True),
+            ("Projeto aplicado", 30, True),
+            ("Plano de acompanhamento", 20, False),
+        ):
+            ClassroomTest.objects.update_or_create(
+                classroom=classroom,
+                title=title,
+                defaults={
+                    "instructions": "Atividade demonstrativa da trilha de aprendizagem.",
+                    "max_score": max_score,
+                    "created_by": owner,
+                    "is_published": is_published,
+                },
+            )
+        return classroom
 
     def _upsert_relationships(self, teacher, assistant_teacher, manager, students) -> None:
         relationship_specs = (

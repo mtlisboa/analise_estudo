@@ -29,7 +29,13 @@
             grid: styles.getPropertyValue("--chart-grid").trim()
         };
         var palette = [colors.primary, "#29a7a1", "#ef9d2f", "#7d62d9", "#2f9f7f", "#d95f76", "#5f86d9", "#9a7635"];
-        var selectorConfig = {responsive: true, displaylogo: false, modeBarButtonsToRemove: ["zoomIn2d", "zoomOut2d", "autoScale2d"]};
+        var selectorConfig = {
+            responsive: true,
+            displaylogo: false,
+            displayModeBar: true,
+            scrollZoom: true,
+            modeBarButtonsToRemove: ["toImage"]
+        };
         var baseLayout = {
             autosize: true,
             margin: {l: 48, r: 20, t: 12, b: 46},
@@ -207,6 +213,24 @@
             applyScope(ids, classroomMap[classroomId], ids.length + (ids.length === 1 ? " aluno nesta turma." : " alunos nesta turma."), classroomId);
         });
         document.getElementById("clear-analysis-selection").addEventListener("click", resetScope);
+
+        var selectorCard = selectorNode.closest(".analytics-selector-card");
+        var sizeToggle = document.getElementById("toggle-analysis-chart-size");
+        function setExpanded(expanded) {
+            selectorCard.classList.toggle("is-expanded", expanded);
+            document.body.classList.toggle("analytics-chart-expanded", expanded);
+            sizeToggle.setAttribute("aria-expanded", String(expanded));
+            sizeToggle.textContent = expanded ? "Recolher gráfico" : "Expandir gráfico";
+            window.setTimeout(function () { Plotly.Plots.resize(selectorNode); }, 80);
+        }
+        sizeToggle.addEventListener("click", function () {
+            setExpanded(!selectorCard.classList.contains("is-expanded"));
+        });
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && selectorCard.classList.contains("is-expanded")) {
+                setExpanded(false);
+            }
+        });
 
         var resizeTimer;
         window.addEventListener("resize", function () {

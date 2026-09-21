@@ -615,6 +615,10 @@ svg { display: block; }
 .selector-controls button { height: 38px; padding: 0 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--primary); font-size: 8px; font-weight: 800; cursor: pointer; }
 .selector-controls button:hover { border-color: var(--primary); background: var(--primary-soft); }
 .classroom-scatter-chart { height: 440px; }
+body.analytics-chart-expanded { overflow: hidden; }
+.analytics-selector-card.is-expanded { position: fixed; z-index: 200; inset: 18px; display: flex; margin: 0; padding: 22px; flex-direction: column; border-color: var(--primary); box-shadow: 0 28px 90px rgba(15, 10, 35, .38); }
+.analytics-selector-card.is-expanded .classroom-scatter-chart { height: auto; min-height: 0; flex: 1; }
+.analytics-selector-card.is-expanded .selection-summary { flex: 0 0 auto; }
 .selection-summary { display: flex; min-height: 63px; margin-top: 2px; padding: 12px 15px; align-items: center; gap: 12px; border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border)); border-radius: 11px; background: var(--primary-soft); }
 .selection-summary-icon { display: grid; width: 33px; height: 33px; flex: 0 0 33px; place-items: center; border-radius: 50%; background: var(--primary); color: #fff; font-size: 15px; }
 .selection-summary > div { display: flex; min-width: 0; flex-direction: column; }

@@ -35,37 +35,37 @@ class SeedMockDataCommandTests(TestCase):
         organization = Organization.objects.get(name="Colégio Lumini Demo", owner=teacher)
 
         self.assertTrue(teacher.check_password("senha-mock-segura"))
-        self.assertEqual(User.objects.filter(username__startswith="demo_").count(), 16)
+        self.assertEqual(User.objects.filter(username__startswith="demo_").count(), 24)
         self.assertEqual(Organization.objects.filter(owner=teacher).count(), 1)
         self.assertEqual(Organization.objects.count(), 2)
         self.assertEqual(
             OrganizationMembership.objects.filter(organization=organization).count(),
-            15,
+            23,
         )
-        self.assertEqual(ClassroomGroup.objects.filter(organization=organization).count(), 6)
-        self.assertEqual(ClassroomGroup.objects.count(), 8)
-        self.assertEqual(Classroom.objects.filter(organization=organization).count(), 4)
-        self.assertEqual(Classroom.objects.count(), 6)
+        self.assertEqual(ClassroomGroup.objects.filter(organization=organization).count(), 11)
+        self.assertEqual(ClassroomGroup.objects.count(), 17)
+        self.assertEqual(Classroom.objects.filter(organization=organization).count(), 6)
+        self.assertEqual(Classroom.objects.count(), 10)
         self.assertEqual(
             ClassroomMembership.objects.filter(classroom__organization=organization).count(),
-            22,
+            34,
         )
-        self.assertEqual(ClassroomMembership.objects.count(), 34)
+        self.assertEqual(ClassroomMembership.objects.count(), 58)
         self.assertEqual(
             ClassroomTest.objects.filter(classroom__organization=organization).count(),
-            12,
+            18,
         )
-        self.assertEqual(ClassroomTest.objects.count(), 18)
-        self.assertEqual(ClassroomTest.objects.filter(is_published=False).count(), 6)
+        self.assertEqual(ClassroomTest.objects.count(), 30)
+        self.assertEqual(ClassroomTest.objects.filter(is_published=False).count(), 10)
         self.assertEqual(
             SelfAssessment.objects.filter(
                 user__username__startswith="demo_",
                 notes__startswith="[MOCK]",
             ).count(),
-            72,
+            120,
         )
         self.assertEqual(Assessment.objects.filter(owner=teacher).count(), 7)
-        self.assertEqual(SavedAnalysis.objects.filter(created_by=teacher).count(), 4)
+        self.assertEqual(SavedAnalysis.objects.filter(created_by=teacher).count(), 6)
         self.assertEqual(EducationalRelationship.objects.count(), 4)
 
         self.assertEqual(
@@ -109,8 +109,19 @@ class SeedMockDataCommandTests(TestCase):
             name="Ensino Fundamental II",
         )
         grade_8 = ClassroomGroup.objects.get(organization=organization, name="8º ano")
+        grade_8_support = ClassroomGroup.objects.get(
+            organization=organization,
+            name="8º ano · Reforço e projetos",
+        )
         self.assertEqual(middle.parent.name, "Educação Básica")
         self.assertEqual(grade_8.parent, middle)
+        self.assertEqual(grade_8_support.parent, grade_8)
+        self.assertTrue(grade_8_support.classrooms.filter(letter="R1").exists())
+
+        ssa_cycle = ClassroomGroup.objects.get(name="SSA · Ciclo seriado")
+        self.assertEqual(ssa_cycle.parent.name, "Turmas SSA")
+        self.assertEqual(ssa_cycle.parent.parent.name, "Preparatório")
+        self.assertEqual(ssa_cycle.classrooms.count(), 2)
 
         saved_group_analysis = SavedAnalysis.objects.get(
             created_by=teacher,
@@ -119,5 +130,5 @@ class SeedMockDataCommandTests(TestCase):
         self.assertEqual(saved_group_analysis.filters["group"], middle.pk)
         self.assertEqual(
             saved_group_analysis.snapshot["metrics"]["students"],
-            9,
+            13,
         )

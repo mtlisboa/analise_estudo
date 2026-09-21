@@ -155,6 +155,7 @@ class AnalyticsDashboardTests(TestCase):
         self.assertEqual(len(analysis.snapshot["analytics_payload"]["scatter3d"]["names"]), 2)
         self.assertContains(response, 'id="classroom-scatter-chart"')
         self.assertContains(response, 'id="classroom-scope-select"')
+        self.assertContains(response, 'id="toggle-analysis-chart-size"')
         self.assertNotContains(response, 'id="timeline-chart"')
         self.assertNotContains(response, 'id="classroom-chart"')
         self.assertNotContains(response, 'id="roles-chart"')
