@@ -26,26 +26,42 @@ from .models import (
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
-    organizations = Organization.objects.filter(
-        Q(owner=request.user) | Q(memberships__user=request.user),
-        is_active=True,
-    ).distinct()
-    memberships = ClassroomMembership.objects.filter(user=request.user).select_related(
-        "classroom", "invited_by"
+    organizations = list(
+        Organization.objects.filter(
+            Q(owner=request.user) | Q(memberships__user=request.user),
+            is_active=True,
+        )
+        .prefetch_related("memberships")
+        .distinct()
     )
-    classrooms = Classroom.objects.filter(
-        Q(owner=request.user)
-        | Q(memberships__user=request.user, memberships__status=MembershipStatus.ACTIVE)
-    ).distinct()
+    institution_cards = []
+    for organization in organizations:
+        membership = next(
+            (
+                item
+                for item in organization.memberships.all()
+                if item.user_id == request.user.pk
+            ),
+            None,
+        )
+        roles = []
+        if organization.owner_id == request.user.pk:
+            roles.append("Gestor")
+        if membership and membership.is_teacher:
+            roles.append("Professor")
+        if membership and membership.is_student:
+            roles.append("Aluno")
+        institution_cards.append(
+            {
+                "organization": organization,
+                "roles": roles,
+                "member_count": len(organization.memberships.all()),
+            }
+        )
     return render(
         request,
         "users_manager/dashboard.html",
-        {
-            "organizations": organizations,
-            "memberships": memberships,
-            "classrooms": classrooms,
-            "assessments": request.user.self_assessments.all()[:5],
-        },
+        {"institution_cards": institution_cards},
     )
 
 

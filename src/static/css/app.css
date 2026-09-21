@@ -403,6 +403,24 @@ svg { display: block; }
 .button-secondary { border-color: var(--border-strong); background: var(--surface); box-shadow: none; color: var(--primary); }
 .button-secondary:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
 .manager-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+.institution-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px; }
+.institution-card { display: flex; min-height: 300px; padding: 24px; flex-direction: column; color: inherit; text-decoration: none; transition: transform .2s, border-color .2s, box-shadow .2s; }
+.institution-card:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 12px 30px rgba(45,32,84,.1); }
+.institution-card-topline { display: flex; align-items: flex-start; justify-content: space-between; }
+.institution-avatar { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; background: var(--primary-soft); color: var(--primary); font-size: 16px; font-weight: 850; }
+.institution-arrow { color: var(--primary); font-size: 20px; transition: transform .2s; }
+.institution-card:hover .institution-arrow { transform: translateX(4px); }
+.institution-card-copy { margin-top: 25px; }
+.institution-card-copy .section-kicker { margin: 0 0 6px; }
+.institution-card-copy h2, .institution-empty h2 { margin: 0; font-family: Georgia, serif; font-size: 23px; font-weight: 600; letter-spacing: -.025em; }
+.institution-card-copy > p:last-child, .institution-empty p { margin: 8px 0 0; color: var(--text-soft); font-size: 11px; line-height: 1.55; }
+.institution-roles { margin-top: auto; padding-top: 22px; }
+.institution-roles > small { display: block; margin-bottom: 8px; color: var(--text-faint); font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.institution-roles > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-badge { padding: 6px 9px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 9px; font-weight: 800; }
+.institution-stats { display: flex; gap: 15px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 9px; }
+.institution-stats strong { color: var(--text); }
+.institution-empty { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto; gap: 18px; padding: 28px; align-items: center; }
 .manager-card { overflow: hidden; padding: 25px; }
 .full-card { margin-top: 20px; }
 .manager-card-title { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -646,6 +664,7 @@ svg { display: block; }
     .manager-topbar { align-items: stretch; flex-direction: column; }
     .manager-actions { display: grid; grid-template-columns: 1fr 1fr; }
     .manager-grid { grid-template-columns: 1fr; }
+    .institution-grid { grid-template-columns: 1fr 1fr; }
     .assessment-card { grid-template-columns: 1fr; }
     .assessment-history { justify-content: flex-start; }
     .inline-actions { flex-direction: column; }
@@ -686,6 +705,9 @@ svg { display: block; }
     .auth-intro h1 { font-size: 43px; }.auth-card { padding: 28px 22px; }
     .dashboard-welcome h1 { font-size: 29px; }.evolution-card { padding: 20px 16px; }.real-chart { height: 210px; }.next-step { padding: 20px; }
     .chat-page-heading h1 { font-size: 32px; }
+    .institution-grid { grid-template-columns: 1fr; }
+    .institution-card { min-height: 270px; }
+    .institution-empty { grid-template-columns: 1fr; }
     .chat-shell { width: min(calc(100% - 20px), var(--max-width)); }
     .chat-panel-topbar { padding-inline: 16px; }
     .chat-messages { padding-inline: 14px; }

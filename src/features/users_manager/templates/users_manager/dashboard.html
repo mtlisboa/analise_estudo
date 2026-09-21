@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Organizações e turmas | Lumini{% endblock %}
+{% block title %}Minhas instituições | Lumini{% endblock %}
 {% block main_class %}manager-page{% endblock %}
 
 {% block content %}
@@ -8,47 +8,46 @@
     <div class="manager-topbar">
         <div class="manager-heading">
             <p class="section-kicker">CONTEXTO EDUCACIONAL</p>
-            <h1>Organizações e turmas</h1>
-            <p>Organize professores, alunos, turmas e testes em um único contexto.</p>
+            <h1>Minhas instituições</h1>
+            <p>Escolha uma instituição da qual você participa para acessar suas turmas e recursos.</p>
         </div>
         <div class="manager-actions">
-            <a class="button button-small button-secondary" href="{% url 'analytics-dashboard:dashboard' %}">Ver análises</a>
             <a class="button button-small" href="{% url 'users-manager:organization-create' %}">Nova organização</a>
         </div>
     </div>
 
-    <div class="manager-grid">
-        <article class="dash-card manager-card">
-            <div class="manager-card-title"><div><span>ORGANIZAÇÕES</span><h2>Seus contextos</h2></div><strong>{{ organizations|length }}</strong></div>
-            <div class="manager-list">
-                {% for organization in organizations %}
-                    <a class="manager-list-item list-link" href="{% url 'users-manager:organization-detail' organization.pk %}">
-                        <div class="avatar-letter">{{ organization.name|first|upper }}</div>
-                        <div class="list-copy"><strong>{{ organization.name }}</strong><small>{{ organization.memberships.count }} membro{{ organization.memberships.count|pluralize }} · {{ organization.classrooms.count }} turma{{ organization.classrooms.count|pluralize }}</small></div>
-                        <span>→</span>
-                    </a>
-                {% empty %}<p class="empty-state">Crie uma organização para adicionar professores e alunos.</p>{% endfor %}
-            </div>
-        </article>
-
-        <article class="dash-card manager-card">
-            <div class="manager-card-title"><div><span>TURMAS</span><h2>Seus espaços</h2></div><strong>{{ classrooms|length }}</strong></div>
-            <div class="manager-list">
-                {% for classroom in classrooms %}
-                    <a class="manager-list-item list-link" href="{% url 'users-manager:classroom-detail' classroom.pk %}">
-                        <div class="avatar-letter">{{ classroom.name|first|upper }}</div>
-                        <div class="list-copy"><strong>{{ classroom.name }}</strong><small>{{ classroom.organization.name }} · {{ classroom.memberships.count }} participante{{ classroom.memberships.count|pluralize }}</small></div>
-                        <span>→</span>
-                    </a>
-                {% empty %}<p class="empty-state">As turmas criadas dentro das suas organizações aparecerão aqui.</p>{% endfor %}
-            </div>
-        </article>
+    <div class="institution-grid">
+        {% for card in institution_cards %}
+            <a class="dash-card institution-card" href="{% url 'users-manager:organization-detail' card.organization.pk %}">
+                <div class="institution-card-topline">
+                    <div class="institution-avatar">{{ card.organization.name|first|upper }}</div>
+                    <span class="institution-arrow" aria-hidden="true">→</span>
+                </div>
+                <div class="institution-card-copy">
+                    <p class="section-kicker">INSTITUIÇÃO</p>
+                    <h2>{{ card.organization.name }}</h2>
+                    <p>{{ card.organization.description|default:"Contexto educacional"|truncatechars:120 }}</p>
+                </div>
+                <div class="institution-roles" aria-label="Seu papel nesta instituição">
+                    <small>Seu papel</small>
+                    <div>
+                        {% for role in card.roles %}<span class="role-badge">{{ role }}</span>{% endfor %}
+                    </div>
+                </div>
+                <div class="institution-stats">
+                    <span><strong>{{ card.member_count }}</strong> membro{{ card.member_count|pluralize }}</span>
+                </div>
+            </a>
+        {% empty %}
+            <article class="dash-card institution-empty">
+                <div class="institution-avatar">+</div>
+                <div>
+                    <h2>Nenhuma instituição por aqui</h2>
+                    <p>Crie uma instituição ou peça para um responsável adicionar você como professor ou aluno.</p>
+                </div>
+                <a class="button button-small" href="{% url 'users-manager:organization-create' %}">Criar instituição</a>
+            </article>
+        {% endfor %}
     </div>
-
-    <article class="dash-card assessment-card">
-        <div><span>AUTOAVALIAÇÃO</span><h2>Como está sua aprendizagem hoje?</h2><p>Avalie foco, organização, compreensão e motivação em poucos minutos.</p></div>
-        <div class="assessment-history">{% for assessment in assessments %}<span><strong>{{ assessment.score }}%</strong><small>{{ assessment.created_at|date:"d/m/Y" }}</small></span>{% endfor %}</div>
-        <a class="button button-small" href="{% url 'users-manager:assessment-create' %}">Me autoavaliar</a>
-    </article>
 </section>
 {% endblock %}
