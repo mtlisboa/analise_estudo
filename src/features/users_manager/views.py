@@ -24,6 +24,14 @@ from .models import (
     Organization,
     OrganizationMembership,
 )
+from .permissions import (
+    accessible_group_ids,
+    can_manage_classroom,
+    can_manage_organization,
+    can_view_classroom,
+    has_teacher_role,
+    visible_classrooms,
+)
 
 
 @login_required
@@ -57,10 +65,23 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             {
                 "organization": organization,
                 "roles": roles,
-                "member_count": len(organization.memberships.all()),
+                "member_count": len(organization.memberships.all())
+                if organization.owner_id == request.user.pk
+                else ClassroomMembership.objects.filter(
+                    classroom__in=visible_classrooms(
+                        request.user,
+                        organization=organization,
+                    ),
+                    status=MembershipStatus.ACTIVE,
+                )
+                .values("user_id")
+                .distinct()
+                .count(),
                 "group_count": sum(
                     group.is_active for group in organization.classroom_groups.all()
-                ),
+                )
+                if organization.owner_id == request.user.pk
+                else len(accessible_group_ids(request.user, organization)),
             }
         )
     return render(
@@ -68,41 +89,6 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "users_manager/dashboard.html",
         {"institution_cards": institution_cards},
     )
-
-
-def _can_manage_organization(user, organization: Organization) -> bool:
-    return organization.owner_id == user.pk
-
-
-def _organization_teacher_membership(user, organization: Organization):
-    return OrganizationMembership.objects.filter(
-        organization=organization,
-        user=user,
-        is_teacher=True,
-    ).first()
-
-
-def _visible_group_ids(user, organization: Organization) -> set[int]:
-    groups = list(
-        organization.classroom_groups.filter(is_active=True).values("id", "parent_id")
-    )
-    parent_by_id = {item["id"]: item["parent_id"] for item in groups}
-    visible_ids = set(
-        ClassroomMembership.objects.filter(
-            user=user,
-            status=MembershipStatus.ACTIVE,
-            classroom__organization=organization,
-            classroom__is_active=True,
-            classroom__group__is_active=True,
-        ).values_list("classroom__group_id", flat=True)
-    )
-    pending = list(visible_ids)
-    while pending:
-        parent_id = parent_by_id.get(pending.pop())
-        if parent_id and parent_id not in visible_ids:
-            visible_ids.add(parent_id)
-            pending.append(parent_id)
-    return visible_ids
 
 
 @login_required
@@ -134,16 +120,16 @@ def organization_detail(request: HttpRequest, pk: int) -> HttpResponse:
     ).first()
     if not membership and organization.owner_id != request.user.pk:
         return HttpResponseForbidden("Você não participa desta organização.")
-    can_manage = _can_manage_organization(request.user, organization)
-    can_create_classroom = bool(membership and membership.is_teacher)
+    can_manage = can_manage_organization(request.user, organization)
+    can_create_classroom = can_manage or bool(membership and membership.is_teacher)
     groups = organization.classroom_groups.filter(is_active=True, parent__isnull=True)
-    visible_classrooms = Classroom.objects.filter(is_active=True)
-    if not can_manage and not can_create_classroom:
-        groups = groups.filter(pk__in=_visible_group_ids(request.user, organization))
-        visible_classrooms = visible_classrooms.filter(
-            memberships__user=request.user,
-            memberships__status=MembershipStatus.ACTIVE,
-        ).distinct()
+    classroom_queryset = Classroom.objects.filter(is_active=True)
+    if not can_manage:
+        groups = groups.filter(pk__in=accessible_group_ids(request.user, organization))
+        classroom_queryset = visible_classrooms(
+            request.user,
+            organization=organization,
+        )
     return render(
         request,
         "users_manager/organization_detail.html",
@@ -153,7 +139,7 @@ def organization_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "classroom_groups": groups.prefetch_related(
                 Prefetch(
                     "classrooms",
-                    queryset=visible_classrooms,
+                    queryset=classroom_queryset,
                     to_attr="visible_classrooms",
                 )
             ),
@@ -179,14 +165,15 @@ def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
     if not membership and organization.owner_id != request.user.pk:
         return HttpResponseForbidden("Você não participa desta organização.")
 
-    can_manage = organization.owner_id == request.user.pk or bool(
-        membership and membership.is_teacher
-    )
+    can_manage = can_manage_organization(request.user, organization)
+    can_create_classroom = can_manage or bool(membership and membership.is_teacher)
     classrooms = group.classrooms.filter(is_active=True)
     child_groups = group.children.filter(is_active=True)
     if not can_manage:
-        visible_group_ids = _visible_group_ids(request.user, organization)
-        child_groups = child_groups.filter(pk__in=visible_group_ids)
+        group_ids = accessible_group_ids(request.user, organization)
+        if group.pk not in group_ids:
+            return HttpResponseForbidden("Você não possui acesso a este grupo de turmas.")
+        child_groups = child_groups.filter(pk__in=group_ids)
         classrooms = classrooms.filter(
             memberships__user=request.user,
             memberships__status=MembershipStatus.ACTIVE,
@@ -210,7 +197,7 @@ def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "classroom_sections": classroom_sections,
             "classroom_count": len(classroom_list),
             "child_groups": child_groups.prefetch_related("classrooms"),
-            "can_create_classroom": can_manage,
+            "can_create_classroom": can_create_classroom,
         },
     )
 
@@ -218,14 +205,23 @@ def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def create_classroom_group(request: HttpRequest, organization_pk: int) -> HttpResponse:
     organization = get_object_or_404(Organization, pk=organization_pk, is_active=True)
-    if not _organization_teacher_membership(request.user, organization):
-        return HttpResponseForbidden("Somente professores da organização podem criar grupos.")
+    can_manage = can_manage_organization(request.user, organization)
+    if not can_manage and not has_teacher_role(request.user, organization):
+        return HttpResponseForbidden(
+            "Somente gestores e professores da organização podem criar grupos."
+        )
     initial = None
     if request.method == "GET" and request.GET.get("parent"):
         initial = {"parent": request.GET["parent"]}
+    parent_queryset = organization.classroom_groups.filter(is_active=True)
+    if not can_manage:
+        parent_queryset = parent_queryset.filter(
+            pk__in=accessible_group_ids(request.user, organization)
+        )
     form = ClassroomGroupForm(
         request.POST or None,
         organization=organization,
+        parent_queryset=parent_queryset,
         initial=initial,
     )
     if request.method == "POST" and form.is_valid():
@@ -245,7 +241,7 @@ def create_classroom_group(request: HttpRequest, organization_pk: int) -> HttpRe
 @login_required
 def add_organization_member(request: HttpRequest, pk: int) -> HttpResponse:
     organization = get_object_or_404(Organization, pk=pk, is_active=True)
-    if not _can_manage_organization(request.user, organization):
+    if not can_manage_organization(request.user, organization):
         return HttpResponseForbidden("Somente o responsável pode adicionar membros.")
     form = OrganizationMemberForm(
         request.POST or None,
@@ -311,10 +307,22 @@ def create_classroom(
         organization = group.organization
     else:
         organization = get_object_or_404(Organization, pk=organization_pk, is_active=True)
-    if not _organization_teacher_membership(request.user, organization):
-        return HttpResponseForbidden("Somente professores da organização podem criar turmas.")
+    can_manage = can_manage_organization(request.user, organization)
+    is_teacher = has_teacher_role(request.user, organization)
+    if not can_manage and not is_teacher:
+        return HttpResponseForbidden(
+            "Somente gestores e professores da organização podem criar turmas."
+        )
+    if group is not None and not can_manage:
+        if group.pk not in accessible_group_ids(request.user, organization):
+            return HttpResponseForbidden("Você não possui acesso a este grupo de turmas.")
     if group is None:
-        group = organization.classroom_groups.filter(is_active=True).first()
+        available_groups = organization.classroom_groups.filter(is_active=True)
+        if not can_manage:
+            available_groups = available_groups.filter(
+                pk__in=accessible_group_ids(request.user, organization)
+            )
+        group = available_groups.first()
         if group is None and request.method == "POST":
             group = ClassroomGroup.objects.create(
                 name="Turmas gerais",
@@ -331,31 +339,20 @@ def create_classroom(
         classroom.group = group
         classroom.owner = request.user
         classroom.save()
-        ClassroomMembership.objects.create(
-            classroom=classroom,
-            user=request.user,
-            role=ClassroomMembership.Role.TEACHER,
-            status=MembershipStatus.ACTIVE,
-            invited_by=request.user,
-        )
+        if is_teacher:
+            ClassroomMembership.objects.create(
+                classroom=classroom,
+                user=request.user,
+                role=ClassroomMembership.Role.TEACHER,
+                status=MembershipStatus.ACTIVE,
+                invited_by=request.user,
+            )
         messages.success(request, "Turma criada com sucesso.")
         return redirect("users-manager:classroom-detail", pk=classroom.pk)
     return render(
         request,
         "users_manager/form.html",
         {"form": form, "title": f"Nova turma em {group.name}"},
-    )
-
-
-def _can_manage_classroom(user, classroom: Classroom) -> bool:
-    return bool(_organization_teacher_membership(user, classroom.organization)) and (
-        classroom.owner_id == user.pk
-        or ClassroomMembership.objects.filter(
-            classroom=classroom,
-            user=user,
-            role=ClassroomMembership.Role.TEACHER,
-            status=MembershipStatus.ACTIVE,
-        ).exists()
     )
 
 
@@ -366,13 +363,8 @@ def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
         pk=pk,
         is_active=True,
     )
-    can_manage = _can_manage_classroom(request.user, classroom)
-    can_view = can_manage or ClassroomMembership.objects.filter(
-        classroom=classroom,
-        user=request.user,
-        status=MembershipStatus.ACTIVE,
-    ).exists()
-    if not can_view:
+    can_manage = can_manage_classroom(request.user, classroom)
+    if not can_view_classroom(request.user, classroom):
         return HttpResponseForbidden("Você não participa desta turma.")
     return render(
         request,
@@ -391,7 +383,7 @@ def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def invite_classroom_member(request: HttpRequest, pk: int) -> HttpResponse:
     classroom = get_object_or_404(Classroom, pk=pk, is_active=True)
-    if not _can_manage_classroom(request.user, classroom):
+    if not can_manage_classroom(request.user, classroom):
         return HttpResponseForbidden("Apenas professores da turma podem adicionar membros.")
     form = ClassroomMemberForm(
         request.POST or None,
@@ -412,7 +404,7 @@ def invite_classroom_member(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def create_classroom_test(request: HttpRequest, pk: int) -> HttpResponse:
     classroom = get_object_or_404(Classroom, pk=pk, is_active=True)
-    if not _can_manage_classroom(request.user, classroom):
+    if not can_manage_classroom(request.user, classroom):
         return HttpResponseForbidden("Apenas professores da turma podem criar testes.")
     form = ClassroomTestForm(request.POST or None)
     if request.method == "POST" and form.is_valid():

@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from features.analytics_dashboard.models import SavedAnalysis
+from features.analytics_dashboard.services import build_dashboard
 from features.users_manager.models import (
     Classroom,
     ClassroomGroup,
@@ -284,6 +285,59 @@ class AnalyticsDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(SavedAnalysis.objects.exists())
         self.assertContains(response, "Faça uma escolha válida")
+
+    def test_teacher_analysis_is_limited_to_their_classrooms(self) -> None:
+        other_teacher = User.objects.create_user(
+            username="other-teacher", password="safe-password"
+        )
+        other_student = User.objects.create_user(
+            username="other-student", password="safe-password"
+        )
+        OrganizationMembership.objects.create(
+            organization=self.organization,
+            user=other_teacher,
+            is_teacher=True,
+            added_by=self.owner,
+        )
+        OrganizationMembership.objects.create(
+            organization=self.organization,
+            user=other_student,
+            is_student=True,
+            added_by=self.owner,
+        )
+        other_group = ClassroomGroup.objects.create(
+            name="Grupo restrito",
+            organization=self.organization,
+            created_by=other_teacher,
+        )
+        other_classroom = Classroom.objects.create(
+            name="Turma de outro professor",
+            organization=self.organization,
+            group=other_group,
+            owner=other_teacher,
+        )
+        ClassroomMembership.objects.create(
+            classroom=other_classroom,
+            user=other_teacher,
+            role=ClassroomMembership.Role.TEACHER,
+            status=MembershipStatus.ACTIVE,
+            invited_by=self.owner,
+        )
+        ClassroomMembership.objects.create(
+            classroom=other_classroom,
+            user=other_student,
+            role=ClassroomMembership.Role.STUDENT,
+            status=MembershipStatus.ACTIVE,
+            invited_by=other_teacher,
+        )
+
+        context = build_dashboard(self.teacher, {})
+
+        self.assertEqual(context["classrooms"], [self.classroom])
+        self.assertNotIn(other_group, context["classroom_groups"])
+        self.assertNotIn(other_student, context["students"])
+        self.assertEqual(context["metrics"]["classrooms"], 1)
+        self.assertEqual(context["metrics"]["students"], 2)
 
     def test_user_cannot_view_another_users_saved_analysis(self) -> None:
         analysis = self.generate_analysis(self.owner)

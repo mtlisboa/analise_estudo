@@ -85,33 +85,38 @@ def build_dashboard(user, params) -> dict[str, Any]:
     ]
     scoped_organization_ids = {organization.pk for organization in scoped_organizations}
 
-    teacher_organization_ids = set(
-        OrganizationMembership.objects.filter(
-            organization_id__in=scoped_organization_ids,
-            user=user,
-            is_teacher=True,
-        ).values_list("organization_id", flat=True)
-    )
-    teacher_organization_ids.update(
+    managed_organization_ids = {
         organization.pk
         for organization in scoped_organizations
         if organization.owner_id == user.pk
-    )
+    }
 
     classrooms = list(
         Classroom.objects.filter(organization_id__in=scoped_organization_ids, is_active=True)
         .select_related("organization", "group")
         .order_by("organization__name", "name")
     )
+    user_classroom_memberships = list(
+        ClassroomMembership.objects.filter(
+            classroom__organization_id__in=scoped_organization_ids,
+            classroom__is_active=True,
+            user=user,
+            status=MembershipStatus.ACTIVE,
+        )
+    )
+    user_classroom_ids = {
+        membership.classroom_id for membership in user_classroom_memberships
+    }
+    teacher_classroom_ids = {
+        membership.classroom_id
+        for membership in user_classroom_memberships
+        if membership.role == ClassroomMembership.Role.TEACHER
+    }
     visible_classrooms = [
         classroom
         for classroom in classrooms
-        if classroom.organization_id in teacher_organization_ids
-        or ClassroomMembership.objects.filter(
-            classroom=classroom,
-            user=user,
-            status=MembershipStatus.ACTIVE,
-        ).exists()
+        if classroom.organization_id in managed_organization_ids
+        or classroom.pk in user_classroom_ids
     ]
 
     all_groups = list(
@@ -126,7 +131,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
     visible_group_ids = {
         group.pk
         for group in all_groups
-        if group.organization_id in teacher_organization_ids
+        if group.organization_id in managed_organization_ids
     }
     visible_group_ids.update(classroom.group_id for classroom in visible_classrooms)
     pending_group_ids = list(visible_group_ids)
@@ -172,30 +177,48 @@ def build_dashboard(user, params) -> dict[str, Any]:
         .select_related("organization", "user")
         .order_by("user__username")
     )
-    allowed_student_ids: set[int] = set()
-    allowed_teacher_ids: set[int] = set()
-    student_organization_names: dict[int, set[str]] = defaultdict(set)
-    for membership in organization_memberships:
-        can_view_group = membership.organization_id in teacher_organization_ids
-        if membership.is_student and (can_view_group or membership.user_id == user.pk):
-            allowed_student_ids.add(membership.user_id)
-            student_organization_names[membership.user_id].add(membership.organization.name)
-        if membership.is_teacher and can_view_group:
-            allowed_teacher_ids.add(membership.user_id)
-
     classroom_memberships = list(
         ClassroomMembership.objects.filter(
             classroom_id__in=scoped_classroom_ids,
             status=MembershipStatus.ACTIVE,
         ).select_related("classroom", "user")
     )
-    classroom_student_ids = {
+    scoped_teacher_classroom_ids = teacher_classroom_ids & scoped_classroom_ids
+    allowed_student_ids = set()
+    if not selected_group_id and not selected_classroom_id:
+        allowed_student_ids.update(
+            membership.user_id
+            for membership in organization_memberships
+            if membership.is_student
+            and membership.organization_id in managed_organization_ids
+        )
+    allowed_student_ids.update(
         membership.user_id
         for membership in classroom_memberships
         if membership.role == ClassroomMembership.Role.STUDENT
+        and (
+            membership.classroom.organization_id in managed_organization_ids
+            or membership.classroom_id in scoped_teacher_classroom_ids
+            or membership.user_id == user.pk
+        )
+    )
+    allowed_teacher_ids = {
+        membership.user_id
+        for membership in organization_memberships
+        if membership.is_teacher
+        and membership.organization_id in managed_organization_ids
     }
-    if selected_group_id or selected_classroom_id:
-        allowed_student_ids &= classroom_student_ids
+    allowed_teacher_ids.update(
+        membership.user_id
+        for membership in classroom_memberships
+        if membership.role == ClassroomMembership.Role.TEACHER
+    )
+    student_organization_names: dict[int, set[str]] = defaultdict(set)
+    for membership in organization_memberships:
+        if membership.user_id in allowed_student_ids and membership.is_student:
+            student_organization_names[membership.user_id].add(
+                membership.organization.name
+            )
 
     user_model = user.__class__
     students = list(user_model.objects.filter(pk__in=allowed_student_ids).order_by("first_name", "username"))
@@ -270,8 +293,9 @@ def build_dashboard(user, params) -> dict[str, Any]:
                 )
 
     role_counts = {"Alunos": 0, "Professores": 0, "Ambos": 0}
+    visible_user_ids = allowed_student_ids | allowed_teacher_ids
     for membership in organization_memberships:
-        if membership.organization_id not in teacher_organization_ids and membership.user_id != user.pk:
+        if membership.user_id not in visible_user_ids:
             continue
         if membership.is_teacher and membership.is_student:
             role_counts["Ambos"] += 1

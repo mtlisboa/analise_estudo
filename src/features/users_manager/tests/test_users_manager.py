@@ -448,3 +448,106 @@ class UsersManagerTests(TestCase):
         self.assertContains(group_response, "6º ano")
         self.assertContains(nested_response, "Tarde")
         self.assertContains(nested_response, "B")
+
+    def test_teacher_only_sees_classrooms_with_active_membership(self) -> None:
+        organization = self.create_organization()
+        self.add_member(organization, self.teacher, teacher=True)
+        visible_group = ClassroomGroup.objects.create(
+            name="Turmas da professora",
+            organization=organization,
+            created_by=self.owner,
+        )
+        hidden_group = ClassroomGroup.objects.create(
+            name="Turmas de outro professor",
+            organization=organization,
+            created_by=self.owner,
+        )
+        visible_classroom = Classroom.objects.create(
+            name="Álgebra",
+            organization=organization,
+            group=visible_group,
+            owner=self.teacher,
+        )
+        hidden_classroom = Classroom.objects.create(
+            name="Geometria",
+            organization=organization,
+            group=hidden_group,
+            owner=self.owner,
+        )
+        ClassroomMembership.objects.create(
+            classroom=visible_classroom,
+            user=self.teacher,
+            role=ClassroomMembership.Role.TEACHER,
+            status=MembershipStatus.ACTIVE,
+            invited_by=self.owner,
+        )
+        self.client.force_login(self.teacher)
+
+        organization_response = self.client.get(
+            reverse("users-manager:organization-detail", kwargs={"pk": organization.pk})
+        )
+        hidden_group_response = self.client.get(
+            reverse("users-manager:classroom-group-detail", kwargs={"pk": hidden_group.pk})
+        )
+        hidden_classroom_response = self.client.get(
+            reverse("users-manager:classroom-detail", kwargs={"pk": hidden_classroom.pk})
+        )
+
+        self.assertContains(organization_response, visible_group.name)
+        self.assertNotContains(organization_response, hidden_group.name)
+        self.assertEqual(hidden_group_response.status_code, 403)
+        self.assertEqual(hidden_classroom_response.status_code, 403)
+
+    def test_teacher_cannot_create_classroom_in_inaccessible_group(self) -> None:
+        organization = self.create_organization()
+        self.add_member(organization, self.teacher, teacher=True)
+        inaccessible_group = ClassroomGroup.objects.create(
+            name="Grupo restrito",
+            organization=organization,
+            created_by=self.owner,
+        )
+        self.client.force_login(self.teacher)
+
+        response = self.client.post(
+            reverse(
+                "users-manager:group-classroom-create",
+                kwargs={"group_pk": inaccessible_group.pk},
+            ),
+            {
+                "name": "Turma indevida",
+                "letter": "A",
+                "shift": Classroom.Shift.MORNING,
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Classroom.objects.filter(name="Turma indevida").exists())
+
+    def test_manager_can_access_and_manage_every_classroom(self) -> None:
+        organization = self.create_organization()
+        group = ClassroomGroup.objects.create(
+            name="Grupo administrativo",
+            organization=organization,
+            created_by=self.owner,
+        )
+        classroom = Classroom.objects.create(
+            name="Turma sem vínculo do gestor",
+            organization=organization,
+            group=group,
+            owner=self.teacher,
+        )
+
+        detail_response = self.client.get(
+            reverse("users-manager:classroom-detail", kwargs={"pk": classroom.pk})
+        )
+        test_response = self.client.post(
+            reverse("users-manager:classroom-test-create", kwargs={"pk": classroom.pk}),
+            {"title": "Teste do gestor", "max_score": 10, "is_published": "on"},
+        )
+
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertRedirects(
+            test_response,
+            reverse("users-manager:classroom-detail", kwargs={"pk": classroom.pk}),
+        )
+        self.assertTrue(classroom.tests.filter(title="Teste do gestor").exists())

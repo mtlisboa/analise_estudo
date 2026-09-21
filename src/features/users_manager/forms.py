@@ -147,13 +147,14 @@ class ClassroomGroupForm(forms.ModelForm):
         model = ClassroomGroup
         fields = ("name", "parent", "description")
 
-    def __init__(self, *args, organization, **kwargs):
+    def __init__(self, *args, organization, parent_queryset=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.organization = organization
         self.instance.organization = organization
-        self.fields["parent"].queryset = organization.classroom_groups.filter(
-            is_active=True
-        ).exclude(pk=self.instance.pk)
+        available_parents = parent_queryset
+        if available_parents is None:
+            available_parents = organization.classroom_groups.filter(is_active=True)
+        self.fields["parent"].queryset = available_parents.exclude(pk=self.instance.pk)
         self.fields["parent"].required = False
         self.fields["parent"].empty_label = "Nenhum — grupo principal"
 
