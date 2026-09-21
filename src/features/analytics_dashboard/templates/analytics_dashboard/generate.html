@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Gerar análise | Lumini{% endblock %}
+{% block main_class %}analytics-page{% endblock %}
+
+{% block content %}
+<section class="analytics-shell generate-analysis-shell">
+    <a class="back-link" href="{% url 'analytics-dashboard:dashboard' %}">← Análises salvas</a>
+    <header class="analytics-header">
+        <div>
+            <p class="section-kicker">NOVA ANÁLISE</p>
+            <h1>Defina o recorte dos dados</h1>
+            <p>O resultado será calculado com os dados atuais e salvo para consultas futuras.</p>
+        </div>
+    </header>
+
+    <form class="analytics-card generate-analysis-card" method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="generate-analysis-grid">
+            {% for field in form %}
+                <div class="form-field{% if field.name == 'title' %} generate-title-field{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="generate-analysis-note">
+            <strong>O que será salvo?</strong>
+            <p>Indicadores, gráficos e o resumo por aluno exatamente como forem calculados agora.</p>
+        </div>
+        <div class="generate-analysis-actions">
+            <a class="button button-secondary" href="{% url 'analytics-dashboard:dashboard' %}">Cancelar</a>
+            <button class="button" type="submit">Gerar e salvar análise</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

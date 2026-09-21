@@ -8,52 +8,16 @@
 <section class="analytics-shell">
     <header class="analytics-header">
         <div>
-            <p class="section-kicker">INTELIGÊNCIA EDUCACIONAL</p>
-            <h1>Dashboard de desempenho</h1>
-            <p>Compare organizações, turmas e alunos a partir de indicadores acadêmicos reais.</p>
+            <a class="back-link" href="{% url 'analytics-dashboard:dashboard' %}">← Análises salvas</a>
+            <p class="section-kicker">ANÁLISE SALVA</p>
+            <h1>{{ saved_analysis.title }}</h1>
+            <p>{{ saved_analysis.scope_title }} · {{ saved_analysis.period_label }} · Gerada em {{ saved_analysis.created_at|date:"d/m/Y à\s H:i" }}</p>
         </div>
-        <span class="analytics-scope">{{ scope_title }}</span>
+        <div class="saved-detail-actions">
+            <span class="analytics-scope">{{ scope_title }}</span>
+            <a class="button button-small" href="{% url 'analytics-dashboard:generate' %}">Gerar nova</a>
+        </div>
     </header>
-
-    <form class="analytics-filters" method="get" aria-label="Filtros do dashboard">
-        <label>
-            <span>Organização</span>
-            <select name="organization">
-                <option value="">Todas</option>
-                {% for organization in organizations %}
-                    <option value="{{ organization.pk }}"{% if filters.organization == organization.pk %} selected{% endif %}>{{ organization.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Turma</span>
-            <select name="classroom">
-                <option value="">Todas</option>
-                {% for classroom in classrooms %}
-                    <option value="{{ classroom.pk }}"{% if filters.classroom == classroom.pk %} selected{% endif %}>{{ classroom.name }} · {{ classroom.organization.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Aluno</span>
-            <select name="student">
-                <option value="">Todos</option>
-                {% for student in students %}
-                    <option value="{{ student.pk }}"{% if filters.student == student.pk %} selected{% endif %}>{{ student.get_full_name|default:student.username }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Período</span>
-            <select name="period">
-                {% for value, label in periods %}
-                    <option value="{{ value }}"{% if filters.period == value %} selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button class="button button-small" type="submit">Aplicar filtros</button>
-        <a class="analytics-clear" href="{% url 'analytics-dashboard:dashboard' %}">Limpar</a>
-    </form>
 
     <div class="analytics-metrics" aria-label="Indicadores gerais">
         <article><span>ORGANIZAÇÕES</span><strong>{{ metrics.organizations }}</strong><small>no escopo atual</small></article>

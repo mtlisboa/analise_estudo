@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from features.analytics_dashboard.models import SavedAnalysis
 from features.users_manager.models import (
     Classroom,
     ClassroomGroup,
@@ -93,56 +94,101 @@ class AnalyticsDashboardTests(TestCase):
             motivation=2,
         )
         self.url = reverse("analytics-dashboard:dashboard")
+        self.generate_url = reverse("analytics-dashboard:generate")
+
+    def generate_analysis(self, user, **overrides) -> SavedAnalysis:
+        self.client.force_login(user)
+        data = {
+            "title": "Análise de setembro",
+            "organization": str(self.organization.pk),
+            "classroom": str(self.classroom.pk),
+            "student": "",
+            "period": "all",
+        }
+        data.update(overrides)
+        response = self.client.post(self.generate_url, data)
+        analysis = SavedAnalysis.objects.get(created_by=user)
+        self.assertRedirects(
+            response,
+            reverse("analytics-dashboard:detail", kwargs={"pk": analysis.pk}),
+        )
+        return analysis
 
     def test_dashboard_requires_authentication(self) -> None:
         response = self.client.get(self.url)
         self.assertRedirects(response, f'{reverse("accounts:login")}?next={self.url}')
 
-    def test_owner_sees_organization_classroom_and_student_metrics(self) -> None:
-        self.client.force_login(self.owner)
+    def test_index_only_shows_saved_analyses_and_generate_button(self) -> None:
+        analysis = self.generate_analysis(self.owner)
+
         response = self.client.get(self.url)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["metrics"]["organizations"], 1)
-        self.assertEqual(response.context["metrics"]["classrooms"], 1)
-        self.assertEqual(response.context["metrics"]["students"], 2)
-        self.assertEqual(response.context["metrics"]["tests"], 1)
-        self.assertEqual(len(response.context["analytics_payload"]["scatter3d"]["names"]), 2)
+        self.assertContains(response, analysis.title)
+        self.assertContains(response, "Gerar nova análise")
+        self.assertNotContains(response, 'id="scatter-2d-chart"')
+
+    def test_owner_generates_and_views_a_persisted_snapshot(self) -> None:
+        analysis = self.generate_analysis(self.owner)
+        response = self.client.get(
+            reverse("analytics-dashboard:detail", kwargs={"pk": analysis.pk})
+        )
+
+        self.assertEqual(analysis.snapshot["metrics"]["organizations"], 1)
+        self.assertEqual(analysis.snapshot["metrics"]["classrooms"], 1)
+        self.assertEqual(analysis.snapshot["metrics"]["students"], 2)
+        self.assertEqual(analysis.snapshot["metrics"]["tests"], 1)
+        self.assertEqual(len(analysis.snapshot["analytics_payload"]["scatter3d"]["names"]), 2)
         self.assertContains(response, 'id="scatter-2d-chart"')
         self.assertContains(response, 'id="scatter-3d-chart"')
         self.assertContains(response, 'id="heatmap-chart"')
 
     def test_student_only_sees_their_own_academic_data(self) -> None:
-        self.client.force_login(self.student)
-        response = self.client.get(self.url)
+        analysis = self.generate_analysis(self.student)
 
-        payload = response.context["analytics_payload"]
-        self.assertEqual(response.context["metrics"]["students"], 1)
+        payload = analysis.snapshot["analytics_payload"]
+        self.assertEqual(analysis.snapshot["metrics"]["students"], 1)
         self.assertEqual(payload["scatter2d"]["names"], ["Ana Lima"])
-        self.assertNotContains(response, "peer")
+        self.assertNotIn("peer", str(analysis.snapshot))
 
     def test_teacher_can_filter_a_specific_student(self) -> None:
-        self.client.force_login(self.teacher)
-        response = self.client.get(
-            self.url,
-            {"organization": self.organization.pk, "student": self.student.pk, "period": "all"},
+        analysis = self.generate_analysis(
+            self.teacher,
+            student=str(self.student.pk),
         )
 
-        self.assertEqual(response.context["scope_title"], "Ana Lima")
-        self.assertEqual(response.context["metrics"]["students"], 1)
-        self.assertEqual(response.context["analytics_payload"]["scatter2d"]["names"], ["Ana Lima"])
+        self.assertEqual(analysis.scope_title, "Ana Lima")
+        self.assertEqual(analysis.snapshot["metrics"]["students"], 1)
+        self.assertEqual(
+            analysis.snapshot["analytics_payload"]["scatter2d"]["names"],
+            ["Ana Lima"],
+        )
 
-    def test_invalid_filters_are_ignored_without_exposing_data(self) -> None:
+    def test_invalid_filters_do_not_create_or_expose_an_analysis(self) -> None:
         outsider = User.objects.create_user(username="outsider", password="safe-password")
         outside_organization = Organization.objects.create(name="Externa", owner=outsider)
         self.client.force_login(self.student)
 
-        response = self.client.get(
-            self.url,
-            {"organization": outside_organization.pk, "student": self.peer.pk, "period": "invalid"},
+        response = self.client.post(
+            self.generate_url,
+            {
+                "title": "Indevida",
+                "organization": str(outside_organization.pk),
+                "classroom": "",
+                "student": str(self.peer.pk),
+                "period": "invalid",
+            },
         )
 
-        self.assertIsNone(response.context["filters"]["organization"])
-        self.assertIsNone(response.context["filters"]["student"])
-        self.assertEqual(response.context["filters"]["period"], "90")
-        self.assertEqual(response.context["analytics_payload"]["scatter2d"]["names"], ["Ana Lima"])
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(SavedAnalysis.objects.exists())
+        self.assertContains(response, "Faça uma escolha válida")
+
+    def test_user_cannot_view_another_users_saved_analysis(self) -> None:
+        analysis = self.generate_analysis(self.owner)
+        self.client.force_login(self.student)
+
+        response = self.client.get(
+            reverse("analytics-dashboard:detail", kwargs={"pk": analysis.pk})
+        )
+
+        self.assertEqual(response.status_code, 404)

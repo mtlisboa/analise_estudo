@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Análises salvas | Lumini{% endblock %}
+{% block main_class %}analytics-page{% endblock %}
+
+{% block content %}
+<section class="analytics-shell saved-analytics-shell">
+    <header class="analytics-header saved-analytics-header">
+        <div>
+            <p class="section-kicker">INTELIGÊNCIA EDUCACIONAL</p>
+            <h1>Análises salvas</h1>
+            <p>Consulte resultados gerados anteriormente ou crie uma nova análise.</p>
+        </div>
+        <a class="button" href="{% url 'analytics-dashboard:generate' %}">+ Gerar nova análise</a>
+    </header>
+
+    <div class="saved-analysis-list">
+        {% for analysis in saved_analyses %}
+            <a class="analytics-card saved-analysis-card" href="{% url 'analytics-dashboard:detail' analysis.pk %}">
+                <div class="saved-analysis-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 7 6-4 6 6 5-5"/></svg>
+                </div>
+                <div class="saved-analysis-copy">
+                    <small>ANÁLISE SALVA</small>
+                    <h2>{{ analysis.title }}</h2>
+                    <p>{{ analysis.scope_title }} · {{ analysis.period_label }}</p>
+                </div>
+                <div class="saved-analysis-metrics">
+                    <span><strong>{{ analysis.snapshot.metrics.students }}</strong> alunos</span>
+                    <span><strong>{% if analysis.snapshot.metrics.assessment_average is not None %}{{ analysis.snapshot.metrics.assessment_average }}%{% else %}—{% endif %}</strong> índice médio</span>
+                </div>
+                <time datetime="{{ analysis.created_at|date:'c' }}">{{ analysis.created_at|date:"d/m/Y · H:i" }}</time>
+                <b aria-hidden="true">→</b>
+            </a>
+        {% empty %}
+            <article class="analytics-card saved-analysis-empty">
+                <div class="saved-analysis-icon">+</div>
+                <h2>Você ainda não salvou nenhuma análise</h2>
+                <p>Escolha uma instituição, turma, aluno e período para gerar seu primeiro retrato de desempenho.</p>
+                <a class="button button-small" href="{% url 'analytics-dashboard:generate' %}">Gerar primeira análise</a>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -570,6 +570,34 @@ svg { display: block; }
 .analytics-header h1 { margin: 0; font-family: Georgia, serif; font-size: 39px; font-weight: 500; letter-spacing: -.04em; }
 .analytics-header > div > p:last-child { margin: 5px 0 0; color: var(--text-soft); font-size: 13px; }
 .analytics-scope { display: inline-flex; max-width: 300px; padding: 9px 14px; align-items: center; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--primary); font-size: 10px; font-weight: 800; box-shadow: var(--shadow-soft); }
+.saved-analytics-shell, .generate-analysis-shell { max-width: 1080px; }
+.saved-analytics-header { align-items: center; }
+.saved-analysis-list { display: grid; gap: 12px; }
+.saved-analysis-card { display: grid; min-height: 112px; padding: 20px 22px; grid-template-columns: auto minmax(220px, 1.2fr) minmax(220px, .8fr) auto auto; align-items: center; gap: 18px; color: inherit; text-decoration: none; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.saved-analysis-card:hover { border-color: var(--primary); box-shadow: 0 10px 28px rgba(45,32,84,.08); transform: translateY(-2px); }
+.saved-analysis-icon { display: grid; width: 45px; height: 45px; flex: 0 0 45px; place-items: center; border-radius: 12px; background: var(--primary-soft); color: var(--primary); font-size: 18px; font-weight: 850; }
+.saved-analysis-icon svg { width: 22px; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.saved-analysis-copy { min-width: 0; }
+.saved-analysis-copy small { color: var(--primary); font-size: 7px; font-weight: 850; letter-spacing: .14em; }
+.saved-analysis-copy h2 { overflow: hidden; margin: 3px 0 4px; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.saved-analysis-copy p { margin: 0; color: var(--text-soft); font-size: 9px; }
+.saved-analysis-metrics { display: flex; gap: 17px; }
+.saved-analysis-metrics span { display: flex; color: var(--text-faint); font-size: 8px; flex-direction: column; }
+.saved-analysis-metrics strong { color: var(--text); font-size: 14px; }
+.saved-analysis-card time { color: var(--text-faint); font-size: 8px; white-space: nowrap; }
+.saved-analysis-card > b { color: var(--primary); font-size: 17px; }
+.saved-analysis-empty { padding: 68px 25px; text-align: center; }
+.saved-analysis-empty .saved-analysis-icon { margin: 0 auto 17px; }
+.saved-analysis-empty h2 { margin: 0; font-size: 23px; }
+.saved-analysis-empty p { max-width: 500px; margin: 7px auto 22px; color: var(--text-soft); font-size: 11px; }
+.generate-analysis-card { padding: clamp(24px, 5vw, 42px); }
+.generate-analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 17px; }
+.generate-title-field { grid-column: 1 / -1; }
+.generate-analysis-note { margin-top: 25px; padding: 17px 19px; border-left: 3px solid var(--primary); background: var(--primary-soft); }
+.generate-analysis-note strong { color: var(--primary); font-size: 10px; }
+.generate-analysis-note p { margin: 3px 0 0; color: var(--text-soft); font-size: 9px; }
+.generate-analysis-actions { display: flex; margin-top: 25px; justify-content: flex-end; gap: 10px; }
+.saved-detail-actions { display: flex; align-items: center; gap: 9px; }
 .analytics-filters { display: grid; grid-template-columns: 1.2fr 1.2fr 1.1fr 1fr auto auto; gap: 11px; margin-bottom: 18px; padding: 18px; align-items: end; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); box-shadow: var(--shadow-soft); }
 .analytics-filters label { display: grid; min-width: 0; gap: 5px; }
 .analytics-filters label > span { color: var(--text-faint); font-size: 8px; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
@@ -738,6 +766,13 @@ svg { display: block; }
     .analytics-shell { width: min(calc(100% - 32px), 1400px); padding-top: 34px; }
     .analytics-header { align-items: flex-start; flex-direction: column; gap: 13px; }
     .analytics-header h1 { font-size: 33px; }
+    .saved-analysis-card { grid-template-columns: auto 1fr auto; }
+    .saved-analysis-metrics { grid-column: 2 / -1; }
+    .saved-analysis-card time { grid-column: 2 / 3; }
+    .generate-analysis-grid { grid-template-columns: 1fr; }
+    .generate-title-field { grid-column: auto; }
+    .generate-analysis-actions { display: grid; grid-template-columns: 1fr; }
+    .generate-analysis-actions .button { width: 100%; }
     .analytics-filters { grid-template-columns: 1fr; }
     .analytics-filters .button, .analytics-clear { width: 100%; justify-content: center; }
     .analytics-metrics { grid-template-columns: 1fr 1fr; }
