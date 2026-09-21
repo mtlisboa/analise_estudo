@@ -13,17 +13,23 @@
             document.documentElement.dataset.theme = theme;
         }());
     </script>
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=12">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=13">
 </head>
 <body{% if user.is_authenticated and not onboarding_mode %} class="has-sidebar"{% endif %}>
     {% if user.is_authenticated and not onboarding_mode %}
     <aside class="app-sidebar" aria-label="Navegação principal">
-        <a class="brand sidebar-brand" href="{% url 'accounts:dashboard' %}" aria-label="Lumini, meu painel">
-            <span class="brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 64 40" fill="none"><circle cx="13" cy="5" r="3" fill="currentColor" stroke="none"/><path d="M13 31C5 30 4 20 9 14c5-6 11-1 18 8 7 9 15 13 23 8 10-7 5-19-4-18-8 1-12 9-18 15-5 5-9 5-15 4Z"/></svg>
-            </span>
-            <span class="sidebar-label brand-word">Lumini<span>AI</span></span>
-        </a>
+        <div class="sidebar-brand-row">
+            <a class="brand sidebar-brand" href="{% url 'accounts:dashboard' %}" aria-label="Lumini, meu painel">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 64 40" fill="none"><circle cx="13" cy="5" r="3" fill="currentColor" stroke="none"/><path d="M13 31C5 30 4 20 9 14c5-6 11-1 18 8 7 9 15 13 23 8 10-7 5-19-4-18-8 1-12 9-18 15-5 5-9 5-15 4Z"/></svg>
+                </span>
+                <span class="sidebar-label brand-word">Lumini<span>AI</span></span>
+            </a>
+            <button class="theme-toggle sidebar-theme" type="button" aria-label="Ativar tema escuro" title="Alternar entre tema claro e escuro">
+                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 15.1A8.5 8.5 0 0 1 8.9 3.5 8.5 8.5 0 1 0 20.5 15.1Z"/></svg>
+            </button>
+        </div>
 
         <nav class="sidebar-nav">
             <span class="sidebar-section-label">NAVEGAÇÃO</span>
@@ -46,11 +52,6 @@
         </nav>
 
         <div class="sidebar-footer">
-            <button class="theme-toggle sidebar-theme" type="button" aria-label="Ativar tema escuro" title="Alternar tema">
-                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
-                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 15.1A8.5 8.5 0 0 1 8.9 3.5 8.5 8.5 0 1 0 20.5 15.1Z"/></svg>
-                <span class="sidebar-label">Alternar tema</span>
-            </button>
             <div class="sidebar-user">
                 <span class="sidebar-avatar">{{ user.first_name|default:user.username|first|upper }}</span>
                 <span class="sidebar-user-copy sidebar-label"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.email|default:"Conta Lumini" }}</small></span>
