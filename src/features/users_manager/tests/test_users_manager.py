@@ -77,6 +77,35 @@ class UsersManagerTests(TestCase):
             f'{reverse("accounts:login")}?next={reverse("users-manager:dashboard")}',
         )
 
+    def test_dashboard_only_lists_participating_institutions(self) -> None:
+        participating = self.create_organization()
+        outsider = User.objects.create_user(username="outro", password="senha-forte-000")
+        Organization.objects.create(name="Instituição de outro usuário", owner=outsider)
+
+        response = self.client.get(reverse("users-manager:dashboard"))
+
+        self.assertContains(response, participating.name)
+        self.assertNotContains(response, "Instituição de outro usuário")
+        self.assertNotContains(response, "Seus espaços")
+        self.assertNotContains(response, "Como está sua aprendizagem hoje?")
+
+    def test_dashboard_marks_the_users_roles_in_each_institution(self) -> None:
+        organization = Organization.objects.create(name="Escola de papéis", owner=self.teacher)
+        self.add_member(organization, self.owner, teacher=True, student=True)
+
+        response = self.client.get(reverse("users-manager:dashboard"))
+
+        self.assertContains(response, "Escola de papéis")
+        self.assertContains(response, "Professor")
+        self.assertContains(response, "Aluno")
+
+    def test_dashboard_marks_owner_as_manager(self) -> None:
+        self.create_organization()
+
+        response = self.client.get(reverse("users-manager:dashboard"))
+
+        self.assertContains(response, "Gestor")
+
     def test_user_can_create_organization_and_becomes_teacher_member(self) -> None:
         response = self.client.post(
             reverse("users-manager:organization-create"),
