@@ -24,6 +24,21 @@ urlpatterns = [
         views.create_classroom,
         name="classroom-create",
     ),
+    path(
+        "organizacoes/<int:organization_pk>/grupos/novo/",
+        views.create_classroom_group,
+        name="classroom-group-create",
+    ),
+    path(
+        "grupos/<int:pk>/",
+        views.classroom_group_detail,
+        name="classroom-group-detail",
+    ),
+    path(
+        "grupos/<int:group_pk>/turmas/nova/",
+        views.create_classroom,
+        name="group-classroom-create",
+    ),
     path("turmas/<int:pk>/", views.classroom_detail, name="classroom-detail"),
     path(
         "turmas/<int:pk>/convidar/",

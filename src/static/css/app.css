@@ -403,6 +403,24 @@ svg { display: block; }
 .button-secondary { border-color: var(--border-strong); background: var(--surface); box-shadow: none; color: var(--primary); }
 .button-secondary:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
 .manager-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+.institution-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px; }
+.institution-card { display: flex; min-height: 300px; padding: 24px; flex-direction: column; color: inherit; text-decoration: none; transition: transform .2s, border-color .2s, box-shadow .2s; }
+.institution-card:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 12px 30px rgba(45,32,84,.1); }
+.institution-card-topline { display: flex; align-items: flex-start; justify-content: space-between; }
+.institution-avatar { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; background: var(--primary-soft); color: var(--primary); font-size: 16px; font-weight: 850; }
+.institution-arrow { color: var(--primary); font-size: 20px; transition: transform .2s; }
+.institution-card:hover .institution-arrow { transform: translateX(4px); }
+.institution-card-copy { margin-top: 25px; }
+.institution-card-copy .section-kicker { margin: 0 0 6px; }
+.institution-card-copy h2, .institution-empty h2 { margin: 0; font-family: Georgia, serif; font-size: 23px; font-weight: 600; letter-spacing: -.025em; }
+.institution-card-copy > p:last-child, .institution-empty p { margin: 8px 0 0; color: var(--text-soft); font-size: 11px; line-height: 1.55; }
+.institution-roles { margin-top: auto; padding-top: 22px; }
+.institution-roles > small { display: block; margin-bottom: 8px; color: var(--text-faint); font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.institution-roles > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-badge { padding: 6px 9px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 9px; font-weight: 800; }
+.institution-stats { display: flex; gap: 15px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 9px; }
+.institution-stats strong { color: var(--text); }
+.institution-empty { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto; gap: 18px; padding: 28px; align-items: center; }
 .manager-card { overflow: hidden; padding: 25px; }
 .full-card { margin-top: 20px; }
 .manager-card-title { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -435,6 +453,57 @@ svg { display: block; }
 .form-field select { min-height: 48px; }
 .form-field textarea { resize: vertical; }
 .form-field select:focus, .form-field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent); }
+
+/* Institution → group → classroom navigation */
+.institution-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px; }
+.institution-card { display: flex; min-height: 285px; padding: 24px; flex-direction: column; color: inherit; text-decoration: none; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.institution-card:hover { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); box-shadow: 0 12px 32px rgba(45,32,84,.09); transform: translateY(-3px); }
+.institution-card-top { display: flex; align-items: center; justify-content: space-between; }
+.institution-symbol, .class-group-icon { display: grid; width: 49px; height: 49px; place-items: center; border-radius: 13px; background: var(--primary); color: #fff; font-size: 18px; font-weight: 850; }
+.institution-arrow { color: var(--primary); font-size: 21px; transition: transform .2s; }
+.institution-card:hover .institution-arrow { transform: translateX(4px); }
+.institution-copy { margin: 27px 0 18px; }
+.institution-copy small, .detail-section-heading span, .shift-heading small, .classroom-letter-card small { color: var(--primary); font-size: 8px; font-weight: 850; letter-spacing: .14em; }
+.institution-copy h2 { margin: 4px 0 7px; font-size: 21px; letter-spacing: -.025em; }
+.institution-copy p { min-height: 34px; margin: 0; color: var(--text-soft); font-size: 11px; line-height: 1.55; }
+.role-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-badges span { padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border)); border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 8px; font-weight: 800; }
+.institution-stats { display: flex; margin-top: auto; padding-top: 17px; gap: 18px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 9px; }
+.institution-stats strong { color: var(--text); font-size: 12px; }
+.institution-empty, .group-empty { grid-column: 1 / -1; padding: 38px; text-align: center; }
+.institution-empty .institution-symbol { margin: 0 auto 18px; }
+.institution-empty h2, .group-empty h3 { margin: 0 0 7px; font-size: 19px; }
+.institution-empty p, .group-empty p { margin: 0 auto 20px; color: var(--text-soft); font-size: 11px; }
+.detail-section-heading { display: flex; margin-bottom: 13px; align-items: end; justify-content: space-between; }
+.detail-section-heading h2 { margin: 4px 0 0; font-size: 20px; }
+.detail-section-heading > strong { color: var(--primary); font-size: 27px; }
+.class-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.class-group-card { display: grid; min-height: 145px; padding: 21px; grid-template-columns: auto 1fr; align-items: start; gap: 16px; color: inherit; text-decoration: none; transition: border-color .2s, transform .2s; }
+.class-group-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.class-group-icon { width: 42px; height: 42px; border-radius: 11px; background: var(--primary-soft); color: var(--primary); font-size: 14px; }
+.class-group-card h3 { margin: 1px 0 5px; font-size: 15px; }
+.class-group-card p { min-height: 30px; margin: 0 0 13px; color: var(--text-soft); font-size: 10px; line-height: 1.5; }
+.class-group-card span { color: var(--text-faint); font-size: 9px; }
+.class-group-card b { margin-left: 5px; color: var(--primary); }
+.compact-members { margin-top: 30px; }
+.classroom-summary { display: flex; margin-bottom: 25px; padding: 13px 17px; align-items: baseline; gap: 7px; border-left: 3px solid var(--primary); background: var(--primary-soft); color: var(--primary); }
+.classroom-summary strong { font-size: 22px; }
+.classroom-summary span { font-size: 10px; font-weight: 700; }
+.shift-section + .shift-section { margin-top: 28px; }
+.shift-heading { display: flex; margin-bottom: 12px; align-items: center; gap: 11px; }
+.shift-heading h2 { margin: 1px 0 0; font-size: 18px; }
+.shift-heading > strong { margin-left: auto; color: var(--text-faint); font-size: 14px; }
+.shift-dot { width: 9px; height: 34px; border-radius: 5px; background: var(--primary); }
+.shift-afternoon { background: #ef9d2f; }
+.shift-evening { background: #45327d; }
+.shift-full_time { background: #2f9f7f; }
+.classroom-letter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.classroom-letter-card { display: grid; padding: 17px; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; color: inherit; text-decoration: none; transition: border-color .2s, transform .2s; }
+.classroom-letter-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.class-letter { display: grid; width: 45px; height: 45px; place-items: center; border-radius: 11px; background: var(--primary); color: #fff; font-size: 18px; font-weight: 850; }
+.classroom-letter-card h3 { margin: 2px 0 3px; font-size: 13px; }
+.classroom-letter-card p { margin: 0; color: var(--text-faint); font-size: 8px; }
+.classroom-letter-card b { color: var(--primary); }
 
 /* Assessment manager */
 .assessment-shell { max-width: 1120px; }
@@ -646,6 +715,8 @@ svg { display: block; }
     .manager-topbar { align-items: stretch; flex-direction: column; }
     .manager-actions { display: grid; grid-template-columns: 1fr 1fr; }
     .manager-grid { grid-template-columns: 1fr; }
+    .institution-grid, .class-group-grid, .classroom-letter-grid { grid-template-columns: 1fr; }
+    .institution-grid { grid-template-columns: 1fr 1fr; }
     .assessment-card { grid-template-columns: 1fr; }
     .assessment-history { justify-content: flex-start; }
     .inline-actions { flex-direction: column; }
@@ -686,6 +757,9 @@ svg { display: block; }
     .auth-intro h1 { font-size: 43px; }.auth-card { padding: 28px 22px; }
     .dashboard-welcome h1 { font-size: 29px; }.evolution-card { padding: 20px 16px; }.real-chart { height: 210px; }.next-step { padding: 20px; }
     .chat-page-heading h1 { font-size: 32px; }
+    .institution-grid { grid-template-columns: 1fr; }
+    .institution-card { min-height: 270px; }
+    .institution-empty { grid-template-columns: 1fr; }
     .chat-shell { width: min(calc(100% - 20px), var(--max-width)); }
     .chat-panel-topbar { padding-inline: 16px; }
     .chat-messages { padding-inline: 14px; }

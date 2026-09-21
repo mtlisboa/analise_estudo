@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     Classroom,
+    ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
     EducationalRelationship,
@@ -12,6 +13,7 @@ from .models import (
 
 admin.site.register(EducationalRelationship)
 admin.site.register(Classroom)
+admin.site.register(ClassroomGroup)
 admin.site.register(ClassroomMembership)
 admin.site.register(SelfAssessment)
 admin.site.register(Organization)

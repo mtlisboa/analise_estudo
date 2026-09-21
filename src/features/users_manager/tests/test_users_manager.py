@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from features.users_manager.models import (
     Classroom,
+    ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
     MembershipStatus,
@@ -55,9 +56,17 @@ class UsersManagerTests(TestCase):
 
     def create_classroom(self, organization, owner=None) -> Classroom:
         teacher = owner or self.owner
+        group, _ = ClassroomGroup.objects.get_or_create(
+            name="Ensino médio",
+            organization=organization,
+            defaults={"created_by": teacher},
+        )
         classroom = Classroom.objects.create(
             name="Cálculo I",
             organization=organization,
+            group=group,
+            letter="A",
+            shift=Classroom.Shift.MORNING,
             owner=teacher,
         )
         ClassroomMembership.objects.create(
@@ -76,6 +85,35 @@ class UsersManagerTests(TestCase):
             response,
             f'{reverse("accounts:login")}?next={reverse("users-manager:dashboard")}',
         )
+
+    def test_dashboard_only_lists_participating_institutions(self) -> None:
+        participating = self.create_organization()
+        outsider = User.objects.create_user(username="outro", password="senha-forte-000")
+        Organization.objects.create(name="Instituição de outro usuário", owner=outsider)
+
+        response = self.client.get(reverse("users-manager:dashboard"))
+
+        self.assertContains(response, participating.name)
+        self.assertNotContains(response, "Instituição de outro usuário")
+        self.assertNotContains(response, "Seus espaços")
+        self.assertNotContains(response, "Como está sua aprendizagem hoje?")
+
+    def test_dashboard_marks_the_users_roles_in_each_institution(self) -> None:
+        organization = Organization.objects.create(name="Escola de papéis", owner=self.teacher)
+        self.add_member(organization, self.owner, teacher=True, student=True)
+
+        response = self.client.get(reverse("users-manager:dashboard"))
+
+        self.assertContains(response, "Escola de papéis")
+        self.assertContains(response, "Professor")
+        self.assertContains(response, "Aluno")
+
+    def test_dashboard_marks_owner_as_manager(self) -> None:
+        self.create_organization()
+
+        response = self.client.get(reverse("users-manager:dashboard"))
+
+        self.assertContains(response, "Gestor")
 
     def test_user_can_create_organization_and_becomes_teacher_member(self) -> None:
         response = self.client.post(
@@ -156,11 +194,18 @@ class UsersManagerTests(TestCase):
         self.client.force_login(self.teacher)
         response = self.client.post(
             reverse("users-manager:classroom-create", kwargs={"organization_pk": organization.pk}),
-            {"name": "Cálculo I", "description": "Turma da manhã"},
+            {
+                "name": "Cálculo I",
+                "letter": "A",
+                "shift": Classroom.Shift.MORNING,
+                "description": "Turma da manhã",
+            },
         )
         classroom = Classroom.objects.get(name="Cálculo I")
         self.assertEqual(classroom.organization, organization)
         self.assertEqual(classroom.owner, self.teacher)
+        self.assertEqual(classroom.letter, "A")
+        self.assertEqual(classroom.get_shift_display(), "Manhã")
         self.assertRedirects(
             response,
             reverse("users-manager:classroom-detail", kwargs={"pk": classroom.pk}),
@@ -293,3 +338,76 @@ class UsersManagerTests(TestCase):
         )
         self.assertRedirects(response, reverse("users-manager:dashboard"))
         self.assertEqual(SelfAssessment.objects.get(user=self.owner).score, 80)
+
+    def test_dashboard_only_lists_the_users_institutions_and_marks_roles(self) -> None:
+        organization = self.create_organization()
+        outsider = User.objects.create_user(username="outsider", password="safe-password")
+        Organization.objects.create(name="Instituição externa", owner=outsider)
+
+        response = self.client.get(reverse("users-manager:dashboard"))
+
+        self.assertContains(response, organization.name)
+        self.assertContains(response, "Gestor")
+        self.assertContains(response, "Professor")
+        self.assertNotContains(response, "Instituição externa")
+
+    def test_teacher_can_create_a_classroom_group(self) -> None:
+        organization = self.create_organization()
+
+        response = self.client.post(
+            reverse(
+                "users-manager:classroom-group-create",
+                kwargs={"organization_pk": organization.pk},
+            ),
+            {"name": "Ensino fundamental II", "description": "Do 6º ao 9º ano"},
+        )
+
+        group = ClassroomGroup.objects.get(name="Ensino fundamental II")
+        self.assertEqual(group.organization, organization)
+        self.assertEqual(group.created_by, self.owner)
+        self.assertRedirects(
+            response,
+            reverse("users-manager:classroom-group-detail", kwargs={"pk": group.pk}),
+        )
+
+    def test_student_only_sees_groups_containing_their_classrooms(self) -> None:
+        organization = self.create_organization()
+        self.add_member(organization, self.student, student=True)
+        visible_group = ClassroomGroup.objects.create(
+            name="6º ano",
+            organization=organization,
+            created_by=self.owner,
+        )
+        ClassroomGroup.objects.create(
+            name="7º ano",
+            organization=organization,
+            created_by=self.owner,
+        )
+        classroom = Classroom.objects.create(
+            name="6º ano",
+            organization=organization,
+            group=visible_group,
+            letter="B",
+            shift=Classroom.Shift.AFTERNOON,
+            owner=self.owner,
+        )
+        ClassroomMembership.objects.create(
+            classroom=classroom,
+            user=self.student,
+            role=ClassroomMembership.Role.STUDENT,
+            status=MembershipStatus.ACTIVE,
+            invited_by=self.owner,
+        )
+        self.client.force_login(self.student)
+
+        organization_response = self.client.get(
+            reverse("users-manager:organization-detail", kwargs={"pk": organization.pk})
+        )
+        group_response = self.client.get(
+            reverse("users-manager:classroom-group-detail", kwargs={"pk": visible_group.pk})
+        )
+
+        self.assertContains(organization_response, "6º ano")
+        self.assertNotContains(organization_response, "7º ano")
+        self.assertContains(group_response, "Tarde")
+        self.assertContains(group_response, "B")

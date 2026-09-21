@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from features.users_manager.models import (
     Classroom,
+    ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
     MembershipStatus,
@@ -46,9 +47,15 @@ class AnalyticsDashboardTests(TestCase):
                 is_student=True,
                 added_by=self.owner,
             )
+        self.classroom_group = ClassroomGroup.objects.create(
+            name="Ensino médio",
+            organization=self.organization,
+            created_by=self.teacher,
+        )
         self.classroom = Classroom.objects.create(
             name="Cálculo I",
             organization=self.organization,
+            group=self.classroom_group,
             owner=self.teacher,
         )
         ClassroomMembership.objects.create(
