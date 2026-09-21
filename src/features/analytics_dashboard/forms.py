@@ -11,6 +11,7 @@ class GenerateAnalysisForm(forms.Form):
         help_text="Se ficar vazio, o sistema criará um nome a partir do escopo.",
     )
     organization = forms.ChoiceField(label="Instituição", required=False)
+    group = forms.ChoiceField(label="Grupo de turmas", required=False)
     classroom = forms.ChoiceField(label="Turma", required=False)
     student = forms.ChoiceField(label="Aluno", required=False)
     period = forms.ChoiceField(
@@ -22,8 +23,27 @@ class GenerateAnalysisForm(forms.Form):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         available = build_dashboard(user, {})
+        groups_by_id = {item.pk: item for item in available["classroom_groups"]}
+
+        def group_path(item):
+            names = [item.name]
+            parent_id = item.parent_id
+            visited = {item.pk}
+            while parent_id and parent_id not in visited:
+                visited.add(parent_id)
+                parent = groups_by_id.get(parent_id)
+                if parent is None:
+                    break
+                names.append(parent.name)
+                parent_id = parent.parent_id
+            return " › ".join(reversed(names))
+
         self.fields["organization"].choices = [("", "Todas as instituições")] + [
             (str(item.pk), item.name) for item in available["organizations"]
+        ]
+        self.fields["group"].choices = [("", "Todos os grupos de turmas")] + [
+            (str(item.pk), f"{item.organization.name} · {group_path(item)}")
+            for item in available["classroom_groups"]
         ]
         self.fields["classroom"].choices = [("", "Todas as turmas")] + [
             (str(item.pk), f"{item.name} · {item.organization.name}")
@@ -38,5 +58,5 @@ class GenerateAnalysisForm(forms.Form):
     def analysis_params(self) -> dict[str, str]:
         return {
             key: self.cleaned_data[key]
-            for key in ("organization", "classroom", "student", "period")
+            for key in ("organization", "group", "classroom", "student", "period")
         }

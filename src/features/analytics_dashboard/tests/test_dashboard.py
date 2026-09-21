@@ -101,6 +101,7 @@ class AnalyticsDashboardTests(TestCase):
         data = {
             "title": "Análise de setembro",
             "organization": str(self.organization.pk),
+            "group": "",
             "classroom": str(self.classroom.pk),
             "student": "",
             "period": "all",
@@ -138,9 +139,14 @@ class AnalyticsDashboardTests(TestCase):
         self.assertEqual(analysis.snapshot["metrics"]["students"], 2)
         self.assertEqual(analysis.snapshot["metrics"]["tests"], 1)
         self.assertEqual(len(analysis.snapshot["analytics_payload"]["scatter3d"]["names"]), 2)
-        self.assertContains(response, 'id="scatter-2d-chart"')
+        self.assertContains(response, 'id="classroom-scatter-chart"')
+        self.assertContains(response, 'id="classroom-scope-select"')
         self.assertContains(response, 'id="scatter-3d-chart"')
         self.assertContains(response, 'id="heatmap-chart"')
+        student_snapshot = analysis.snapshot["analytics_payload"]["students"][0]
+        self.assertIn("classrooms", student_snapshot)
+        self.assertIn("assessments", student_snapshot)
+        self.assertEqual(student_snapshot["classrooms"][0]["id"], self.classroom.pk)
 
     def test_student_only_sees_their_own_academic_data(self) -> None:
         analysis = self.generate_analysis(self.student)
@@ -162,6 +168,44 @@ class AnalyticsDashboardTests(TestCase):
             analysis.snapshot["analytics_payload"]["scatter2d"]["names"],
             ["Ana Lima"],
         )
+
+    def test_analysis_can_include_a_group_and_its_nested_groups(self) -> None:
+        parent_group = ClassroomGroup.objects.create(
+            name="Educação básica",
+            organization=self.organization,
+            created_by=self.teacher,
+        )
+        self.classroom_group.parent = parent_group
+        self.classroom_group.save(update_fields=("parent",))
+        excluded_group = ClassroomGroup.objects.create(
+            name="Cursos livres",
+            organization=self.organization,
+            created_by=self.teacher,
+        )
+        excluded_classroom = Classroom.objects.create(
+            name="Robótica",
+            organization=self.organization,
+            group=excluded_group,
+            owner=self.teacher,
+        )
+        ClassroomMembership.objects.create(
+            classroom=excluded_classroom,
+            user=self.teacher,
+            role=ClassroomMembership.Role.TEACHER,
+            status=MembershipStatus.ACTIVE,
+            invited_by=self.owner,
+        )
+
+        analysis = self.generate_analysis(
+            self.teacher,
+            group=str(parent_group.pk),
+            classroom="",
+        )
+
+        self.assertEqual(analysis.scope_title, "Educação básica")
+        self.assertEqual(analysis.filters["group"], parent_group.pk)
+        self.assertEqual(analysis.snapshot["metrics"]["classrooms"], 1)
+        self.assertNotIn("Robótica", analysis.snapshot["analytics_payload"]["classrooms"]["labels"])
 
     def test_invalid_filters_do_not_create_or_expose_an_analysis(self) -> None:
         outsider = User.objects.create_user(username="outsider", password="safe-password")

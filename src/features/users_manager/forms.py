@@ -145,11 +145,17 @@ class ClassroomForm(forms.ModelForm):
 class ClassroomGroupForm(forms.ModelForm):
     class Meta:
         model = ClassroomGroup
-        fields = ("name", "description")
+        fields = ("name", "parent", "description")
 
     def __init__(self, *args, organization, **kwargs):
         super().__init__(*args, **kwargs)
         self.organization = organization
+        self.instance.organization = organization
+        self.fields["parent"].queryset = organization.classroom_groups.filter(
+            is_active=True
+        ).exclude(pk=self.instance.pk)
+        self.fields["parent"].required = False
+        self.fields["parent"].empty_label = "Nenhum — grupo principal"
 
     def clean_name(self) -> str:
         name = self.cleaned_data["name"].strip()

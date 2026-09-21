@@ -94,6 +94,14 @@ class ClassroomGroup(models.Model):
         related_name="classroom_groups",
         verbose_name="organização",
     )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        related_name="children",
+        verbose_name="grupo pai",
+        null=True,
+        blank=True,
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -114,6 +122,21 @@ class ClassroomGroup(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} · {self.organization}"
+
+    def clean(self) -> None:
+        if not self.parent_id:
+            return
+        if self.parent_id == self.pk:
+            raise ValidationError("Um grupo não pode ser pai de si mesmo.")
+        if self.organization_id and self.parent.organization_id != self.organization_id:
+            raise ValidationError("O grupo pai deve pertencer à mesma instituição.")
+        ancestor = self.parent
+        visited = {self.pk} if self.pk else set()
+        while ancestor is not None:
+            if ancestor.pk in visited:
+                raise ValidationError("A hierarquia de grupos não pode conter ciclos.")
+            visited.add(ancestor.pk)
+            ancestor = ancestor.parent
 
 
 class EducationalRelationship(models.Model):

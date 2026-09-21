@@ -82,6 +82,29 @@ def _organization_teacher_membership(user, organization: Organization):
     ).first()
 
 
+def _visible_group_ids(user, organization: Organization) -> set[int]:
+    groups = list(
+        organization.classroom_groups.filter(is_active=True).values("id", "parent_id")
+    )
+    parent_by_id = {item["id"]: item["parent_id"] for item in groups}
+    visible_ids = set(
+        ClassroomMembership.objects.filter(
+            user=user,
+            status=MembershipStatus.ACTIVE,
+            classroom__organization=organization,
+            classroom__is_active=True,
+            classroom__group__is_active=True,
+        ).values_list("classroom__group_id", flat=True)
+    )
+    pending = list(visible_ids)
+    while pending:
+        parent_id = parent_by_id.get(pending.pop())
+        if parent_id and parent_id not in visible_ids:
+            visible_ids.add(parent_id)
+            pending.append(parent_id)
+    return visible_ids
+
+
 @login_required
 @transaction.atomic
 def create_organization(request: HttpRequest) -> HttpResponse:
@@ -113,14 +136,10 @@ def organization_detail(request: HttpRequest, pk: int) -> HttpResponse:
         return HttpResponseForbidden("Você não participa desta organização.")
     can_manage = _can_manage_organization(request.user, organization)
     can_create_classroom = bool(membership and membership.is_teacher)
-    groups = organization.classroom_groups.filter(is_active=True)
+    groups = organization.classroom_groups.filter(is_active=True, parent__isnull=True)
     visible_classrooms = Classroom.objects.filter(is_active=True)
     if not can_manage and not can_create_classroom:
-        groups = groups.filter(
-            classrooms__memberships__user=request.user,
-            classrooms__memberships__status=MembershipStatus.ACTIVE,
-            classrooms__is_active=True,
-        ).distinct()
+        groups = groups.filter(pk__in=_visible_group_ids(request.user, organization))
         visible_classrooms = visible_classrooms.filter(
             memberships__user=request.user,
             memberships__status=MembershipStatus.ACTIVE,
@@ -147,7 +166,7 @@ def organization_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
     group = get_object_or_404(
-        ClassroomGroup.objects.select_related("organization"),
+        ClassroomGroup.objects.select_related("organization", "parent"),
         pk=pk,
         is_active=True,
         organization__is_active=True,
@@ -164,7 +183,10 @@ def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
         membership and membership.is_teacher
     )
     classrooms = group.classrooms.filter(is_active=True)
+    child_groups = group.children.filter(is_active=True)
     if not can_manage:
+        visible_group_ids = _visible_group_ids(request.user, organization)
+        child_groups = child_groups.filter(pk__in=visible_group_ids)
         classrooms = classrooms.filter(
             memberships__user=request.user,
             memberships__status=MembershipStatus.ACTIVE,
@@ -187,6 +209,7 @@ def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "organization": organization,
             "classroom_sections": classroom_sections,
             "classroom_count": len(classroom_list),
+            "child_groups": child_groups.prefetch_related("classrooms"),
             "can_create_classroom": can_manage,
         },
     )
@@ -197,7 +220,14 @@ def create_classroom_group(request: HttpRequest, organization_pk: int) -> HttpRe
     organization = get_object_or_404(Organization, pk=organization_pk, is_active=True)
     if not _organization_teacher_membership(request.user, organization):
         return HttpResponseForbidden("Somente professores da organização podem criar grupos.")
-    form = ClassroomGroupForm(request.POST or None, organization=organization)
+    initial = None
+    if request.method == "GET" and request.GET.get("parent"):
+        initial = {"parent": request.GET["parent"]}
+    form = ClassroomGroupForm(
+        request.POST or None,
+        organization=organization,
+        initial=initial,
+    )
     if request.method == "POST" and form.is_valid():
         group = form.save(commit=False)
         group.organization = organization

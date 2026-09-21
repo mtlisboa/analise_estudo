@@ -5,7 +5,11 @@
 
 {% block content %}
 <section class="manager-shell narrow-shell">
-    <a class="back-link" href="{% url 'users-manager:organization-detail' organization.pk %}">← {{ organization.name }}</a>
+    {% if group.parent %}
+        <a class="back-link" href="{% url 'users-manager:classroom-group-detail' group.parent.pk %}">← {{ group.parent.name }}</a>
+    {% else %}
+        <a class="back-link" href="{% url 'users-manager:organization-detail' organization.pk %}">← {{ organization.name }}</a>
+    {% endif %}
     <div class="manager-topbar">
         <div class="manager-heading">
             <p class="section-kicker">GRUPO DE TURMAS</p>
@@ -13,11 +17,29 @@
             <p>{{ group.description|default:"Turmas separadas por turno e letra." }}</p>
         </div>
         {% if can_create_classroom %}
-            <div class="manager-actions"><a class="button button-small" href="{% url 'users-manager:group-classroom-create' group.pk %}">Nova turma</a></div>
+            <div class="manager-actions">
+                <a class="button button-small button-secondary" href="{% url 'users-manager:classroom-group-create' organization.pk %}?parent={{ group.pk }}">Novo subgrupo</a>
+                <a class="button button-small" href="{% url 'users-manager:group-classroom-create' group.pk %}">Nova turma</a>
+            </div>
         {% endif %}
     </div>
 
-    <div class="classroom-summary"><strong>{{ classroom_count }}</strong><span>turma{{ classroom_count|pluralize }} neste grupo</span></div>
+    {% if child_groups %}
+        <div class="detail-section-heading nested-groups-heading">
+            <div><span>SUBGRUPOS</span><h2>Grupos dentro de {{ group.name }}</h2></div>
+            <strong>{{ child_groups|length }}</strong>
+        </div>
+        <div class="class-group-grid nested-group-grid">
+            {% for child in child_groups %}
+                <a class="dash-card class-group-card" href="{% url 'users-manager:classroom-group-detail' child.pk %}">
+                    <div class="class-group-icon">{{ child.name|first|upper }}</div>
+                    <div><h3>{{ child.name }}</h3><p>{{ child.description|default:"Subgrupo de turmas" }}</p><span>Abrir subgrupo <b>→</b></span></div>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="classroom-summary"><strong>{{ classroom_count }}</strong><span>turma{{ classroom_count|pluralize }} diretamente neste grupo</span></div>
 
     {% for section in classroom_sections %}
         <section class="shift-section">
@@ -35,7 +57,7 @@
     {% empty %}
         <article class="dash-card group-empty">
             <h3>Nenhuma turma disponível</h3>
-            <p>{% if can_create_classroom %}Adicione a primeira turma e identifique sua letra e turno.{% else %}Você ainda não participa de nenhuma turma deste grupo.{% endif %}</p>
+            <p>{% if can_create_classroom %}Adicione uma turma diretamente aqui ou crie outro subgrupo.{% else %}Você não participa de nenhuma turma diretamente neste grupo.{% endif %}</p>
         </article>
     {% endfor %}
 </section>

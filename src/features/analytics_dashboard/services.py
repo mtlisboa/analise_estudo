@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from features.users_manager.models import (
     Classroom,
+    ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
     MembershipStatus,
@@ -88,7 +89,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
 
     classrooms = list(
         Classroom.objects.filter(organization_id__in=scoped_organization_ids, is_active=True)
-        .select_related("organization")
+        .select_related("organization", "group")
         .order_by("organization__name", "name")
     )
     visible_classrooms = [
@@ -101,6 +102,48 @@ def build_dashboard(user, params) -> dict[str, Any]:
             status=MembershipStatus.ACTIVE,
         ).exists()
     ]
+
+    all_groups = list(
+        ClassroomGroup.objects.filter(
+            organization_id__in=scoped_organization_ids,
+            is_active=True,
+        )
+        .select_related("organization", "parent")
+        .order_by("organization__name", "name")
+    )
+    group_by_id = {group.pk: group for group in all_groups}
+    visible_group_ids = {
+        group.pk
+        for group in all_groups
+        if group.organization_id in teacher_organization_ids
+    }
+    visible_group_ids.update(classroom.group_id for classroom in visible_classrooms)
+    pending_group_ids = list(visible_group_ids)
+    while pending_group_ids:
+        current_group = group_by_id.get(pending_group_ids.pop())
+        if current_group and current_group.parent_id not in visible_group_ids:
+            if current_group.parent_id:
+                visible_group_ids.add(current_group.parent_id)
+                pending_group_ids.append(current_group.parent_id)
+    visible_groups = [group for group in all_groups if group.pk in visible_group_ids]
+
+    selected_group_id = _integer(params.get("group"))
+    if selected_group_id not in visible_group_ids:
+        selected_group_id = None
+    if selected_group_id:
+        descendant_group_ids = {selected_group_id}
+        found_descendant = True
+        while found_descendant:
+            found_descendant = False
+            for group in visible_groups:
+                if group.parent_id in descendant_group_ids and group.pk not in descendant_group_ids:
+                    descendant_group_ids.add(group.pk)
+                    found_descendant = True
+        visible_classrooms = [
+            classroom
+            for classroom in visible_classrooms
+            if classroom.group_id in descendant_group_ids
+        ]
     visible_classroom_ids = {classroom.pk for classroom in visible_classrooms}
 
     selected_classroom_id = _integer(params.get("classroom"))
@@ -140,7 +183,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
         for membership in classroom_memberships
         if membership.role == ClassroomMembership.Role.STUDENT
     }
-    if selected_classroom_id:
+    if selected_group_id or selected_classroom_id:
         allowed_student_ids &= classroom_student_ids
 
     user_model = user.__class__
@@ -180,13 +223,18 @@ def build_dashboard(user, params) -> dict[str, Any]:
     classroom_students = []
     classroom_tests = []
     student_classroom_names: dict[int, set[str]] = defaultdict(set)
+    student_classrooms: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for classroom in scoped_classrooms:
         memberships = [
             membership
             for membership in classroom_memberships
             if membership.classroom_id == classroom.pk
         ]
-        classroom_labels.append(classroom.name)
+        classroom_label = classroom.name
+        if classroom.letter:
+            classroom_label = f"{classroom_label} · {classroom.letter}"
+        classroom_label = f"{classroom_label} · {classroom.get_shift_display()}"
+        classroom_labels.append(classroom_label)
         classroom_students.append(
             len(
                 {
@@ -200,7 +248,10 @@ def build_dashboard(user, params) -> dict[str, Any]:
         classroom_tests.append(tests.filter(classroom=classroom).count())
         for membership in memberships:
             if membership.role == ClassroomMembership.Role.STUDENT:
-                student_classroom_names[membership.user_id].add(classroom.name)
+                student_classroom_names[membership.user_id].add(classroom_label)
+                student_classrooms[membership.user_id].append(
+                    {"id": classroom.pk, "name": classroom_label}
+                )
 
     role_counts = {"Alunos": 0, "Professores": 0, "Ambos": 0}
     for membership in organization_memberships:
@@ -243,6 +294,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
         )
         ranking.append(
             {
+                "id": student.pk,
                 "name": _display_name(student),
                 "score": round(sum(_score(item) for item in user_assessments) / len(user_assessments)),
                 "assessments": len(user_assessments),
@@ -253,6 +305,40 @@ def build_dashboard(user, params) -> dict[str, Any]:
     ranking.sort(key=lambda item: (-item["score"], item["name"]))
 
     all_scores = [_score(assessment) for assessment in assessment_list]
+    student_snapshots = []
+    for student in students:
+        user_assessments = assessments_by_user.get(student.pk, [])
+        if not user_assessments:
+            continue
+        latest = user_assessments[-1]
+        student_snapshots.append(
+            {
+                "id": student.pk,
+                "name": _display_name(student),
+                "classrooms": student_classrooms.get(student.pk, []),
+                "averageScore": round(
+                    sum(_score(item) for item in user_assessments) / len(user_assessments)
+                ),
+                "latest": {
+                    "focus": latest.focus,
+                    "organization": latest.organization,
+                    "comprehension": latest.comprehension,
+                    "motivation": latest.motivation,
+                    "score": _score(latest),
+                },
+                "assessments": [
+                    {
+                        "date": item.created_at.date().isoformat(),
+                        "focus": item.focus,
+                        "organization": item.organization,
+                        "comprehension": item.comprehension,
+                        "motivation": item.motivation,
+                        "score": _score(item),
+                    }
+                    for item in user_assessments
+                ],
+            }
+        )
     payload = {
         "empty": not bool(assessment_list),
         "periodLabel": period_label,
@@ -262,6 +348,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
             "tests": classroom_tests,
         },
         "roles": {"labels": list(role_counts), "values": list(role_counts.values())},
+        "students": student_snapshots,
         "timeline": {"dates": line_dates, **line_series},
         "scatter2d": {
             "names": labels,
@@ -291,6 +378,8 @@ def build_dashboard(user, params) -> dict[str, Any]:
         scope_title = _display_name(user_by_id[selected_student_id])
     elif selected_classroom_id:
         scope_title = next(item.name for item in scoped_classrooms if item.pk == selected_classroom_id)
+    elif selected_group_id:
+        scope_title = group_by_id[selected_group_id].name
     elif selected_organization_id:
         scope_title = next(item.name for item in scoped_organizations if item.pk == selected_organization_id)
     else:
@@ -299,10 +388,12 @@ def build_dashboard(user, params) -> dict[str, Any]:
     return {
         "organizations": organizations,
         "classrooms": visible_classrooms,
+        "classroom_groups": visible_groups,
         "students": list(user_model.objects.filter(pk__in=allowed_student_ids).order_by("first_name", "username")),
         "periods": [(key, label) for key, (label, _) in PERIODS.items()],
         "filters": {
             "organization": selected_organization_id,
+            "group": selected_group_id,
             "classroom": selected_classroom_id,
             "student": selected_student_id,
             "period": period,

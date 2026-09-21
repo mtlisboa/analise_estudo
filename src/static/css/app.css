@@ -485,6 +485,8 @@ svg { display: block; }
 .class-group-card p { min-height: 30px; margin: 0 0 13px; color: var(--text-soft); font-size: 10px; line-height: 1.5; }
 .class-group-card span { color: var(--text-faint); font-size: 9px; }
 .class-group-card b { margin-left: 5px; color: var(--primary); }
+.nested-groups-heading { margin-top: 4px; }
+.nested-group-grid { margin-bottom: 25px; }
 .compact-members { margin-top: 30px; }
 .classroom-summary { display: flex; margin-bottom: 25px; padding: 13px 17px; align-items: baseline; gap: 7px; border-left: 3px solid var(--primary); background: var(--primary-soft); color: var(--primary); }
 .classroom-summary strong { font-size: 22px; }
@@ -598,6 +600,24 @@ svg { display: block; }
 .generate-analysis-note p { margin: 3px 0 0; color: var(--text-soft); font-size: 9px; }
 .generate-analysis-actions { display: flex; margin-top: 25px; justify-content: flex-end; gap: 10px; }
 .saved-detail-actions { display: flex; align-items: center; gap: 9px; }
+.analytics-selector-card { margin-bottom: 17px; padding-bottom: 18px; }
+.selector-heading { min-height: 58px; align-items: start; }
+.selector-heading h2 { font-size: 22px; }
+.selector-heading p { margin: 4px 0 0; color: var(--text-soft); font-size: 9px; }
+.selector-controls { display: flex; align-items: center; gap: 8px; }
+.selector-controls label { color: var(--text-faint); font-size: 8px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.selector-controls select { min-width: 190px; height: 38px; padding: 0 30px 0 10px; border: 1px solid var(--border-strong); border-radius: 9px; outline: 0; background: var(--bg); color: var(--text); font-size: 9px; }
+.selector-controls select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent); }
+.selector-controls button { height: 38px; padding: 0 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--primary); font-size: 8px; font-weight: 800; cursor: pointer; }
+.selector-controls button:hover { border-color: var(--primary); background: var(--primary-soft); }
+.classroom-scatter-chart { height: 440px; }
+.selection-summary { display: flex; min-height: 63px; margin-top: 2px; padding: 12px 15px; align-items: center; gap: 12px; border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border)); border-radius: 11px; background: var(--primary-soft); }
+.selection-summary-icon { display: grid; width: 33px; height: 33px; flex: 0 0 33px; place-items: center; border-radius: 50%; background: var(--primary); color: #fff; font-size: 15px; }
+.selection-summary > div { display: flex; min-width: 0; flex-direction: column; }
+.selection-summary small { color: var(--primary); font-size: 7px; font-weight: 850; letter-spacing: .13em; }
+.selection-summary strong { margin-top: 1px; font-size: 12px; }
+.selection-summary p { margin: 1px 0 0; color: var(--text-soft); font-size: 8px; }
+.analytics-table tr[hidden] { display: none; }
 .analytics-filters { display: grid; grid-template-columns: 1.2fr 1.2fr 1.1fr 1fr auto auto; gap: 11px; margin-bottom: 18px; padding: 18px; align-items: end; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); box-shadow: var(--shadow-soft); }
 .analytics-filters label { display: grid; min-width: 0; gap: 5px; }
 .analytics-filters label > span { color: var(--text-faint); font-size: 8px; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
@@ -769,6 +789,9 @@ svg { display: block; }
     .saved-analysis-card { grid-template-columns: auto 1fr auto; }
     .saved-analysis-metrics { grid-column: 2 / -1; }
     .saved-analysis-card time { grid-column: 2 / 3; }
+    .selector-heading, .selector-controls { width: 100%; align-items: stretch; flex-direction: column; }
+    .selector-controls select, .selector-controls button { width: 100%; }
+    .classroom-scatter-chart { height: 390px; }
     .generate-analysis-grid { grid-template-columns: 1fr; }
     .generate-title-field { grid-column: auto; }
     .generate-analysis-actions { display: grid; grid-template-columns: 1fr; }

@@ -370,12 +370,45 @@ class UsersManagerTests(TestCase):
             reverse("users-manager:classroom-group-detail", kwargs={"pk": group.pk}),
         )
 
+    def test_teacher_can_create_a_group_inside_another_group(self) -> None:
+        organization = self.create_organization()
+        parent = ClassroomGroup.objects.create(
+            name="Ensino fundamental",
+            organization=organization,
+            created_by=self.owner,
+        )
+
+        response = self.client.post(
+            reverse(
+                "users-manager:classroom-group-create",
+                kwargs={"organization_pk": organization.pk},
+            ),
+            {
+                "name": "6º ano",
+                "parent": parent.pk,
+                "description": "Subgrupo",
+            },
+        )
+
+        child = ClassroomGroup.objects.get(name="6º ano")
+        self.assertEqual(child.parent, parent)
+        self.assertRedirects(
+            response,
+            reverse("users-manager:classroom-group-detail", kwargs={"pk": child.pk}),
+        )
+
     def test_student_only_sees_groups_containing_their_classrooms(self) -> None:
         organization = self.create_organization()
         self.add_member(organization, self.student, student=True)
         visible_group = ClassroomGroup.objects.create(
+            name="Ensino fundamental",
+            organization=organization,
+            created_by=self.owner,
+        )
+        nested_group = ClassroomGroup.objects.create(
             name="6º ano",
             organization=organization,
+            parent=visible_group,
             created_by=self.owner,
         )
         ClassroomGroup.objects.create(
@@ -386,7 +419,7 @@ class UsersManagerTests(TestCase):
         classroom = Classroom.objects.create(
             name="6º ano",
             organization=organization,
-            group=visible_group,
+            group=nested_group,
             letter="B",
             shift=Classroom.Shift.AFTERNOON,
             owner=self.owner,
@@ -406,8 +439,12 @@ class UsersManagerTests(TestCase):
         group_response = self.client.get(
             reverse("users-manager:classroom-group-detail", kwargs={"pk": visible_group.pk})
         )
+        nested_response = self.client.get(
+            reverse("users-manager:classroom-group-detail", kwargs={"pk": nested_group.pk})
+        )
 
-        self.assertContains(organization_response, "6º ano")
+        self.assertContains(organization_response, "Ensino fundamental")
         self.assertNotContains(organization_response, "7º ano")
-        self.assertContains(group_response, "Tarde")
-        self.assertContains(group_response, "B")
+        self.assertContains(group_response, "6º ano")
+        self.assertContains(nested_response, "Tarde")
+        self.assertContains(nested_response, "B")

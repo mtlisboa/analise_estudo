@@ -180,6 +180,23 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://app.exemplo.com,https://admin.exemplo.com
 Mantenha `DJANGO_SECRET_KEY` configurada no serviço. O domínio público do
 Railway também é incluído automaticamente em `ALLOWED_HOSTS`.
 
+### Deploy demonstrativo com dados mock
+
+Para carregar automaticamente um conjunto demonstrativo depois das migrations,
+configure no serviço Railway:
+
+```dotenv
+DEPLOY_MODE=MOCK
+MOCK_USER_PASSWORD=defina-uma-senha-segura
+```
+
+O comando é idempotente e atualiza os mesmos registros a cada inicialização.
+Ele cria o usuário `demo_professor`, 12 alunos (`demo_ana`, `demo_bruno`, etc.),
+uma instituição com grupos aninhados, quatro turmas, testes, autoavaliações,
+avaliações e duas análises salvas. Todas as contas mock usam a senha definida em
+`MOCK_USER_PASSWORD`. Remova `DEPLOY_MODE=MOCK` para impedir novas cargas; os
+dados já persistidos não são apagados automaticamente.
+
 ## Estrutura
 
 ```text
