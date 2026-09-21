@@ -47,6 +47,8 @@ class SessionAuthenticationTests(TestCase):
         self.assertContains(response, 'class="app-sidebar"')
         self.assertContains(response, "Organizações e turmas")
         self.assertContains(response, 'class="has-sidebar"')
+        self.assertContains(response, 'id="floating-ai-assistant"')
+        self.assertContains(response, 'aria-label="Abrir Assistente IA"')
 
     def test_public_login_keeps_horizontal_header(self) -> None:
         response = self.client.get(reverse("accounts:login"))

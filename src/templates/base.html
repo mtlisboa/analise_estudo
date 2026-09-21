@@ -13,7 +13,7 @@
             document.documentElement.dataset.theme = theme;
         }());
     </script>
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=11">
 </head>
 <body{% if user.is_authenticated and not onboarding_mode %} class="has-sidebar"{% endif %}>
     {% if user.is_authenticated and not onboarding_mode %}
@@ -42,10 +42,6 @@
             <a class="sidebar-link{% if request.resolver_match.namespace == 'assessments' %} active{% endif %}" href="{% url 'assessments:index' %}"{% if request.resolver_match.namespace == 'assessments' %} aria-current="page"{% endif %} title="Avaliações">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10v3H7zM6 5H4v16h16V5h-2"/><path d="m8 12 2 2 5-5M8 18h8"/></svg>
                 <span class="sidebar-label">Avaliações</span>
-            </a>
-            <a class="sidebar-link{% if request.resolver_match.namespace == 'ia-integrations' %} active{% endif %}" href="{% url 'ia-integrations:chat-bot' %}"{% if request.resolver_match.namespace == 'ia-integrations' %} aria-current="page"{% endif %} title="Assistente IA">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v3a7 7 0 0 0 7 7h6l2 2V10a7 7 0 0 0-7-7h-1Z"/><path d="M9 11h.01M12.5 11h.01M16 11h.01"/></svg>
-                <span class="sidebar-label">Assistente IA</span>
             </a>
         </nav>
 
@@ -82,7 +78,6 @@
             <nav class="nav-actions" aria-label="Navegação principal">
                 {% if user.is_authenticated %}
                     <a class="nav-link nav-dashboard" href="{% url 'accounts:dashboard' %}">Meu painel</a>
-                    <a class="nav-link nav-chat" href="{% url 'ia-integrations:chat-bot' %}">Assistente IA</a>
                     <a class="nav-link nav-manager" href="{% url 'users-manager:dashboard' %}">Pessoas e turmas</a>
                     <form method="post" action="{% url 'accounts:logout' %}">
                         {% csrf_token %}
@@ -108,6 +103,14 @@
         {% endfor %}
         {% block content %}{% endblock %}
     </main>
+    {% if user.is_authenticated and not onboarding_mode and request.resolver_match.namespace != 'ia-integrations' %}
+    <a id="floating-ai-assistant" class="floating-ai-assistant" href="{% url 'ia-integrations:chat-bot' %}" aria-label="Abrir Assistente IA">
+        <span class="floating-ai-assistant-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a7 7 0 0 0-7 7v3a7 7 0 0 0 7 7h6l2 2V10a7 7 0 0 0-7-7h-1Z"/><path d="M9 11h.01M12.5 11h.01M16 11h.01"/></svg>
+        </span>
+        <span class="floating-ai-assistant-label">Assistente IA</span>
+    </a>
+    {% endif %}
     <script src="{% static 'js/app.js' %}?v=2"></script>
     {% block scripts %}{% endblock %}
 </body>

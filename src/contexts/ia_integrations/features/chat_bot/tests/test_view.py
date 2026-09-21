@@ -24,6 +24,7 @@ class ChatBotViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Aprenda perguntando.")
         self.assertContains(response, 'data-websocket-path="/ws/ia-integrations/chat-bot/"')
+        self.assertNotContains(response, 'id="floating-ai-assistant"')
 
     def test_diagnostic_mode_builds_personalized_ai_prompt(self) -> None:
         user_model = get_user_model()
