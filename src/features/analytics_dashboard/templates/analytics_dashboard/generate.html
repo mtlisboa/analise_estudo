@@ -10,7 +10,7 @@
         <div>
             <p class="section-kicker">NOVA ANÁLISE</p>
             <h1>Defina o recorte dos dados</h1>
-            <p>O resultado será calculado com os dados atuais e salvo para consultas futuras.</p>
+            <p>O resultado será calculado com os dados atuais. Depois, você decide se quer salvá-lo.</p>
         </div>
     </header>
 
@@ -19,7 +19,7 @@
         {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
         <div class="generate-analysis-grid">
             {% for field in form %}
-                <div class="form-field{% if field.name == 'title' %} generate-title-field{% endif %}">
+                <div class="form-field">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
                     {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
@@ -28,12 +28,12 @@
             {% endfor %}
         </div>
         <div class="generate-analysis-note">
-            <strong>O que será salvo?</strong>
-            <p>Indicadores, gráficos e o resumo por aluno exatamente como forem calculados agora.</p>
+            <strong>Nada será salvo agora</strong>
+            <p>Você poderá explorar o mapa de dispersão e salvar a análise opcionalmente no resultado.</p>
         </div>
         <div class="generate-analysis-actions">
             <a class="button button-secondary" href="{% url 'analytics-dashboard:dashboard' %}">Cancelar</a>
-            <button class="button" type="submit">Gerar e salvar análise</button>
+            <button class="button" type="submit" name="action" value="generate">Gerar análise</button>
         </div>
     </form>
 </section>

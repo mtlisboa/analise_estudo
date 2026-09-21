@@ -594,12 +594,16 @@ svg { display: block; }
 .saved-analysis-empty p { max-width: 500px; margin: 7px auto 22px; color: var(--text-soft); font-size: 11px; }
 .generate-analysis-card { padding: clamp(24px, 5vw, 42px); }
 .generate-analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 17px; }
-.generate-title-field { grid-column: 1 / -1; }
 .generate-analysis-note { margin-top: 25px; padding: 17px 19px; border-left: 3px solid var(--primary); background: var(--primary-soft); }
 .generate-analysis-note strong { color: var(--primary); font-size: 10px; }
 .generate-analysis-note p { margin: 3px 0 0; color: var(--text-soft); font-size: 9px; }
 .generate-analysis-actions { display: flex; margin-top: 25px; justify-content: flex-end; gap: 10px; }
 .saved-detail-actions { display: flex; align-items: center; gap: 9px; }
+.preview-save-card { display: grid; margin-bottom: 17px; padding: 19px 22px; grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) auto; align-items: center; gap: 22px; }
+.preview-save-card .form-field { margin: 0; }
+.preview-save-card > div > strong { font-size: 11px; }
+.preview-save-card > div > p { margin: 3px 0 0; color: var(--text-soft); font-size: 9px; }
+.preview-save-card .button { white-space: nowrap; }
 .analytics-selector-card { margin-bottom: 17px; padding-bottom: 18px; }
 .selector-heading { min-height: 58px; align-items: start; }
 .selector-heading h2 { font-size: 22px; }
@@ -793,9 +797,10 @@ svg { display: block; }
     .selector-controls select, .selector-controls button { width: 100%; }
     .classroom-scatter-chart { height: 390px; }
     .generate-analysis-grid { grid-template-columns: 1fr; }
-    .generate-title-field { grid-column: auto; }
     .generate-analysis-actions { display: grid; grid-template-columns: 1fr; }
     .generate-analysis-actions .button { width: 100%; }
+    .preview-save-card { grid-template-columns: 1fr; gap: 14px; }
+    .preview-save-card .button { width: 100%; }
     .analytics-filters { grid-template-columns: 1fr; }
     .analytics-filters .button, .analytics-clear { width: 100%; justify-content: center; }
     .analytics-metrics { grid-template-columns: 1fr 1fr; }

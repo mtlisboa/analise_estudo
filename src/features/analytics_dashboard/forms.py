@@ -4,12 +4,6 @@ from .services import PERIODS, build_dashboard
 
 
 class GenerateAnalysisForm(forms.Form):
-    title = forms.CharField(
-        label="Nome da análise",
-        max_length=160,
-        required=False,
-        help_text="Se ficar vazio, o sistema criará um nome a partir do escopo.",
-    )
     organization = forms.ChoiceField(label="Instituição", required=False)
     group = forms.ChoiceField(label="Grupo de turmas", required=False)
     classroom = forms.ChoiceField(label="Turma", required=False)
@@ -59,4 +53,27 @@ class GenerateAnalysisForm(forms.Form):
         return {
             key: self.cleaned_data[key]
             for key in ("organization", "group", "classroom", "student", "period")
+        }
+
+
+class SaveAnalysisForm(GenerateAnalysisForm):
+    title = forms.CharField(
+        label="Nome da análise",
+        max_length=160,
+        required=False,
+        help_text="Se ficar vazio, o sistema usará o escopo e o período.",
+    )
+    selected_students = forms.CharField(required=False, widget=forms.HiddenInput())
+    selection_label = forms.CharField(required=False, max_length=160, widget=forms.HiddenInput())
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, user=user, **kwargs)
+        for field_name in ("organization", "group", "classroom", "student", "period"):
+            self.fields[field_name].widget = forms.HiddenInput()
+
+    @property
+    def analysis_params(self) -> dict[str, str]:
+        return {
+            **super().analysis_params,
+            "selected_students": self.cleaned_data["selected_students"],
         }

@@ -39,6 +39,17 @@ def _integer(value: str | None) -> int | None:
         return None
 
 
+def _integer_set(value: str | None) -> set[int]:
+    if not value:
+        return set()
+    values = set()
+    for item in value.split(","):
+        parsed = _integer(item.strip())
+        if parsed is not None:
+            values.add(parsed)
+    return values
+
+
 def _score(assessment: SelfAssessment) -> int:
     return round(
         (
@@ -195,6 +206,11 @@ def build_dashboard(user, params) -> dict[str, Any]:
     if selected_student_id:
         students = [student for student in students if student.pk == selected_student_id]
         student_ids = {selected_student_id}
+
+    selected_student_ids = _integer_set(params.get("selected_students"))
+    if selected_student_ids:
+        student_ids &= selected_student_ids
+        students = [student for student in students if student.pk in student_ids]
 
     period = params.get("period", "90")
     if period not in PERIODS:
@@ -396,6 +412,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
             "group": selected_group_id,
             "classroom": selected_classroom_id,
             "student": selected_student_id,
+            "selected_students": sorted(student_ids) if selected_student_ids else [],
             "period": period,
         },
         "scope_title": scope_title,

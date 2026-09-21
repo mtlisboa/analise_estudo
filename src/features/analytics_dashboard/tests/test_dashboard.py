@@ -99,6 +99,7 @@ class AnalyticsDashboardTests(TestCase):
     def generate_analysis(self, user, **overrides) -> SavedAnalysis:
         self.client.force_login(user)
         data = {
+            "action": "save",
             "title": "Análise de setembro",
             "organization": str(self.organization.pk),
             "group": "",
@@ -114,6 +115,19 @@ class AnalyticsDashboardTests(TestCase):
             reverse("analytics-dashboard:detail", kwargs={"pk": analysis.pk}),
         )
         return analysis
+
+    def generate_preview(self, user, **overrides):
+        self.client.force_login(user)
+        data = {
+            "action": "generate",
+            "organization": str(self.organization.pk),
+            "group": "",
+            "classroom": str(self.classroom.pk),
+            "student": "",
+            "period": "all",
+        }
+        data.update(overrides)
+        return self.client.post(self.generate_url, data)
 
     def test_dashboard_requires_authentication(self) -> None:
         response = self.client.get(self.url)
@@ -141,12 +155,55 @@ class AnalyticsDashboardTests(TestCase):
         self.assertEqual(len(analysis.snapshot["analytics_payload"]["scatter3d"]["names"]), 2)
         self.assertContains(response, 'id="classroom-scatter-chart"')
         self.assertContains(response, 'id="classroom-scope-select"')
-        self.assertContains(response, 'id="scatter-3d-chart"')
-        self.assertContains(response, 'id="heatmap-chart"')
+        self.assertNotContains(response, 'id="timeline-chart"')
+        self.assertNotContains(response, 'id="classroom-chart"')
+        self.assertNotContains(response, 'id="roles-chart"')
+        self.assertNotContains(response, 'id="scatter-3d-chart"')
+        self.assertNotContains(response, 'id="heatmap-chart"')
         student_snapshot = analysis.snapshot["analytics_payload"]["students"][0]
         self.assertIn("classrooms", student_snapshot)
         self.assertIn("assessments", student_snapshot)
         self.assertEqual(student_snapshot["classrooms"][0]["id"], self.classroom.pk)
+
+    def test_generation_shows_preview_without_saving_automatically(self) -> None:
+        response = self.generate_preview(self.owner)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(SavedAnalysis.objects.exists())
+        self.assertContains(response, "Esta análise ainda não foi salva")
+        self.assertContains(response, 'value="save"')
+        self.assertContains(response, 'id="classroom-scatter-chart"')
+
+    def test_optional_save_persists_the_selection_from_the_scatter_map(self) -> None:
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            self.generate_url,
+            {
+                "action": "save",
+                "title": "Seleção visual",
+                "organization": str(self.organization.pk),
+                "group": "",
+                "classroom": str(self.classroom.pk),
+                "student": "",
+                "selected_students": str(self.student.pk),
+                "selection_label": "Ana Lima",
+                "period": "all",
+            },
+        )
+
+        analysis = SavedAnalysis.objects.get(created_by=self.owner)
+        self.assertRedirects(
+            response,
+            reverse("analytics-dashboard:detail", kwargs={"pk": analysis.pk}),
+        )
+        self.assertEqual(analysis.scope_title, "Ana Lima")
+        self.assertEqual(analysis.filters["selected_students"], [self.student.pk])
+        self.assertEqual(analysis.snapshot["metrics"]["students"], 1)
+        self.assertEqual(
+            analysis.snapshot["analytics_payload"]["scatter2d"]["names"],
+            ["Ana Lima"],
+        )
 
     def test_student_only_sees_their_own_academic_data(self) -> None:
         analysis = self.generate_analysis(self.student)

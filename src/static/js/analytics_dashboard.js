@@ -25,13 +25,10 @@
             soft: styles.getPropertyValue("--text-soft").trim(),
             faint: styles.getPropertyValue("--text-faint").trim(),
             primary: styles.getPropertyValue("--primary").trim(),
-            primarySoft: styles.getPropertyValue("--primary-soft").trim(),
-            lime: styles.getPropertyValue("--lime").trim(),
             surface: styles.getPropertyValue("--surface").trim(),
             grid: styles.getPropertyValue("--chart-grid").trim()
         };
         var palette = [colors.primary, "#29a7a1", "#ef9d2f", "#7d62d9", "#2f9f7f", "#d95f76", "#5f86d9", "#9a7635"];
-        var config = {responsive: true, displaylogo: false, modeBarButtonsToRemove: ["lasso2d", "select2d"]};
         var selectorConfig = {responsive: true, displaylogo: false, modeBarButtonsToRemove: ["zoomIn2d", "zoomOut2d", "autoScale2d"]};
         var baseLayout = {
             autosize: true,
@@ -80,118 +77,6 @@
             return students.filter(function (student) { return selected[String(student.id)]; });
         }
 
-        function renderTimeline(scopeStudents) {
-            if (!hasSnapshots) return renderLegacyTimeline();
-            var grouped = {};
-            scopeStudents.forEach(function (student) {
-                student.assessments.forEach(function (item) {
-                    if (!grouped[item.date]) grouped[item.date] = [];
-                    grouped[item.date].push(item);
-                });
-            });
-            var dates = Object.keys(grouped).sort();
-            if (!dates.length) {
-                Plotly.react("timeline-chart", [], emptyLayout("Sem autoavaliações no recorte"), config);
-                return;
-            }
-            function averages(key) {
-                return dates.map(function (date) {
-                    var values = grouped[date].map(function (item) { return item[key]; });
-                    return values.reduce(function (sum, value) { return sum + value; }, 0) / values.length;
-                });
-            }
-            Plotly.react("timeline-chart", [
-                {x: dates, y: averages("score"), name: "Índice geral (%)", type: "scatter", mode: "lines+markers", line: {color: colors.primary, width: 3}, marker: {size: 6}},
-                {x: dates, y: averages("focus"), name: "Foco (1–5)", type: "scatter", mode: "lines", yaxis: "y2", line: {color: colors.lime, width: 2}},
-                {x: dates, y: averages("comprehension"), name: "Compreensão (1–5)", type: "scatter", mode: "lines", yaxis: "y2", line: {color: "#29a7a1", width: 2}}
-            ], layout({
-                xaxis: axis,
-                yaxis: Object.assign({title: "Índice (%)", range: [0, 100]}, axis),
-                yaxis2: {title: "Escala 1–5", range: [1, 5], overlaying: "y", side: "right", showgrid: false, tickfont: {color: colors.faint, size: 9}},
-                margin: {l: 48, r: 48, t: 16, b: 45}, hovermode: "x unified"
-            }), config);
-        }
-
-        function renderLegacyTimeline() {
-            var timeline = data.timeline;
-            if (!timeline.dates.length) {
-                Plotly.react("timeline-chart", [], emptyLayout("Sem autoavaliações no período"), config);
-                return;
-            }
-            Plotly.react("timeline-chart", [
-                {x: timeline.dates, y: timeline.score, name: "Índice geral (%)", type: "scatter", mode: "lines+markers", line: {color: colors.primary, width: 3}, marker: {size: 6}},
-                {x: timeline.dates, y: timeline.focus, name: "Foco (1–5)", type: "scatter", mode: "lines", yaxis: "y2", line: {color: colors.lime, width: 2}},
-                {x: timeline.dates, y: timeline.comprehension, name: "Compreensão (1–5)", type: "scatter", mode: "lines", yaxis: "y2", line: {color: "#29a7a1", width: 2}}
-            ], layout({
-                xaxis: axis, yaxis: Object.assign({title: "Índice (%)", range: [0, 100]}, axis),
-                yaxis2: {title: "Escala 1–5", range: [1, 5], overlaying: "y", side: "right", showgrid: false, tickfont: {color: colors.faint, size: 9}},
-                margin: {l: 48, r: 48, t: 16, b: 45}, hovermode: "x unified"
-            }), config);
-        }
-
-        function renderScatter3d(scopeStudents) {
-            if (!scopeStudents.length) {
-                Plotly.react("scatter-3d-chart", [], emptyLayout("Sem dados para o mapa tridimensional"), config);
-                return;
-            }
-            Plotly.react("scatter-3d-chart", [{
-                x: scopeStudents.map(function (item) { return item.latest.focus; }),
-                y: scopeStudents.map(function (item) { return item.latest.comprehension; }),
-                z: scopeStudents.map(function (item) { return item.latest.motivation; }),
-                text: scopeStudents.map(function (item) { return item.name; }),
-                customdata: scopeStudents.map(function (item) { return item.classrooms.map(function (room) { return room.name; }).join(", ") || "Sem turma"; }),
-                type: "scatter3d", mode: "markers",
-                marker: {size: 8, color: scopeStudents.map(function (item) { return item.latest.motivation; }), colorscale: [[0, colors.primarySoft], [1, colors.primary]], opacity: 0.9},
-                hovertemplate: "<b>%{text}</b><br>%{customdata}<br>Foco: %{x}<br>Compreensão: %{y}<br>Motivação: %{z}<extra></extra>"
-            }], layout({
-                margin: {l: 0, r: 0, t: 0, b: 0}, showlegend: false,
-                scene: {
-                    bgcolor: "rgba(0,0,0,0)",
-                    xaxis: {title: "Foco", range: [1, 5], gridcolor: colors.grid, color: colors.soft},
-                    yaxis: {title: "Compreensão", range: [1, 5], gridcolor: colors.grid, color: colors.soft},
-                    zaxis: {title: "Motivação", range: [1, 5], gridcolor: colors.grid, color: colors.soft},
-                    camera: {eye: {x: 1.45, y: 1.45, z: 1.1}}
-                }
-            }), config);
-        }
-
-        function renderHeatmap(scopeStudents) {
-            if (!scopeStudents.length) {
-                Plotly.react("heatmap-chart", [], emptyLayout("Sem perfis acadêmicos para comparar"), config);
-                return;
-            }
-            Plotly.react("heatmap-chart", [{
-                x: ["Foco", "Organização", "Compreensão", "Motivação"],
-                y: scopeStudents.map(function (item) { return item.name; }),
-                z: scopeStudents.map(function (item) { return [item.latest.focus, item.latest.organization, item.latest.comprehension, item.latest.motivation]; }),
-                type: "heatmap", zmin: 1, zmax: 5,
-                colorscale: [[0, colors.primarySoft], [0.5, "#9b82ff"], [1, colors.primary]],
-                xgap: 3, ygap: 3, hovertemplate: "<b>%{y}</b><br>%{x}: %{z}/5<extra></extra>",
-                colorbar: {title: "1–5", thickness: 10}
-            }], layout({
-                xaxis: {side: "top", tickfont: {color: colors.soft, size: 10}},
-                yaxis: {automargin: true, tickfont: {color: colors.soft, size: 10}},
-                margin: {l: 105, r: 30, t: 45, b: 18}
-            }), config);
-        }
-
-        var classrooms = data.classrooms;
-        if (classrooms.labels.length) {
-            Plotly.newPlot("classroom-chart", [
-                {x: classrooms.labels, y: classrooms.students, name: "Alunos", type: "bar", marker: {color: colors.primary}},
-                {x: classrooms.labels, y: classrooms.tests, name: "Testes", type: "bar", marker: {color: colors.lime}}
-            ], layout({xaxis: axis, yaxis: Object.assign({dtick: 1}, axis), barmode: "group"}), config);
-        } else Plotly.newPlot("classroom-chart", [], emptyLayout("Nenhuma turma no escopo"), config);
-
-        var roleTotal = data.roles.values.reduce(function (sum, value) { return sum + value; }, 0);
-        if (roleTotal) {
-            Plotly.newPlot("roles-chart", [{
-                labels: data.roles.labels, values: data.roles.values, type: "pie", hole: 0.62,
-                marker: {colors: [colors.primary, colors.lime, "#29a7a1"]}, textinfo: "label+percent",
-                hovertemplate: "%{label}: %{value}<extra></extra>"
-            }], layout({showlegend: false, margin: {l: 14, r: 14, t: 8, b: 12}}), config);
-        } else Plotly.newPlot("roles-chart", [], emptyLayout("Nenhum vínculo no escopo"), config);
-
         var classroomMap = {};
         students.forEach(function (student) {
             (student.classrooms || []).forEach(function (room) { classroomMap[String(room.id)] = room.name; });
@@ -231,6 +116,8 @@
         var selectorNode = document.getElementById("classroom-scatter-chart");
         var allIds = students.map(function (student) { return String(student.id); });
         var originalAverageText = document.getElementById("metric-average").textContent;
+        var savedStudentSelection = document.getElementById("id_selected_students");
+        var savedSelectionLabel = document.getElementById("id_selection_label");
 
         function updateScatterSelection(ids) {
             var selectingAll = ids.length === allIds.length;
@@ -269,10 +156,9 @@
             if (!hasSnapshots) scores = scoped.map(function (student) { return student.averageScore; });
             var average = !hasSnapshots && ids.length === allIds.length ? originalAverageText : (scores.length ? Math.round(scores.reduce(function (sum, value) { return sum + value; }, 0) / scores.length) + "%" : "—");
             document.getElementById("metric-average").textContent = average;
+            if (savedStudentSelection) savedStudentSelection.value = ids.length === allIds.length ? "" : ids.join(",");
+            if (savedSelectionLabel) savedSelectionLabel.value = ids.length === allIds.length ? "" : title;
             updateScatterSelection(ids);
-            renderTimeline(scoped);
-            renderScatter3d(scoped);
-            renderHeatmap(scoped);
             updateTable(ids);
         }
 
@@ -308,7 +194,7 @@
             });
         } else {
             Plotly.newPlot(selectorNode, [], emptyLayout("Sem alunos com autoavaliações no período"), selectorConfig);
-            renderTimeline([]); renderScatter3d([]); renderHeatmap([]); updateTable([]);
+            updateTable([]);
         }
 
         classroomSelect.addEventListener("change", function () {
