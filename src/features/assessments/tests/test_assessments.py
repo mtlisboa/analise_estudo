@@ -2,7 +2,12 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from features.assessments.models import Assessment, AssessmentTechnique, AssessmentType
+from features.assessments.models import (
+    Assessment,
+    AssessmentTechnique,
+    AssessmentType,
+    Question,
+)
 
 User = get_user_model()
 
@@ -124,3 +129,98 @@ class AssessmentManagerTests(TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertContains(response, "Este campo é obrigatório", status_code=422)
         self.assertFalse(Assessment.objects.exists())
+
+    def test_user_can_add_multiple_choice_question_to_own_assessment(self):
+        assessment = self.create_assessment()
+
+        response = self.client.post(
+            reverse("assessments:question-create", kwargs={"assessment_pk": assessment.pk}),
+            {
+                "question_type": Question.Type.MULTIPLE_CHOICE,
+                "statement": "Qual é a raiz positiva de x² = 9?",
+                "options": "1\n3\n6\n9",
+                "correct_answer": "3",
+                "explanation": "Três ao quadrado é igual a nove.",
+                "points": "2.5",
+            },
+        )
+
+        question = Question.objects.get(assessment=assessment)
+        self.assertRedirects(response, reverse("assessments:index"))
+        self.assertEqual(question.options, ["1", "3", "6", "9"])
+        self.assertEqual(question.correct_answer, "3")
+        self.assertEqual(question.order, 1)
+
+    def test_user_can_add_open_ended_question(self):
+        assessment = self.create_assessment()
+
+        response = self.client.post(
+            reverse("assessments:question-create", kwargs={"assessment_pk": assessment.pk}),
+            {
+                "question_type": Question.Type.OPEN_ENDED,
+                "statement": "Explique como a parábola se comporta.",
+                "options": "Esta alternativa deve ser descartada",
+                "correct_answer": "A resposta deve mencionar concavidade e vértice.",
+                "explanation": "",
+                "points": "3",
+            },
+        )
+
+        question = Question.objects.get(assessment=assessment)
+        self.assertRedirects(response, reverse("assessments:index"))
+        self.assertEqual(question.options, [])
+        self.assertEqual(question.question_type, Question.Type.OPEN_ENDED)
+
+    def test_multiple_choice_question_requires_matching_answer(self):
+        assessment = self.create_assessment()
+
+        response = self.client.post(
+            reverse("assessments:question-create", kwargs={"assessment_pk": assessment.pk}),
+            {
+                "question_type": Question.Type.MULTIPLE_CHOICE,
+                "statement": "Selecione uma alternativa.",
+                "options": "A\nB",
+                "correct_answer": "C",
+                "points": "1",
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertContains(
+            response,
+            "O gabarito deve ser idêntico a uma das alternativas.",
+            status_code=422,
+        )
+        self.assertFalse(Question.objects.exists())
+
+    def test_user_cannot_add_question_to_another_users_assessment(self):
+        assessment = self.create_assessment(owner=self.other_user)
+
+        response = self.client.post(
+            reverse("assessments:question-create", kwargs={"assessment_pk": assessment.pk}),
+            {
+                "question_type": Question.Type.OPEN_ENDED,
+                "statement": "Questão indevida",
+                "points": "1",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(Question.objects.exists())
+
+    def test_index_lists_questions_inside_the_assessment(self):
+        assessment = self.create_assessment()
+        Question.objects.create(
+            assessment=assessment,
+            statement="Explique a função do discriminante.",
+            question_type=Question.Type.OPEN_ENDED,
+            correct_answer="Determinar a quantidade de raízes reais.",
+            points=2,
+            order=1,
+        )
+
+        response = self.client.get(reverse("assessments:index"))
+
+        self.assertContains(response, "Adicionar questão")
+        self.assertContains(response, "Explique a função do discriminante.")
+        self.assertContains(response, "1 questão criada")

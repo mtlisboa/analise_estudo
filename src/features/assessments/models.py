@@ -1,5 +1,8 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
@@ -81,3 +84,64 @@ class Assessment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.subject} — {self.topic}"
+
+
+class Question(models.Model):
+    class Type(models.TextChoices):
+        MULTIPLE_CHOICE = "multiple_choice", "Múltipla escolha"
+        OPEN_ENDED = "open_ended", "Discursiva"
+
+    assessment = models.ForeignKey(
+        Assessment,
+        on_delete=models.CASCADE,
+        related_name="questions",
+        verbose_name="avaliação",
+    )
+    statement = models.TextField("enunciado")
+    question_type = models.CharField(
+        "formato da questão",
+        max_length=24,
+        choices=Type.choices,
+        default=Type.MULTIPLE_CHOICE,
+    )
+    options = models.JSONField("alternativas", default=list, blank=True)
+    correct_answer = models.TextField("gabarito ou resposta esperada", blank=True)
+    explanation = models.TextField("explicação do gabarito", blank=True)
+    points = models.DecimalField(
+        "pontuação",
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("1.00"),
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    order = models.PositiveIntegerField("ordem", default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("order", "pk")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("assessment", "order"),
+                name="unique_question_order_per_assessment",
+            )
+        ]
+        verbose_name = "questão"
+        verbose_name_plural = "questões"
+
+    def clean(self) -> None:
+        super().clean()
+        if not isinstance(self.options, list) or any(
+            not isinstance(option, str) for option in self.options
+        ):
+            raise ValidationError({"options": "As alternativas devem formar uma lista de textos."})
+        if self.question_type == self.Type.MULTIPLE_CHOICE:
+            if len(self.options) < 2:
+                raise ValidationError({"options": "Adicione pelo menos duas alternativas."})
+            if self.correct_answer not in self.options:
+                raise ValidationError(
+                    {"correct_answer": "O gabarito deve corresponder a uma das alternativas."}
+                )
+
+    def __str__(self) -> str:
+        return f"{self.assessment} · Questão {self.order}"

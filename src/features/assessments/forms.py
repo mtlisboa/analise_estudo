@@ -1,7 +1,8 @@
 from django import forms
 from django.db import transaction
+from django.db.models import Max
 
-from .models import Assessment, AssessmentTechnique, AssessmentType
+from .models import Assessment, AssessmentTechnique, AssessmentType, Question
 
 
 class AssessmentForm(forms.ModelForm):
@@ -77,3 +78,81 @@ class AssessmentForm(forms.ModelForm):
         assessment.save()
         assessment.assessment_types.set(selected_types)
         return assessment
+
+
+class QuestionForm(forms.ModelForm):
+    options = forms.CharField(
+        label="Alternativas",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": "Digite uma alternativa por linha",
+            }
+        ),
+        help_text="Para múltipla escolha, adicione pelo menos duas alternativas.",
+    )
+
+    class Meta:
+        model = Question
+        fields = (
+            "question_type",
+            "statement",
+            "options",
+            "correct_answer",
+            "explanation",
+            "points",
+        )
+        widgets = {
+            "statement": forms.Textarea(
+                attrs={"rows": 4, "placeholder": "Escreva o enunciado da questão"}
+            ),
+            "correct_answer": forms.Textarea(
+                attrs={"rows": 2, "placeholder": "Informe o gabarito ou a resposta esperada"}
+            ),
+            "explanation": forms.Textarea(
+                attrs={"rows": 3, "placeholder": "Explique por que essa é a resposta correta"}
+            ),
+            "points": forms.NumberInput(attrs={"min": "0.01", "step": "0.25"}),
+        }
+
+    def clean_statement(self) -> str:
+        return self.cleaned_data["statement"].strip()
+
+    def clean_options(self) -> list[str]:
+        raw_value = self.cleaned_data.get("options", "")
+        return list(dict.fromkeys(line.strip() for line in raw_value.splitlines() if line.strip()))
+
+    def clean_correct_answer(self) -> str:
+        return self.cleaned_data.get("correct_answer", "").strip()
+
+    def clean_explanation(self) -> str:
+        return self.cleaned_data.get("explanation", "").strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        question_type = cleaned_data.get("question_type")
+        options = cleaned_data.get("options", [])
+        correct_answer = cleaned_data.get("correct_answer", "")
+        if question_type == Question.Type.MULTIPLE_CHOICE:
+            if len(options) < 2:
+                self.add_error("options", "Adicione pelo menos duas alternativas.")
+            if not correct_answer:
+                self.add_error("correct_answer", "Informe a alternativa correta.")
+            elif correct_answer not in options:
+                self.add_error(
+                    "correct_answer",
+                    "O gabarito deve ser idêntico a uma das alternativas.",
+                )
+        elif question_type == Question.Type.OPEN_ENDED:
+            cleaned_data["options"] = []
+        return cleaned_data
+
+    @transaction.atomic
+    def save(self, assessment: Assessment) -> Question:
+        question = super().save(commit=False)
+        question.assessment = assessment
+        last_order = assessment.questions.aggregate(last=Max("order"))["last"] or 0
+        question.order = last_order + 1
+        question.save()
+        return question

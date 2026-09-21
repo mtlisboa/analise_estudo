@@ -121,4 +121,52 @@
         document.body.classList.add("modal-open");
         updateTechniqueHint();
     }
+
+    var questionModal = document.getElementById("question-modal");
+    var questionForm = document.getElementById("question-form");
+    var questionType = document.getElementById("id_question_type");
+    var questionOptionsField = document.getElementById("question-options-field");
+    var questionAnswerLabel = document.getElementById("question-answer-label");
+    var questionAnswerHint = document.getElementById("question-answer-hint");
+    var questionAssessmentName = document.getElementById("question-assessment-name");
+
+    function updateQuestionFields() {
+        var isMultipleChoice = questionType.value === "multiple_choice";
+        questionOptionsField.hidden = !isMultipleChoice;
+        questionAnswerLabel.textContent = isMultipleChoice ? "Alternativa correta" : "Resposta esperada";
+        questionAnswerHint.textContent = isMultipleChoice
+            ? "Copie exatamente uma das alternativas informadas."
+            : "Opcional: descreva os elementos esperados na resposta do aluno.";
+    }
+
+    function openQuestionModal(button) {
+        questionForm.reset();
+        questionForm.action = button.dataset.questionAction;
+        questionAssessmentName.textContent = button.dataset.assessment;
+        updateQuestionFields();
+        questionModal.hidden = false;
+        document.body.classList.add("modal-open");
+        window.setTimeout(function () { document.getElementById("id_statement").focus(); }, 20);
+    }
+
+    function closeQuestionModal() {
+        questionModal.hidden = true;
+        document.body.classList.remove("modal-open");
+    }
+
+    document.querySelectorAll(".add-question").forEach(function (button) {
+        button.addEventListener("click", function () { openQuestionModal(button); });
+    });
+    document.querySelectorAll(".close-question-modal").forEach(function (button) {
+        button.addEventListener("click", closeQuestionModal);
+    });
+    questionType.addEventListener("change", updateQuestionFields);
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && !questionModal.hidden) closeQuestionModal();
+    });
+    if (document.documentElement.dataset.openQuestionModal === "true") {
+        questionModal.hidden = false;
+        document.body.classList.add("modal-open");
+        updateQuestionFields();
+    }
 }());

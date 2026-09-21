@@ -8,4 +8,9 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("nova/", views.create, name="create"),
     path("<int:pk>/editar/", views.update, name="update"),
+    path(
+        "<int:assessment_pk>/questoes/nova/",
+        views.create_question,
+        name="question-create",
+    ),
 ]

@@ -5,13 +5,13 @@ from django.db.models.functions import Cast
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import AssessmentForm
+from .forms import AssessmentForm, QuestionForm
 from .models import Assessment, AssessmentType
 
 
 def _assessment_queryset(user, query=""):
     assessments = Assessment.objects.filter(owner=user).prefetch_related(
-        "assessment_types"
+        "assessment_types", "questions"
     ).select_related("technique")
     if query:
         assessments = assessments.annotate(
@@ -22,11 +22,20 @@ def _assessment_queryset(user, query=""):
             | Q(observations_text__icontains=query)
             | Q(assessment_types__name__icontains=query)
             | Q(technique__name__icontains=query)
+            | Q(questions__statement__icontains=query)
         )
     return assessments.distinct()
 
 
-def _render_index(request, *, form=None, editing=None, status=200):
+def _render_index(
+    request,
+    *,
+    form=None,
+    editing=None,
+    question_form=None,
+    question_assessment=None,
+    status=200,
+):
     query = request.GET.get("q", "").strip()
     assessment_types = AssessmentType.objects.select_related("default_technique")
     return render(
@@ -36,6 +45,8 @@ def _render_index(request, *, form=None, editing=None, status=200):
             "assessments": _assessment_queryset(request.user, query),
             "assessment_form": form or AssessmentForm(),
             "editing_assessment": editing,
+            "question_form": question_form or QuestionForm(),
+            "question_assessment": question_assessment,
             "query": query,
             "default_techniques": {
                 str(item.pk): item.default_technique.name for item in assessment_types
@@ -73,3 +84,25 @@ def update(request: HttpRequest, pk: int) -> HttpResponse:
         messages.success(request, "Avaliação atualizada com sucesso.")
         return redirect("assessments:index")
     return _render_index(request, form=form, editing=assessment, status=422)
+
+
+@login_required
+def create_question(request: HttpRequest, assessment_pk: int) -> HttpResponse:
+    assessment = get_object_or_404(
+        Assessment,
+        pk=assessment_pk,
+        owner=request.user,
+    )
+    if request.method != "POST":
+        return redirect("assessments:index")
+    form = QuestionForm(request.POST)
+    if form.is_valid():
+        form.save(assessment=assessment)
+        messages.success(request, "Questão adicionada à avaliação.")
+        return redirect("assessments:index")
+    return _render_index(
+        request,
+        question_form=form,
+        question_assessment=assessment,
+        status=422,
+    )

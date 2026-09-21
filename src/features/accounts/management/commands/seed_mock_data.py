@@ -8,7 +8,12 @@ from django.utils import timezone
 
 from features.analytics_dashboard.models import SavedAnalysis
 from features.analytics_dashboard.services import build_dashboard
-from features.assessments.models import Assessment, AssessmentTechnique, AssessmentType
+from features.assessments.models import (
+    Assessment,
+    AssessmentTechnique,
+    AssessmentType,
+    Question,
+)
 from features.users_manager.models import (
     Classroom,
     ClassroomGroup,
@@ -653,6 +658,52 @@ class Command(BaseCommand):
                 },
             )
             assessment.assessment_types.set(types)
+            question_specs = (
+                (
+                    1,
+                    Question.Type.MULTIPLE_CHOICE,
+                    f"Sobre {topic}, qual alternativa apresenta a aplicação mais adequada do conteúdo?",
+                    [
+                        "Aplicar o conceito ao contexto apresentado",
+                        "Ignorar os dados do enunciado",
+                        "Usar apenas memorização sem justificativa",
+                        "Substituir o conceito por uma opinião pessoal",
+                    ],
+                    "Aplicar o conceito ao contexto apresentado",
+                    "A resposta correta relaciona o conceito estudado à situação proposta.",
+                    2,
+                ),
+                (
+                    2,
+                    Question.Type.OPEN_ENDED,
+                    f"Explique, com suas palavras, os principais conceitos de {topic}.",
+                    [],
+                    "A resposta deve apresentar os conceitos centrais e relacioná-los de forma coerente.",
+                    "Considere domínio conceitual, clareza e capacidade de relacionar ideias.",
+                    3,
+                ),
+            )
+            for (
+                order,
+                question_type,
+                statement,
+                options,
+                answer,
+                explanation,
+                points,
+            ) in question_specs:
+                Question.objects.update_or_create(
+                    assessment=assessment,
+                    order=order,
+                    defaults={
+                        "question_type": question_type,
+                        "statement": statement,
+                        "options": options,
+                        "correct_answer": answer,
+                        "explanation": explanation,
+                        "points": points,
+                    },
+                )
 
     def _upsert_saved_analysis(self, teacher, title, params) -> None:
         context = build_dashboard(teacher, params)

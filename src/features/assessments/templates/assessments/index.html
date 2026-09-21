@@ -52,6 +52,12 @@
             <div class="assessment-item-actions">
                 <small>Atualizada em {{ assessment.updated_at|date:"d/m/Y H:i" }}</small>
                 <button
+                    class="button button-small add-question"
+                    type="button"
+                    data-question-action="{% url 'assessments:question-create' assessment.pk %}"
+                    data-assessment="{{ assessment.subject }} — {{ assessment.topic }}"
+                >Adicionar questão</button>
+                <button
                     class="button button-small button-secondary edit-assessment"
                     type="button"
                     data-action="{% url 'assessments:update' assessment.pk %}"
@@ -61,6 +67,37 @@
                     data-types="{% for type in assessment.assessment_types.all %}{{ type.pk }}{% if not forloop.last %},{% endif %}{% endfor %}"
                     data-technique="{% if not assessment.technique_selected_automatically %}{{ assessment.technique_id }}{% endif %}"
                 >Editar</button>
+            </div>
+            <div class="assessment-questions">
+                <div class="assessment-questions-heading">
+                    <div>
+                        <small>QUESTÕES DA AVALIAÇÃO</small>
+                        <strong>{{ assessment.questions.all|length }} {% if assessment.questions.all|length == 1 %}questão criada{% else %}questões criadas{% endif %}</strong>
+                    </div>
+                </div>
+                {% if assessment.questions.all %}
+                <ol class="question-list">
+                    {% for question in assessment.questions.all %}
+                    <li>
+                        <span class="question-order">{{ question.order|stringformat:"02d" }}</span>
+                        <div class="question-copy">
+                            <div>
+                                <span>{{ question.get_question_type_display }}</span>
+                                <span>{{ question.points|floatformat:"-2" }} {% if question.points == 1 %}ponto{% else %}pontos{% endif %}</span>
+                            </div>
+                            <p>{{ question.statement }}</p>
+                            {% if question.question_type == "multiple_choice" %}
+                            <ul>{% for option in question.options %}<li{% if option == question.correct_answer %} class="correct-option"{% endif %}>{{ option }}</li>{% endfor %}</ul>
+                            {% elif question.correct_answer %}
+                            <small><b>Resposta esperada:</b> {{ question.correct_answer }}</small>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <p class="question-empty">Nenhuma questão adicionada. Use o botão “Adicionar questão” para começar.</p>
+                {% endif %}
             </div>
         </article>
         {% empty %}
@@ -127,7 +164,64 @@
         </form>
     </div>
 </div>
+
+<div class="assessment-modal" id="question-modal" role="dialog" aria-modal="true" aria-labelledby="question-modal-title" hidden>
+    <button class="assessment-modal-backdrop close-question-modal" type="button" aria-label="Fechar modal"></button>
+    <div class="assessment-modal-panel question-modal-panel">
+        <div class="assessment-modal-header">
+            <div>
+                <p class="section-kicker">QUESTÃO</p>
+                <h2 id="question-modal-title">Nova questão</h2>
+                <small id="question-assessment-name">{% if question_assessment %}{{ question_assessment.subject }} — {{ question_assessment.topic }}{% endif %}</small>
+            </div>
+            <button class="assessment-modal-close close-question-modal" type="button" aria-label="Fechar">×</button>
+        </div>
+        <form
+            id="question-form"
+            method="post"
+            action="{% if question_assessment %}{% url 'assessments:question-create' question_assessment.pk %}{% endif %}"
+        >
+            {% csrf_token %}
+            {% if question_form.non_field_errors %}<div class="form-errors">{{ question_form.non_field_errors }}</div>{% endif %}
+            <div class="assessment-form-grid">
+                <div class="form-field">
+                    <label for="{{ question_form.question_type.id_for_label }}">{{ question_form.question_type.label }}</label>
+                    {{ question_form.question_type }}{{ question_form.question_type.errors }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ question_form.points.id_for_label }}">{{ question_form.points.label }}</label>
+                    {{ question_form.points }}{{ question_form.points.errors }}
+                </div>
+            </div>
+            <div class="form-field">
+                <label for="{{ question_form.statement.id_for_label }}">{{ question_form.statement.label }}</label>
+                {{ question_form.statement }}{{ question_form.statement.errors }}
+            </div>
+            <div class="form-field" id="question-options-field">
+                <label for="{{ question_form.options.id_for_label }}">{{ question_form.options.label }}</label>
+                {{ question_form.options }}
+                <small>{{ question_form.options.help_text }}</small>
+                {{ question_form.options.errors }}
+            </div>
+            <div class="form-field">
+                <label id="question-answer-label" for="{{ question_form.correct_answer.id_for_label }}">{{ question_form.correct_answer.label }}</label>
+                {{ question_form.correct_answer }}
+                <small id="question-answer-hint">Em questões objetivas, copie exatamente uma das alternativas.</small>
+                {{ question_form.correct_answer.errors }}
+            </div>
+            <div class="form-field">
+                <label for="{{ question_form.explanation.id_for_label }}">{{ question_form.explanation.label }}</label>
+                {{ question_form.explanation }}{{ question_form.explanation.errors }}
+            </div>
+            <div class="assessment-modal-actions">
+                <button class="button button-small button-secondary close-question-modal" type="button">Cancelar</button>
+                <button class="button button-small" type="submit">Salvar questão</button>
+            </div>
+        </form>
+    </div>
+</div>
 {{ default_techniques|json_script:"assessment-default-techniques" }}
 {% if assessment_form.errors %}<script>document.documentElement.dataset.openAssessmentModal = "true";</script>{% endif %}
-<script src="{% static 'js/assessments.js' %}?v=1"></script>
+{% if question_form.errors %}<script>document.documentElement.dataset.openQuestionModal = "true";</script>{% endif %}
+<script src="{% static 'js/assessments.js' %}?v=2"></script>
 {% endblock %}

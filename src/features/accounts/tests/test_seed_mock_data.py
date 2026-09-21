@@ -6,7 +6,12 @@ from django.test import TestCase
 
 from features.accounts.models import User
 from features.analytics_dashboard.models import SavedAnalysis
-from features.assessments.models import Assessment, AssessmentTechnique, AssessmentType
+from features.assessments.models import (
+    Assessment,
+    AssessmentTechnique,
+    AssessmentType,
+    Question,
+)
 from features.users_manager.models import (
     Classroom,
     ClassroomGroup,
@@ -65,6 +70,7 @@ class SeedMockDataCommandTests(TestCase):
             120,
         )
         self.assertEqual(Assessment.objects.filter(owner=teacher).count(), 7)
+        self.assertEqual(Question.objects.filter(assessment__owner=teacher).count(), 14)
         self.assertEqual(SavedAnalysis.objects.filter(created_by=teacher).count(), 6)
         self.assertEqual(EducationalRelationship.objects.count(), 4)
 
