@@ -47,6 +47,8 @@ class SessionAuthenticationTests(TestCase):
         self.assertContains(response, 'class="app-sidebar"')
         self.assertContains(response, 'class="sidebar-brand-row"')
         self.assertContains(response, 'title="Alternar entre tema claro e escuro"')
+        self.assertContains(response, 'class="mobile-nav-label"', count=4)
+        self.assertContains(response, ">Turmas</span>")
         self.assertContains(response, "Organizações e turmas")
         self.assertContains(response, 'class="has-sidebar"')
         self.assertContains(response, 'id="floating-ai-assistant"')
