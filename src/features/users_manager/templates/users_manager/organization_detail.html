@@ -5,18 +5,44 @@
 
 {% block content %}
 <section class="manager-shell narrow-shell">
-    <a class="back-link" href="{% url 'users-manager:dashboard' %}">← Voltar para organizações</a>
+    <a class="back-link" href="{% url 'users-manager:dashboard' %}">← Minhas instituições</a>
     <div class="manager-topbar">
-        <div class="manager-heading"><p class="section-kicker">ORGANIZAÇÃO</p><h1>{{ organization.name }}</h1><p>{{ organization.description|default:"Contexto educacional" }}</p></div>
+        <div class="manager-heading">
+            <p class="section-kicker">INSTITUIÇÃO</p>
+            <h1>{{ organization.name }}</h1>
+            <p>{{ organization.description|default:"Escolha um grupo para visualizar suas turmas." }}</p>
+        </div>
         <div class="manager-actions">
-            <a class="button button-small button-secondary" href="{% url 'analytics-dashboard:dashboard' %}?organization={{ organization.pk }}">Análises</a>
             {% if can_manage %}<a class="button button-small button-secondary" href="{% url 'organization-settings:detail' organization.pk %}">Configurações</a>{% endif %}
             {% if can_manage %}<a class="button button-small button-secondary" href="{% url 'users-manager:organization-member-add' organization.pk %}">Adicionar membro</a>{% endif %}
-            {% if can_create_classroom %}<a class="button button-small" href="{% url 'users-manager:classroom-create' organization.pk %}">Nova turma</a>{% endif %}
+            {% if can_create_classroom %}<a class="button button-small" href="{% url 'users-manager:classroom-group-create' organization.pk %}">Novo grupo</a>{% endif %}
         </div>
     </div>
 
-    <article class="dash-card manager-card full-card">
+    <div class="detail-section-heading">
+        <div><span>GRUPOS DE TURMAS</span><h2>Como as turmas estão organizadas</h2></div>
+        <strong>{{ classroom_groups|length }}</strong>
+    </div>
+    <div class="class-group-grid">
+        {% for group in classroom_groups %}
+            <a class="dash-card class-group-card" href="{% url 'users-manager:classroom-group-detail' group.pk %}">
+                <div class="class-group-icon">{{ group.name|first|upper }}</div>
+                <div>
+                    <h3>{{ group.name }}</h3>
+                    <p>{{ group.description|default:"Grupo de turmas"|truncatechars:85 }}</p>
+                    <span>{{ group.visible_classrooms|length }} turma{{ group.visible_classrooms|length|pluralize }} <b>→</b></span>
+                </div>
+            </a>
+        {% empty %}
+            <article class="dash-card group-empty">
+                <h3>Nenhum grupo disponível</h3>
+                <p>{% if can_create_classroom %}Crie o primeiro grupo para organizar as turmas por série, curso ou etapa.{% else %}Você ainda não participa de nenhuma turma desta instituição.{% endif %}</p>
+            </article>
+        {% endfor %}
+    </div>
+
+    {% if can_manage %}
+    <article class="dash-card manager-card full-card compact-members">
         <div class="manager-card-title"><div><span>MEMBROS</span><h2>Professores e alunos</h2></div><strong>{{ organization_memberships|length }}</strong></div>
         <div class="manager-list">
             {% for membership in organization_memberships %}
@@ -24,14 +50,6 @@
             {% endfor %}
         </div>
     </article>
-
-    <article class="dash-card manager-card full-card">
-        <div class="manager-card-title"><div><span>TURMAS</span><h2>Turmas da organização</h2></div><strong>{{ classrooms|length }}</strong></div>
-        <div class="manager-list">
-            {% for classroom in classrooms %}
-                <a class="manager-list-item list-link" href="{% url 'users-manager:classroom-detail' classroom.pk %}"><div class="avatar-letter">{{ classroom.name|first|upper }}</div><div class="list-copy"><strong>{{ classroom.name }}</strong><small>Professor responsável: {{ classroom.owner.get_full_name|default:classroom.owner.username }}</small></div><span>→</span></a>
-            {% empty %}<p class="empty-state">Nenhuma turma criada.</p>{% endfor %}
-        </div>
-    </article>
+    {% endif %}
 </section>
 {% endblock %}

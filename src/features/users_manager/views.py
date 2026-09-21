@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import (
     ClassroomForm,
+    ClassroomGroupForm,
     ClassroomMemberForm,
     ClassroomTestForm,
     OrganizationForm,
@@ -16,6 +17,7 @@ from .forms import (
 )
 from .models import (
     Classroom,
+    ClassroomGroup,
     ClassroomMembership,
     EducationalRelationship,
     MembershipStatus,
@@ -26,26 +28,45 @@ from .models import (
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
-    organizations = Organization.objects.filter(
-        Q(owner=request.user) | Q(memberships__user=request.user),
-        is_active=True,
-    ).distinct()
-    memberships = ClassroomMembership.objects.filter(user=request.user).select_related(
-        "classroom", "invited_by"
+    organizations = list(
+        Organization.objects.filter(
+            Q(owner=request.user) | Q(memberships__user=request.user),
+            is_active=True,
+        )
+        .prefetch_related("memberships", "classroom_groups")
+        .distinct()
     )
-    classrooms = Classroom.objects.filter(
-        Q(owner=request.user)
-        | Q(memberships__user=request.user, memberships__status=MembershipStatus.ACTIVE)
-    ).distinct()
+    institution_cards = []
+    for organization in organizations:
+        membership = next(
+            (
+                item
+                for item in organization.memberships.all()
+                if item.user_id == request.user.pk
+            ),
+            None,
+        )
+        roles = []
+        if organization.owner_id == request.user.pk:
+            roles.append("Gestor")
+        if membership and membership.is_teacher:
+            roles.append("Professor")
+        if membership and membership.is_student:
+            roles.append("Aluno")
+        institution_cards.append(
+            {
+                "organization": organization,
+                "roles": roles,
+                "member_count": len(organization.memberships.all()),
+                "group_count": sum(
+                    group.is_active for group in organization.classroom_groups.all()
+                ),
+            }
+        )
     return render(
         request,
         "users_manager/dashboard.html",
-        {
-            "organizations": organizations,
-            "memberships": memberships,
-            "classrooms": classrooms,
-            "assessments": request.user.self_assessments.all()[:5],
-        },
+        {"institution_cards": institution_cards},
     )
 
 
@@ -90,16 +111,104 @@ def organization_detail(request: HttpRequest, pk: int) -> HttpResponse:
     ).first()
     if not membership and organization.owner_id != request.user.pk:
         return HttpResponseForbidden("Você não participa desta organização.")
+    can_manage = _can_manage_organization(request.user, organization)
+    can_create_classroom = bool(membership and membership.is_teacher)
+    groups = organization.classroom_groups.filter(is_active=True)
+    visible_classrooms = Classroom.objects.filter(is_active=True)
+    if not can_manage and not can_create_classroom:
+        groups = groups.filter(
+            classrooms__memberships__user=request.user,
+            classrooms__memberships__status=MembershipStatus.ACTIVE,
+            classrooms__is_active=True,
+        ).distinct()
+        visible_classrooms = visible_classrooms.filter(
+            memberships__user=request.user,
+            memberships__status=MembershipStatus.ACTIVE,
+        ).distinct()
     return render(
         request,
         "users_manager/organization_detail.html",
         {
             "organization": organization,
             "organization_memberships": organization.memberships.select_related("user", "added_by"),
-            "classrooms": organization.classrooms.filter(is_active=True).select_related("owner"),
-            "can_manage": _can_manage_organization(request.user, organization),
-            "can_create_classroom": bool(membership and membership.is_teacher),
+            "classroom_groups": groups.prefetch_related(
+                Prefetch(
+                    "classrooms",
+                    queryset=visible_classrooms,
+                    to_attr="visible_classrooms",
+                )
+            ),
+            "can_manage": can_manage,
+            "can_create_classroom": can_create_classroom,
         },
+    )
+
+
+@login_required
+def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    group = get_object_or_404(
+        ClassroomGroup.objects.select_related("organization"),
+        pk=pk,
+        is_active=True,
+        organization__is_active=True,
+    )
+    organization = group.organization
+    membership = OrganizationMembership.objects.filter(
+        organization=organization,
+        user=request.user,
+    ).first()
+    if not membership and organization.owner_id != request.user.pk:
+        return HttpResponseForbidden("Você não participa desta organização.")
+
+    can_manage = organization.owner_id == request.user.pk or bool(
+        membership and membership.is_teacher
+    )
+    classrooms = group.classrooms.filter(is_active=True)
+    if not can_manage:
+        classrooms = classrooms.filter(
+            memberships__user=request.user,
+            memberships__status=MembershipStatus.ACTIVE,
+        ).distinct()
+    classroom_list = list(classrooms.select_related("owner").prefetch_related("memberships"))
+    classroom_sections = [
+        {
+            "key": shift,
+            "label": label,
+            "classrooms": [item for item in classroom_list if item.shift == shift],
+        }
+        for shift, label in Classroom.Shift.choices
+    ]
+    classroom_sections = [section for section in classroom_sections if section["classrooms"]]
+    return render(
+        request,
+        "users_manager/classroom_group_detail.html",
+        {
+            "group": group,
+            "organization": organization,
+            "classroom_sections": classroom_sections,
+            "classroom_count": len(classroom_list),
+            "can_create_classroom": can_manage,
+        },
+    )
+
+
+@login_required
+def create_classroom_group(request: HttpRequest, organization_pk: int) -> HttpResponse:
+    organization = get_object_or_404(Organization, pk=organization_pk, is_active=True)
+    if not _organization_teacher_membership(request.user, organization):
+        return HttpResponseForbidden("Somente professores da organização podem criar grupos.")
+    form = ClassroomGroupForm(request.POST or None, organization=organization)
+    if request.method == "POST" and form.is_valid():
+        group = form.save(commit=False)
+        group.organization = organization
+        group.created_by = request.user
+        group.save()
+        messages.success(request, "Grupo de turmas criado com sucesso.")
+        return redirect("users-manager:classroom-group-detail", pk=group.pk)
+    return render(
+        request,
+        "users_manager/form.html",
+        {"form": form, "title": f"Novo grupo em {organization.name}"},
     )
 
 
@@ -156,14 +265,40 @@ def decide_relationship(request: HttpRequest, pk: int, decision: str) -> HttpRes
 
 @login_required
 @transaction.atomic
-def create_classroom(request: HttpRequest, organization_pk: int) -> HttpResponse:
-    organization = get_object_or_404(Organization, pk=organization_pk, is_active=True)
+def create_classroom(
+    request: HttpRequest,
+    organization_pk: int | None = None,
+    group_pk: int | None = None,
+) -> HttpResponse:
+    group = None
+    if group_pk is not None:
+        group = get_object_or_404(
+            ClassroomGroup.objects.select_related("organization"),
+            pk=group_pk,
+            is_active=True,
+            organization__is_active=True,
+        )
+        organization = group.organization
+    else:
+        organization = get_object_or_404(Organization, pk=organization_pk, is_active=True)
     if not _organization_teacher_membership(request.user, organization):
         return HttpResponseForbidden("Somente professores da organização podem criar turmas.")
+    if group is None:
+        group = organization.classroom_groups.filter(is_active=True).first()
+        if group is None and request.method == "POST":
+            group = ClassroomGroup.objects.create(
+                name="Turmas gerais",
+                organization=organization,
+                created_by=request.user,
+            )
+        elif group is None:
+            messages.info(request, "Crie um grupo antes de adicionar a primeira turma.")
+            return redirect("users-manager:classroom-group-create", organization_pk=organization.pk)
     form = ClassroomForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         classroom = form.save(commit=False)
         classroom.organization = organization
+        classroom.group = group
         classroom.owner = request.user
         classroom.save()
         ClassroomMembership.objects.create(
@@ -178,7 +313,7 @@ def create_classroom(request: HttpRequest, organization_pk: int) -> HttpResponse
     return render(
         request,
         "users_manager/form.html",
-        {"form": form, "title": f"Nova turma em {organization.name}"},
+        {"form": form, "title": f"Nova turma em {group.name}"},
     )
 
 
@@ -196,7 +331,11 @@ def _can_manage_classroom(user, classroom: Classroom) -> bool:
 
 @login_required
 def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    classroom = get_object_or_404(Classroom, pk=pk, is_active=True)
+    classroom = get_object_or_404(
+        Classroom.objects.select_related("organization", "group"),
+        pk=pk,
+        is_active=True,
+    )
     can_manage = _can_manage_classroom(request.user, classroom)
     can_view = can_manage or ClassroomMembership.objects.filter(
         classroom=classroom,

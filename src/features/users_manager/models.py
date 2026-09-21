@@ -85,6 +85,37 @@ class OrganizationMembership(models.Model):
         return f"{self.user} em {self.organization} ({self.roles_display})"
 
 
+class ClassroomGroup(models.Model):
+    name = models.CharField("nome", max_length=120)
+    description = models.TextField("descrição", blank=True)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="classroom_groups",
+        verbose_name="organização",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_classroom_groups",
+        verbose_name="criado por",
+    )
+    is_active = models.BooleanField("ativo", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "name"),
+                name="unique_classroom_group_name_per_organization",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} · {self.organization}"
+
+
 class EducationalRelationship(models.Model):
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -144,6 +175,12 @@ class EducationalRelationship(models.Model):
 
 
 class Classroom(models.Model):
+    class Shift(models.TextChoices):
+        MORNING = "MORNING", "Manhã"
+        AFTERNOON = "AFTERNOON", "Tarde"
+        EVENING = "EVENING", "Noite"
+        FULL_TIME = "FULL_TIME", "Integral"
+
     name = models.CharField("nome", max_length=120)
     description = models.TextField("descrição", blank=True)
     organization = models.ForeignKey(
@@ -151,6 +188,19 @@ class Classroom(models.Model):
         on_delete=models.CASCADE,
         related_name="classrooms",
         verbose_name="organização",
+    )
+    group = models.ForeignKey(
+        ClassroomGroup,
+        on_delete=models.CASCADE,
+        related_name="classrooms",
+        verbose_name="grupo de turmas",
+    )
+    letter = models.CharField("letra", max_length=10, blank=True)
+    shift = models.CharField(
+        "turno",
+        max_length=10,
+        choices=Shift.choices,
+        default=Shift.MORNING,
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -162,7 +212,7 @@ class Classroom(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ("name",)
+        ordering = ("shift", "letter", "name")
 
     def __str__(self) -> str:
         return f"{self.name} · {self.organization}"

@@ -4,6 +4,7 @@ from django.db import models, transaction
 
 from .models import (
     Classroom,
+    ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
     EducationalRelationship,
@@ -135,7 +136,29 @@ class OrganizationMemberForm(forms.Form):
 class ClassroomForm(forms.ModelForm):
     class Meta:
         model = Classroom
+        fields = ("name", "letter", "shift", "description")
+
+    def clean_letter(self) -> str:
+        return self.cleaned_data["letter"].strip().upper()
+
+
+class ClassroomGroupForm(forms.ModelForm):
+    class Meta:
+        model = ClassroomGroup
         fields = ("name", "description")
+
+    def __init__(self, *args, organization, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organization = organization
+
+    def clean_name(self) -> str:
+        name = self.cleaned_data["name"].strip()
+        if ClassroomGroup.objects.filter(
+            organization=self.organization,
+            name__iexact=name,
+        ).exists():
+            raise forms.ValidationError("Já existe um grupo com este nome na instituição.")
+        return name
 
 
 class ClassroomMemberForm(forms.Form):

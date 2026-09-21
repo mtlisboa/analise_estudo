@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} | {{ organization.name }}{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell narrow-shell">
+    <a class="back-link" href="{% url 'users-manager:organization-detail' organization.pk %}">← {{ organization.name }}</a>
+    <div class="manager-topbar">
+        <div class="manager-heading">
+            <p class="section-kicker">GRUPO DE TURMAS</p>
+            <h1>{{ group.name }}</h1>
+            <p>{{ group.description|default:"Turmas separadas por turno e letra." }}</p>
+        </div>
+        {% if can_create_classroom %}
+            <div class="manager-actions"><a class="button button-small" href="{% url 'users-manager:group-classroom-create' group.pk %}">Nova turma</a></div>
+        {% endif %}
+    </div>
+
+    <div class="classroom-summary"><strong>{{ classroom_count }}</strong><span>turma{{ classroom_count|pluralize }} neste grupo</span></div>
+
+    {% for section in classroom_sections %}
+        <section class="shift-section">
+            <div class="shift-heading"><span class="shift-dot shift-{{ section.key|lower }}"></span><div><small>TURNO</small><h2>{{ section.label }}</h2></div><strong>{{ section.classrooms|length }}</strong></div>
+            <div class="classroom-letter-grid">
+                {% for classroom in section.classrooms %}
+                    <a class="dash-card classroom-letter-card" href="{% url 'users-manager:classroom-detail' classroom.pk %}">
+                        <span class="class-letter">{{ classroom.letter|default:"—" }}</span>
+                        <div><small>TURMA</small><h3>{{ classroom.name }}</h3><p>{{ classroom.memberships.count }} participante{{ classroom.memberships.count|pluralize }}</p></div>
+                        <b aria-hidden="true">→</b>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% empty %}
+        <article class="dash-card group-empty">
+            <h3>Nenhuma turma disponível</h3>
+            <p>{% if can_create_classroom %}Adicione a primeira turma e identifique sua letra e turno.{% else %}Você ainda não participa de nenhuma turma deste grupo.{% endif %}</p>
+        </article>
+    {% endfor %}
+</section>
+{% endblock %}
