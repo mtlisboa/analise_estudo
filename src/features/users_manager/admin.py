@@ -9,6 +9,7 @@ from .models import (
     ClassroomMembership,
     ClassroomTest,
     EducationalRelationship,
+    InstitutionDataExport,
     Organization,
     OrganizationMembership,
     School,
@@ -129,6 +130,36 @@ class SchoolAdmin(SysadminOnlyAdminMixin, admin.ModelAdmin):
         "approved_at",
         "created_at",
     )
+
+
+@admin.register(InstitutionDataExport)
+class InstitutionDataExportAdmin(SysadminOnlyAdminMixin, admin.ModelAdmin):
+    list_display = (
+        "organization_name",
+        "organization_id_snapshot",
+        "trigger",
+        "row_count",
+        "created_at",
+        "protected_download",
+    )
+    list_filter = ("trigger", "created_at")
+    search_fields = ("organization_name", "organization_id_snapshot")
+    readonly_fields = (
+        "organization_id_snapshot",
+        "organization_name",
+        "trigger",
+        "row_count",
+        "created_at",
+        "protected_download",
+    )
+    fields = readonly_fields
+
+    @admin.display(description="arquivo CSV")
+    def protected_download(self, export):
+        if not export.pk:
+            return "—"
+        url = reverse("users-manager:institution-export-download", args=(export.pk,))
+        return format_html('<a href="{}">Baixar CSV</a>', url)
 
 admin.site.register(EducationalRelationship)
 admin.site.register(Classroom)

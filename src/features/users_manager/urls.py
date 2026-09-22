@@ -12,6 +12,11 @@ urlpatterns = [
         views.download_school_document,
         name="school-document-download",
     ),
+    path(
+        "instituicoes/exportacoes/<int:pk>/",
+        views.download_institution_export,
+        name="institution-export-download",
+    ),
     path("organizacoes/nova/", views.create_organization, name="organization-create"),
     path("organizacoes/<int:pk>/", views.organization_detail, name="organization-detail"),
     path(

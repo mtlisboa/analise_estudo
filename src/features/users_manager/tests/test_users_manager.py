@@ -1,7 +1,9 @@
 import tempfile
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -11,6 +13,7 @@ from features.users_manager.models import (
     ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
+    InstitutionDataExport,
     MembershipStatus,
     Organization,
     OrganizationMembership,
@@ -670,3 +673,83 @@ class SchoolCredentialingTests(TestCase):
         self.assertEqual(self.client.get(url).status_code, 403)
         self.client.force_login(self.sysadmin)
         self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_organization_delete_forces_csv_export(self):
+        organization = Organization.objects.create(
+            name="Instituição para exportar",
+            description="Dados que não podem ser perdidos",
+            owner=self.manager,
+        )
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=self.manager,
+            is_teacher=True,
+            added_by=self.manager,
+        )
+        ClassroomGroup.objects.create(
+            name="Grupo arquivado",
+            organization=organization,
+            created_by=self.manager,
+        )
+
+        organization.delete()
+
+        export = InstitutionDataExport.objects.get()
+        self.assertEqual(
+            export.trigger,
+            InstitutionDataExport.Trigger.ORGANIZATION_DELETE,
+        )
+        self.assertTrue(export.file.name.endswith(".csv"))
+        with export.file.open("rb") as csv_file:
+            content = csv_file.read().decode("utf-8-sig")
+        self.assertIn("record_type,record_id,parent_id,data_json", content)
+        self.assertIn("organization_membership", content)
+        self.assertIn("classroom_group", content)
+        self.assertFalse(Organization.objects.filter(pk=organization.pk).exists())
+
+    def test_school_delete_forces_csv_export(self):
+        school = approve_school_application(self.create_application(), self.sysadmin)
+
+        school.delete()
+
+        export = InstitutionDataExport.objects.get()
+        self.assertEqual(export.trigger, InstitutionDataExport.Trigger.SCHOOL_DELETE)
+        with export.file.open("rb") as csv_file:
+            content = csv_file.read().decode("utf-8-sig")
+        self.assertIn('school,', content)
+        self.assertIn("EM Futuro", content)
+        self.assertTrue(Organization.objects.filter(pk=school.organization_id).exists())
+
+    def test_export_failure_aborts_organization_delete(self):
+        organization = Organization.objects.create(
+            name="Instituição protegida",
+            owner=self.manager,
+        )
+
+        with patch(
+            "features.users_manager.signals.create_institution_export",
+            side_effect=OSError("volume indisponível"),
+        ):
+            with self.assertRaises(OSError):
+                with transaction.atomic():
+                    organization.delete()
+
+        self.assertTrue(Organization.objects.filter(pk=organization.pk).exists())
+        self.assertFalse(InstitutionDataExport.objects.exists())
+
+    def test_only_sysadmin_can_download_institution_export(self):
+        organization = Organization.objects.create(
+            name="Instituição exportada",
+            owner=self.manager,
+        )
+        organization.delete()
+        export = InstitutionDataExport.objects.get()
+        url = reverse("users-manager:institution-export-download", args=(export.pk,))
+
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.client.force_login(self.sysadmin)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        response.close()

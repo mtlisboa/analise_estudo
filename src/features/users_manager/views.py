@@ -21,6 +21,7 @@ from .models import (
     ClassroomGroup,
     ClassroomMembership,
     EducationalRelationship,
+    InstitutionDataExport,
     MembershipStatus,
     Organization,
     OrganizationMembership,
@@ -127,6 +128,19 @@ def download_school_document(request: HttpRequest, pk: int) -> FileResponse:
         document.file.open("rb"),
         as_attachment=True,
         filename=document.original_name,
+    )
+
+
+@login_required
+def download_institution_export(request: HttpRequest, pk: int) -> FileResponse:
+    if not request.user.is_system_admin:
+        return HttpResponseForbidden("Somente o sysadmin pode acessar estas exportações.")
+    export = get_object_or_404(InstitutionDataExport, pk=pk)
+    return FileResponse(
+        export.file.open("rb"),
+        as_attachment=True,
+        filename=export.file.name.rsplit("/", 1)[-1],
+        content_type="text/csv; charset=utf-8",
     )
 
 

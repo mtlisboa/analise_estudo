@@ -32,6 +32,27 @@ class Organization(models.Model):
         return self.name
 
 
+class InstitutionDataExport(models.Model):
+    class Trigger(models.TextChoices):
+        ORGANIZATION_DELETE = "ORGANIZATION_DELETE", "Exclusão de organização"
+        SCHOOL_DELETE = "SCHOOL_DELETE", "Exclusão de escola"
+
+    organization_id_snapshot = models.PositiveBigIntegerField("ID da organização")
+    organization_name = models.CharField("nome da organização", max_length=120)
+    trigger = models.CharField("origem", max_length=24, choices=Trigger.choices)
+    file = models.FileField("arquivo CSV", upload_to="institution_exports/%Y/%m/")
+    row_count = models.PositiveIntegerField("linhas exportadas")
+    created_at = models.DateTimeField("criado em", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "exportação de instituição"
+        verbose_name_plural = "exportações de instituições"
+
+    def __str__(self) -> str:
+        return f"{self.organization_name} · {self.created_at:%d/%m/%Y %H:%M}"
+
+
 def validate_school_document_size(document) -> None:
     if document.size > 10 * 1024 * 1024:
         raise ValidationError("Cada documento deve ter no máximo 10 MB.")
