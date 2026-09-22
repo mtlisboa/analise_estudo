@@ -23,7 +23,7 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 python src/manage.py migrate
-python src/manage.py runserver
+python -m uvicorn config.asgi:application --app-dir src --host 127.0.0.1 --port 8000
 ```
 
 Acesse `http://127.0.0.1:8000/` para ver a landing page. O painel individual
@@ -141,7 +141,7 @@ docker run --rm -p 8000:8000 \
   analise-estudo:local
 ```
 
-A imagem executa a aplicação com Gunicorn na porta `8000` usando um usuário
+A imagem executa a aplicação com Uvicorn na porta `8000` usando um usuário
 não-root. Antes da primeira execução, aplique as migrações ou utilize o
 Docker Compose descrito abaixo.
 
@@ -224,3 +224,43 @@ src/
 ├── templates/
 └── manage.py
 ```
+
+
+## Notificações em tempo real
+
+A área interna exibe um sino no canto superior direito com contador de não lidas,
+as últimas 30 notificações e ações para marcar uma ou todas como lidas.
+A landing e o onboarding não exibem esse componente.
+
+Execute `python src/manage.py migrate` antes de iniciar o ASGI. O WebSocket
+`/ws/notifications/` usa a mesma sessão do login; visitantes anônimos e origens
+não permitidas são rejeitados. Nunca é aceito um destinatário enviado pelo cliente.
+A conexão é refeita automaticamente e recupera os dados persistidos no banco.
+A interface sincroniza as abas e verifica a sessão novamente a cada mensagem;
+um heartbeat verifica sessões ociosas aproximadamente a cada minuto.
+
+Configure `REDIS_URL` no Railway apontando para o serviço Redis. Isso é necessário
+para entrega imediata entre os dois workers do Docker. O Compose já inclui Redis.
+Sem a variável, a camada em memória serve apenas ao desenvolvimento com um processo.
+Redis transporta os eventos; as notificações são persistidas no banco Django.
+Uma falha de publicação é registrada no log e a próxima sincronização recupera
+as notificações salvas.
+
+Para enviar uma notificação, crie-a na seção **Notificações** do Django admin ou
+chame o serviço nos eventos de negócio desejados:
+
+```python
+from features.notifications.services import notify_user
+
+notify_user(recipient=user, title="Nova avaliação", message="Sua avaliação está disponível.")
+```
+
+A publicação ocorre após o commit da transação, incluindo criações pelo admin.
+`bulk_create` e `QuerySet.update` não disparam os sinais de publicação: utilize
+o serviço para criar notificações. Esta entrega oferece a infraestrutura e o
+envio administrativo; os gatilhos automáticos de negócio podem usar esse serviço.
+
+Contrato do socket: o servidor envia `notifications.snapshot` com `items` e
+`unread_count`. O cliente envia `notifications.sync`, `notifications.read` com
+`id`, ou `notifications.read_all`. Só são consultadas e alteradas notificações
+do usuário autenticado. A mensagem é renderizada como texto, sem HTML.

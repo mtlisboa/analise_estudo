@@ -9,7 +9,10 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
 
 django_asgi_application = get_asgi_application()
 
-from contexts.ia_integrations.routing import websocket_urlpatterns
+from contexts.ia_integrations.routing import websocket_urlpatterns as chat_patterns
+from features.notifications.routing import websocket_urlpatterns as notification_patterns
+
+websocket_urlpatterns = chat_patterns + notification_patterns
 
 application = ProtocolTypeRouter(
     {
@@ -19,3 +22,4 @@ application = ProtocolTypeRouter(
         ),
     }
 )
+

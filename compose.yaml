@@ -16,10 +16,14 @@ services:
       DJANGO_DEBUG: "${DJANGO_DEBUG:-True}"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
       DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-}"
+      REDIS_URL: redis://redis:6379/0
       SQLITE_PATH: /data/db.sqlite3
       IA_MCP_SERVER_URL: "${IA_MCP_SERVER_URL:-}"
       IA_MCP_CHAT_TOOL: "${IA_MCP_CHAT_TOOL:-answer_from_documentation}"
       IA_MCP_TIMEOUT_SECONDS: "${IA_MCP_TIMEOUT_SECONDS:-30}"
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
@@ -39,5 +43,15 @@ services:
     restart: unless-stopped
     stop_grace_period: 10s
 
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   sqlite_data:
+

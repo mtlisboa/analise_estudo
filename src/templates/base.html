@@ -14,6 +14,7 @@
         }());
     </script>
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v=16">
+    <link rel="stylesheet" href="{% static 'css/notifications.css' %}?v=1">
 </head>
 <body{% if user.is_authenticated and not onboarding_mode and not public_page %} class="has-sidebar"{% endif %}>
     {% if user.is_authenticated and not onboarding_mode and not public_page %}
@@ -101,6 +102,10 @@
             </button>
         </div>
     </header>
+    {% endif %}
+    {% if user.is_authenticated and not onboarding_mode and not public_page %}
+        {% include "notifications/bell.html" %}
+        <script src="{% static 'js/notifications.js' %}?v=1" defer></script>
     {% endif %}
     <main class="app-main {% block main_class %}container{% endblock %}">
         {% for message in messages %}

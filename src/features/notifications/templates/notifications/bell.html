@@ -1,0 +1,12 @@
+<div class="notifications" id="notifications">
+    <button class="notification-bell" id="notification-bell" type="button" aria-label="Notificações" aria-expanded="false" aria-controls="notification-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+        <span class="notification-badge" id="notification-badge" hidden></span>
+    </button>
+    <section class="notification-panel" id="notification-panel" aria-labelledby="notification-heading" hidden>
+        <div class="notification-heading"><h2 id="notification-heading">Notificações</h2><button id="notifications-read-all" type="button" disabled>Marcar todas como lidas</button></div>
+        <p class="notification-status" id="notification-status" role="status">Conectando…</p>
+        <ul class="notification-list" id="notification-list"></ul>
+        <p class="notification-footnote">Últimas 30 notificações</p>
+    </section>
+</div>
