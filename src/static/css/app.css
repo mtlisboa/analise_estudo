@@ -608,6 +608,31 @@ svg { display: block; }
 .assessment-empty-icon { display: grid; width: 44px; height: 44px; margin: 0 auto 16px; place-items: center; border-radius: 14px; background: var(--primary-soft); color: var(--primary); font-weight: 850; }
 .assessment-empty h2 { margin: 0; font-family: Georgia, serif; font-size: 24px; font-weight: 600; }
 .assessment-empty p { margin: 6px 0 20px; color: var(--text-soft); font-size: 11px; }
+.question-method-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin-bottom: 22px; }
+.question-method-card { display: flex; min-height: 145px; padding: 18px; flex-direction: column; color: inherit; text-decoration: none; }
+.question-method-card > span { color: var(--primary); font-size: 8px; font-weight: 850; letter-spacing: .12em; }
+.question-method-card strong { margin-top: auto; font-size: 12px; }
+.question-method-card p { margin: 5px 0 0; color: var(--text-soft); font-size: 9px; line-height: 1.45; }
+.question-method-card:not(.muted-method):hover { border-color: var(--primary); transform: translateY(-2px); }
+.ai-method { background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--primary-soft) 68%, var(--surface))); }
+.bank-selection-bar { position: sticky; z-index: 4; top: 12px; display: flex; margin-bottom: 13px; padding: 13px 15px; align-items: end; justify-content: space-between; gap: 14px; border: 1px solid var(--border); border-radius: 12px; background: color-mix(in srgb, var(--surface) 92%, transparent); box-shadow: var(--shadow-soft); backdrop-filter: blur(12px); }
+.bank-selection-bar .form-field { width: min(100%, 420px); margin: 0; }
+.question-bank-list { display: grid; gap: 11px; }
+.question-bank-item { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; padding: 20px; align-items: start; }
+.bank-check { position: relative; display: grid; width: 25px; height: 25px; place-items: center; cursor: pointer; }
+.bank-check input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.bank-check span { display: grid; width: 23px; height: 23px; place-items: center; border: 1px solid var(--border-strong); border-radius: 7px; color: transparent; font-size: 10px; }
+.bank-check:has(input:checked) span { border-color: var(--primary); background: var(--primary); color: white; }
+.question-bank-meta { display: flex; flex-wrap: wrap; gap: 5px; }
+.question-bank-meta span { padding: 4px 7px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 7px; font-weight: 750; }
+.question-bank-copy h2 { margin: 9px 0 8px; font-size: 14px; line-height: 1.5; }
+.question-bank-copy > ul { margin: 0; padding-left: 18px; color: var(--text-soft); font-size: 9px; line-height: 1.65; }
+.question-bank-copy > p { margin: 4px 0 0; color: var(--text-soft); font-size: 9px; }
+.question-bank-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+.question-bank-actions a { color: var(--text-soft); font-size: 8px; font-weight: 750; text-decoration: none; white-space: nowrap; }
+.question-bank-actions a:hover, .question-bank-actions .ai-link { color: var(--primary); }
+.question-editor-card { max-width: 760px; }
+.ai-question-card { border-top: 4px solid var(--primary); }
 
 .modal-open { overflow: hidden; }
 .assessment-modal[hidden] { display: none; }
@@ -817,6 +842,7 @@ body.analytics-chart-expanded { overflow: hidden; }
     .assessment-item { grid-template-columns: 1fr 1fr; }
     .assessment-item-observations { padding-left: 0; border-left: 0; }
     .assessment-item-actions { align-items: flex-end; }
+    .question-method-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -869,6 +895,12 @@ body.analytics-chart-expanded { overflow: hidden; }
     .assessment-modal { padding: 13px; }
     .assessment-modal-panel { max-height: calc(100vh - 26px); padding: 24px 20px; }
     .assessment-form-grid { grid-template-columns: 1fr; gap: 0; }
+    .question-method-grid { grid-template-columns: 1fr; }
+    .question-method-card { min-height: 112px; }
+    .bank-selection-bar { align-items: stretch; flex-direction: column; }
+    .bank-selection-bar .form-field, .bank-selection-bar .button { width: 100%; }
+    .question-bank-item { grid-template-columns: auto 1fr; }
+    .question-bank-actions { grid-column: 2; align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
     .chat-shell { width: min(calc(100% - 32px), var(--max-width)); padding-top: 34px; }
     .chat-page-heading { align-items: flex-start; flex-direction: column; gap: 15px; }
     .chat-layout { grid-template-columns: 1fr; }

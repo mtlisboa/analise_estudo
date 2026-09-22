@@ -61,6 +61,14 @@
         });
     }
 
+    function updateAssemblyFields() {
+        var method = form.querySelector("#id_assembly_method").value;
+        var countField = document.getElementById("assessment-question-count-field");
+        var promptField = document.getElementById("assessment-generation-prompt-field");
+        countField.hidden = method === "manual";
+        promptField.hidden = method !== "ai_curated" && method !== "ai_generated";
+    }
+
     function openModal(editButton) {
         if (editButton) {
             form.action = editButton.dataset.action;
@@ -68,6 +76,9 @@
             form.querySelector("#id_subject").value = editButton.dataset.subject;
             form.querySelector("#id_topic").value = editButton.dataset.topic;
             form.querySelector("#id_technique").value = editButton.dataset.technique || "";
+            form.querySelector("#id_assembly_method").value = editButton.dataset.assemblyMethod || "manual";
+            form.querySelector("#id_desired_question_count").value = editButton.dataset.questionCount || "0";
+            form.querySelector("#id_generation_prompt").value = editButton.dataset.generationPrompt || "";
             setCheckedTypes(editButton.dataset.types);
             seedObservations(editButton.dataset.observations);
         } else {
@@ -77,6 +88,7 @@
             seedObservations("");
         }
         updateTechniqueHint();
+        updateAssemblyFields();
         modal.hidden = false;
         document.body.classList.add("modal-open");
         window.setTimeout(function () { form.querySelector("#id_subject").focus(); }, 20);
@@ -109,6 +121,7 @@
     });
     form.addEventListener("change", function (event) {
         if (event.target.name === "assessment_types" || event.target.name === "technique") updateTechniqueHint();
+        if (event.target.name === "assembly_method") updateAssemblyFields();
     });
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape" && !modal.hidden) closeModal();
@@ -120,6 +133,7 @@
         modal.hidden = false;
         document.body.classList.add("modal-open");
         updateTechniqueHint();
+        updateAssemblyFields();
     }
 
     var questionModal = document.getElementById("question-modal");

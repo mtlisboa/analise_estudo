@@ -12,7 +12,10 @@
             <h1>Minhas avaliações</h1>
             <p>Crie avaliações alinhadas às habilidades que você deseja observar.</p>
         </div>
-        <button class="button button-small" id="new-assessment" type="button">Registrar nova avaliação</button>
+        <div class="manager-actions">
+            <a class="button button-small button-secondary" href="{% url 'assessments:question-bank' %}">Banco de questões</a>
+            <button class="button button-small" id="new-assessment" type="button">Registrar nova avaliação</button>
+        </div>
     </div>
 
     <form class="assessment-search" method="get" role="search">
@@ -39,9 +42,9 @@
                 </div>
             </div>
             <div class="assessment-item-meta">
-                <small>TÉCNICA AVALIATIVA</small>
-                <strong>{{ assessment.technique.name }}</strong>
-                {% if assessment.technique_selected_automatically %}<span>Selecionada automaticamente</span>{% else %}<span>Selecionada por você</span>{% endif %}
+                <small>FORMA DE MONTAGEM</small>
+                <strong>{{ assessment.get_assembly_method_display }}</strong>
+                <span>{{ assessment.get_assembly_status_display }}{% if assessment.assembly_notes %} · {{ assessment.assembly_notes }}{% endif %}</span>
             </div>
             <div class="assessment-item-observations">
                 <small>OBSERVAÇÕES E RESTRIÇÕES</small>
@@ -66,6 +69,9 @@
                     data-observations="{% for observation in assessment.observations %}{{ observation }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}"
                     data-types="{% for type in assessment.assessment_types.all %}{{ type.pk }}{% if not forloop.last %},{% endif %}{% endfor %}"
                     data-technique="{% if not assessment.technique_selected_automatically %}{{ assessment.technique_id }}{% endif %}"
+                    data-assembly-method="{{ assessment.assembly_method }}"
+                    data-question-count="{{ assessment.desired_question_count }}"
+                    data-generation-prompt="{{ assessment.generation_prompt }}"
                 >Editar</button>
             </div>
             <div class="assessment-questions">
@@ -157,6 +163,24 @@
                 <small id="automatic-technique-hint">{{ assessment_form.technique.help_text }}</small>
                 {{ assessment_form.technique.errors }}
             </div>
+            <div class="assessment-form-grid">
+                <div class="form-field">
+                    <label for="{{ assessment_form.assembly_method.id_for_label }}">{{ assessment_form.assembly_method.label }}</label>
+                    {{ assessment_form.assembly_method }}
+                    {{ assessment_form.assembly_method.errors }}
+                </div>
+                <div class="form-field" id="assessment-question-count-field">
+                    <label for="{{ assessment_form.desired_question_count.id_for_label }}">{{ assessment_form.desired_question_count.label }}</label>
+                    {{ assessment_form.desired_question_count }}
+                    {{ assessment_form.desired_question_count.errors }}
+                </div>
+            </div>
+            <div class="form-field" id="assessment-generation-prompt-field">
+                <label for="{{ assessment_form.generation_prompt.id_for_label }}">{{ assessment_form.generation_prompt.label }}</label>
+                {{ assessment_form.generation_prompt }}
+                <small>Obrigatório nas estratégias que utilizam IA.</small>
+                {{ assessment_form.generation_prompt.errors }}
+            </div>
             <div class="assessment-modal-actions">
                 <button class="button button-small button-secondary close-assessment-modal" type="button">Cancelar</button>
                 <button class="button button-small" type="submit">Salvar avaliação</button>
@@ -223,5 +247,5 @@
 {{ default_techniques|json_script:"assessment-default-techniques" }}
 {% if assessment_form.errors %}<script>document.documentElement.dataset.openAssessmentModal = "true";</script>{% endif %}
 {% if question_form.errors %}<script>document.documentElement.dataset.openQuestionModal = "true";</script>{% endif %}
-<script src="{% static 'js/assessments.js' %}?v=2"></script>
+<script src="{% static 'js/assessments.js' %}?v=3"></script>
 {% endblock %}

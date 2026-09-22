@@ -14,6 +14,7 @@ from features.assessments.models import (
     AssessmentTechnique,
     AssessmentType,
     Question,
+    QuestionBankItem,
 )
 from features.users_manager.models import (
     Classroom,
@@ -751,6 +752,9 @@ class Command(BaseCommand):
                     "observations": list(observations),
                     "technique": technique,
                     "technique_selected_automatically": automatic,
+                    "assembly_method": Assessment.AssemblyMethod.MANUAL,
+                    "assembly_status": Assessment.AssemblyStatus.READY,
+                    "assembly_notes": "Avaliação demonstrativa montada com questões do banco.",
                 },
             )
             assessment.assessment_types.set(types)
@@ -788,6 +792,21 @@ class Command(BaseCommand):
                 explanation,
                 points,
             ) in question_specs:
+                bank_item, _ = QuestionBankItem.objects.update_or_create(
+                    owner=teacher,
+                    subject=subject,
+                    topic=topic,
+                    statement=statement,
+                    defaults={
+                        "question_type": question_type,
+                        "options": options,
+                        "correct_answer": answer,
+                        "explanation": explanation,
+                        "default_points": points,
+                        "creation_method": QuestionBankItem.CreationMethod.MANUAL,
+                        "is_active": True,
+                    },
+                )
                 Question.objects.update_or_create(
                     assessment=assessment,
                     order=order,
@@ -798,6 +817,7 @@ class Command(BaseCommand):
                         "correct_answer": answer,
                         "explanation": explanation,
                         "points": points,
+                        "bank_item": bank_item,
                     },
                 )
 

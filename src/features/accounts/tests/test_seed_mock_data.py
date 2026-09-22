@@ -12,6 +12,7 @@ from features.assessments.models import (
     AssessmentTechnique,
     AssessmentType,
     Question,
+    QuestionBankItem,
 )
 from features.users_manager.models import (
     Classroom,
@@ -88,6 +89,7 @@ class SeedMockDataCommandTests(TestCase):
         )
         self.assertEqual(Assessment.objects.filter(owner=teacher).count(), 7)
         self.assertEqual(Question.objects.filter(assessment__owner=teacher).count(), 14)
+        self.assertEqual(QuestionBankItem.objects.filter(owner=teacher).count(), 14)
         self.assertEqual(SavedAnalysis.objects.filter(created_by=teacher).count(), 6)
         self.assertEqual(EducationalRelationship.objects.count(), 4)
         self.assertEqual(School.objects.count(), 1)

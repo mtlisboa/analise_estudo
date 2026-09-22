@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -7,6 +9,7 @@ from features.assessments.models import (
     AssessmentTechnique,
     AssessmentType,
     Question,
+    QuestionBankItem,
 )
 
 User = get_user_model()
@@ -224,3 +227,181 @@ class AssessmentManagerTests(TestCase):
         self.assertContains(response, "Adicionar questão")
         self.assertContains(response, "Explique a função do discriminante.")
         self.assertContains(response, "1 questão criada")
+
+    def bank_question_data(self, **overrides):
+        data = {
+            "subject": "Matemática",
+            "topic": "Funções quadráticas",
+            "question_type": Question.Type.MULTIPLE_CHOICE,
+            "statement": "Qual é o valor de x em x + 2 = 5?",
+            "options": "1\n2\n3\n4",
+            "correct_answer": "3",
+            "explanation": "Subtraia dois dos dois lados.",
+            "default_points": "2",
+        }
+        data.update(overrides)
+        return data
+
+    def create_bank_question(self, **overrides):
+        data = self.bank_question_data(**overrides)
+        return QuestionBankItem.objects.create(
+            owner=self.user,
+            subject=data["subject"],
+            topic=data["topic"],
+            question_type=data["question_type"],
+            statement=data["statement"],
+            options=data["options"].splitlines() if isinstance(data["options"], str) else data["options"],
+            correct_answer=data["correct_answer"],
+            explanation=data["explanation"],
+            default_points=data["default_points"],
+        )
+
+    def test_manual_question_is_saved_in_reusable_bank(self):
+        response = self.client.post(
+            reverse("assessments:bank-question-create"),
+            self.bank_question_data(),
+        )
+
+        item = QuestionBankItem.objects.get()
+        self.assertRedirects(response, reverse("assessments:question-bank"))
+        self.assertEqual(item.creation_method, QuestionBankItem.CreationMethod.MANUAL)
+
+    def test_user_can_derive_and_edit_an_existing_question(self):
+        source = self.create_bank_question()
+        response = self.client.post(
+            reverse("assessments:bank-question-derive", args=(source.pk,)),
+            self.bank_question_data(statement="Uma nova versão da questão"),
+        )
+
+        derived = QuestionBankItem.objects.exclude(pk=source.pk).get()
+        self.assertRedirects(response, reverse("assessments:question-bank"))
+        self.assertEqual(derived.source_question, source)
+        self.assertEqual(derived.creation_method, QuestionBankItem.CreationMethod.DERIVED)
+        self.assertEqual(source.statement, "Qual é o valor de x em x + 2 = 5?")
+
+    @patch("features.assessments.services.request_ai_json")
+    def test_ai_can_create_a_completely_new_question(self, ai_json):
+        ai_json.return_value = {
+            "statement": "Qual gráfico representa uma função quadrática?",
+            "question_type": "multiple_choice",
+            "options": ["Parábola", "Reta"],
+            "correct_answer": "Parábola",
+            "explanation": "Funções quadráticas produzem parábolas.",
+            "points": 2,
+        }
+
+        response = self.client.post(
+            reverse("assessments:bank-question-ai-create"),
+            {
+                "subject": "Matemática",
+                "topic": "Funções quadráticas",
+                "instructions": "Crie uma questão visual intermediária.",
+            },
+        )
+
+        item = QuestionBankItem.objects.get()
+        self.assertRedirects(response, reverse("assessments:question-bank"))
+        self.assertEqual(item.creation_method, QuestionBankItem.CreationMethod.AI_GENERATED)
+
+    @patch("features.assessments.services.request_ai_json")
+    def test_ai_edit_preserves_source_and_creates_new_version(self, ai_json):
+        source = self.create_bank_question()
+        ai_json.return_value = {
+            "statement": "Resolva x + 2 = 5 e justifique.",
+            "question_type": "open_ended",
+            "options": [],
+            "correct_answer": "x = 3",
+            "explanation": "Subtraia dois.",
+            "points": 2,
+        }
+
+        response = self.client.post(
+            reverse("assessments:bank-question-ai-edit", args=(source.pk,)),
+            {"instructions": "Transforme em discursiva e peça justificativa."},
+        )
+
+        edited = QuestionBankItem.objects.exclude(pk=source.pk).get()
+        self.assertRedirects(response, reverse("assessments:question-bank"))
+        self.assertEqual(edited.creation_method, QuestionBankItem.CreationMethod.AI_EDITED)
+        self.assertEqual(edited.source_question, source)
+
+    def test_existing_bank_questions_can_be_added_manually_to_assessment(self):
+        assessment = self.create_assessment()
+        item = self.create_bank_question()
+
+        response = self.client.post(
+            reverse("assessments:bank-questions-add-generic"),
+            {"assessment": assessment.pk, "questions": [item.pk]},
+        )
+
+        self.assertRedirects(response, reverse("assessments:question-bank"))
+        self.assertEqual(assessment.questions.get().bank_item, item)
+
+    def test_algorithmic_assembly_uses_matching_bank_questions(self):
+        first = self.create_bank_question(statement="Questão algorítmica 1")
+        second = self.create_bank_question(statement="Questão algorítmica 2")
+
+        response = self.client.post(
+            reverse("assessments:create"),
+            self.assessment_data(
+                assembly_method=Assessment.AssemblyMethod.ALGORITHMIC,
+                desired_question_count=2,
+            ),
+        )
+
+        assessment = Assessment.objects.get()
+        self.assertRedirects(response, reverse("assessments:index"))
+        self.assertEqual(assessment.assembly_status, Assessment.AssemblyStatus.READY)
+        self.assertSetEqual(
+            set(assessment.questions.values_list("bank_item_id", flat=True)),
+            {first.pk, second.pk},
+        )
+
+    @patch("features.assessments.services.request_ai_json")
+    def test_ai_curates_existing_bank_questions(self, ai_json):
+        selected = self.create_bank_question(statement="Selecionada pela IA")
+        self.create_bank_question(statement="Não selecionada pela IA")
+        ai_json.return_value = {"question_ids": [selected.pk]}
+
+        self.client.post(
+            reverse("assessments:create"),
+            self.assessment_data(
+                assembly_method=Assessment.AssemblyMethod.AI_CURATED,
+                desired_question_count=1,
+                generation_prompt="Priorize raciocínio algébrico.",
+            ),
+        )
+
+        assessment = Assessment.objects.get()
+        self.assertEqual(assessment.questions.get().bank_item, selected)
+        self.assertEqual(assessment.assembly_status, Assessment.AssemblyStatus.READY)
+
+    @patch("features.assessments.services.request_ai_json")
+    def test_ai_generates_all_questions_for_assessment(self, ai_json):
+        ai_json.return_value = {
+            "questions": [
+                {
+                    "statement": "Explique o papel do vértice.",
+                    "question_type": "open_ended",
+                    "options": [],
+                    "correct_answer": "Indicar máximo ou mínimo.",
+                    "explanation": "O vértice é o extremo da parábola.",
+                    "points": 3,
+                }
+            ]
+        }
+
+        self.client.post(
+            reverse("assessments:create"),
+            self.assessment_data(
+                assembly_method=Assessment.AssemblyMethod.AI_GENERATED,
+                desired_question_count=1,
+                generation_prompt="Crie uma questão discursiva conceitual.",
+            ),
+        )
+
+        assessment = Assessment.objects.get()
+        item = QuestionBankItem.objects.get()
+        self.assertEqual(item.creation_method, QuestionBankItem.CreationMethod.AI_GENERATED)
+        self.assertEqual(assessment.questions.get().bank_item, item)
+        self.assertEqual(assessment.assembly_status, Assessment.AssemblyStatus.READY)

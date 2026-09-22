@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | Lumini{% endblock %}
+{% block main_class %}manager-page assessment-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell narrow-shell">
+    <a class="back-link" href="{% url 'assessments:question-bank' %}">← Voltar ao banco de questões</a>
+    <div class="card manager-form-card question-editor-card ai-question-card">
+        <div class="manager-heading">
+            <p class="section-kicker">ASSISTENTE DE CRIAÇÃO</p>
+            <h1>{{ title }}</h1>
+            {% if source %}<p><strong>Questão original:</strong> {{ source.statement }}</p>{% else %}<p>A resposta estruturada será validada antes de entrar no banco.</p>{% endif %}
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+            <div class="form-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {{ field.errors }}
+            </div>
+            {% endfor %}
+            <button class="button form-submit" type="submit">Solicitar à IA <span>✦</span></button>
+        </form>
+    </div>
+</section>
+{% endblock %}

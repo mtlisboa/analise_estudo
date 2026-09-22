@@ -41,6 +41,17 @@ class AssessmentType(models.Model):
 
 
 class Assessment(models.Model):
+    class AssemblyMethod(models.TextChoices):
+        MANUAL = "manual", "Montagem manual"
+        ALGORITHMIC = "algorithmic", "Montagem algorítmica"
+        AI_CURATED = "ai_curated", "Montagem via IA com banco existente"
+        AI_GENERATED = "ai_generated", "Criação completa das questões via IA"
+
+    class AssemblyStatus(models.TextChoices):
+        DRAFT = "draft", "Rascunho"
+        READY = "ready", "Pronta"
+        FAILED = "failed", "Falha na montagem"
+
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -65,6 +76,23 @@ class Assessment(models.Model):
         "técnica selecionada automaticamente",
         default=False,
     )
+    assembly_method = models.CharField(
+        "forma de montagem",
+        max_length=20,
+        choices=AssemblyMethod.choices,
+        default=AssemblyMethod.MANUAL,
+    )
+    desired_question_count = models.PositiveSmallIntegerField(
+        "quantidade desejada de questões", default=0
+    )
+    generation_prompt = models.TextField("instruções para montagem", blank=True)
+    assembly_status = models.CharField(
+        "status da montagem",
+        max_length=10,
+        choices=AssemblyStatus.choices,
+        default=AssemblyStatus.DRAFT,
+    )
+    assembly_notes = models.TextField("resultado da montagem", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -86,6 +114,83 @@ class Assessment(models.Model):
         return f"{self.subject} — {self.topic}"
 
 
+class QuestionBankItem(models.Model):
+    class CreationMethod(models.TextChoices):
+        MANUAL = "manual", "Criação manual"
+        DERIVED = "derived", "Edição de questão existente"
+        AI_EDITED = "ai_edited", "Questão existente editada por IA"
+        AI_GENERATED = "ai_generated", "Questão nova gerada por IA"
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="question_bank_items",
+        verbose_name="responsável",
+    )
+    subject = models.CharField("matéria", max_length=120)
+    topic = models.CharField("assunto", max_length=160)
+    statement = models.TextField("enunciado")
+    question_type = models.CharField(
+        "formato da questão",
+        max_length=24,
+        choices=(
+            ("multiple_choice", "Múltipla escolha"),
+            ("open_ended", "Discursiva"),
+        ),
+        default="multiple_choice",
+    )
+    options = models.JSONField("alternativas", default=list, blank=True)
+    correct_answer = models.TextField("gabarito ou resposta esperada", blank=True)
+    explanation = models.TextField("explicação do gabarito", blank=True)
+    default_points = models.DecimalField(
+        "pontuação padrão",
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("1.00"),
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    creation_method = models.CharField(
+        "origem",
+        max_length=16,
+        choices=CreationMethod.choices,
+        default=CreationMethod.MANUAL,
+    )
+    source_question = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        related_name="derived_questions",
+        verbose_name="questão de origem",
+        null=True,
+        blank=True,
+    )
+    ai_instructions = models.TextField("instruções enviadas à IA", blank=True)
+    is_active = models.BooleanField("ativa", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+        verbose_name = "questão do banco"
+        verbose_name_plural = "banco de questões"
+
+    def clean(self) -> None:
+        super().clean()
+        if not isinstance(self.options, list) or any(
+            not isinstance(option, str) for option in self.options
+        ):
+            raise ValidationError({"options": "As alternativas devem formar uma lista de textos."})
+        if self.question_type == "multiple_choice":
+            if len(self.options) < 2:
+                raise ValidationError({"options": "Adicione pelo menos duas alternativas."})
+            if self.correct_answer not in self.options:
+                raise ValidationError(
+                    {"correct_answer": "O gabarito deve corresponder a uma das alternativas."}
+                )
+
+    def __str__(self) -> str:
+        return f"{self.subject} · {self.topic} · {self.statement[:55]}"
+
+
 class Question(models.Model):
     class Type(models.TextChoices):
         MULTIPLE_CHOICE = "multiple_choice", "Múltipla escolha"
@@ -96,6 +201,14 @@ class Question(models.Model):
         on_delete=models.CASCADE,
         related_name="questions",
         verbose_name="avaliação",
+    )
+    bank_item = models.ForeignKey(
+        QuestionBankItem,
+        on_delete=models.SET_NULL,
+        related_name="assessment_copies",
+        verbose_name="item do banco",
+        null=True,
+        blank=True,
     )
     statement = models.TextField("enunciado")
     question_type = models.CharField(

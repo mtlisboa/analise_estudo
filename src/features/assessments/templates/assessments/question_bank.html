@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Banco de questões | Lumini{% endblock %}
+{% block main_class %}manager-page assessment-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell assessment-shell">
+    <div class="manager-topbar assessment-topbar">
+        <div class="manager-heading">
+            <p class="section-kicker">CONTEÚDO REUTILIZÁVEL</p>
+            <h1>Banco de questões</h1>
+            <p>Crie, derive ou gere questões e reutilize-as em diferentes atividades e provas.</p>
+        </div>
+        <a class="button button-small button-secondary" href="{% url 'assessments:index' %}">Voltar às avaliações</a>
+    </div>
+
+    <div class="question-method-grid">
+        <a class="dash-card question-method-card" href="{% url 'assessments:bank-question-create' %}">
+            <span>01</span><strong>Criação manual</strong><p>Escreva uma questão completamente do zero.</p>
+        </a>
+        <div class="dash-card question-method-card muted-method">
+            <span>02</span><strong>Editar uma existente</strong><p>Escolha “Criar versão” em qualquer questão abaixo.</p>
+        </div>
+        <div class="dash-card question-method-card muted-method">
+            <span>03</span><strong>Edição via IA</strong><p>Escolha “Editar com IA” e descreva a transformação.</p>
+        </div>
+        <a class="dash-card question-method-card ai-method" href="{% url 'assessments:bank-question-ai-create' %}">
+            <span>04</span><strong>Nova questão via IA</strong><p>Forneça o objetivo pedagógico e receba um novo item.</p>
+        </a>
+    </div>
+
+    <form class="assessment-search" method="get" role="search">
+        <label class="visually-hidden" for="question-query">Buscar questões</label>
+        <input id="question-query" name="q" type="search" value="{{ query }}" placeholder="Buscar por matéria, assunto ou enunciado">
+        {% if query %}<a href="{% url 'assessments:question-bank' %}">Limpar</a>{% endif %}
+        <button type="submit">Buscar</button>
+    </form>
+
+    <form method="post" action="{% url 'assessments:bank-questions-add-generic' %}">
+        {% csrf_token %}
+        <div class="bank-selection-bar">
+            <div class="form-field">
+                <label for="{{ selection_form.assessment.id_for_label }}">{{ selection_form.assessment.label }}</label>
+                {{ selection_form.assessment }}
+            </div>
+            <button class="button button-small" type="submit">Adicionar selecionadas</button>
+        </div>
+        <div class="question-bank-list">
+            {% for question in questions %}
+            <article class="dash-card question-bank-item">
+                <label class="bank-check" title="Selecionar questão">
+                    <input type="checkbox" name="questions" value="{{ question.pk }}">
+                    <span>✓</span>
+                </label>
+                <div class="question-bank-copy">
+                    <div class="question-bank-meta">
+                        <span>{{ question.subject }}</span>
+                        <span>{{ question.topic }}</span>
+                        <span>{{ question.get_question_type_display }}</span>
+                        <span>{{ question.get_creation_method_display }}</span>
+                    </div>
+                    <h2>{{ question.statement }}</h2>
+                    {% if question.question_type == "multiple_choice" %}
+                    <ul>{% for option in question.options %}<li{% if option == question.correct_answer %} class="correct-option"{% endif %}>{{ option }}</li>{% endfor %}</ul>
+                    {% elif question.correct_answer %}<p><b>Resposta esperada:</b> {{ question.correct_answer }}</p>{% endif %}
+                </div>
+                <div class="question-bank-actions">
+                    <a href="{% url 'assessments:bank-question-update' question.pk %}">Editar</a>
+                    <a href="{% url 'assessments:bank-question-derive' question.pk %}">Criar versão</a>
+                    <a class="ai-link" href="{% url 'assessments:bank-question-ai-edit' question.pk %}">Editar com IA</a>
+                </div>
+            </article>
+            {% empty %}
+            <article class="dash-card assessment-empty">
+                <h2>Nenhuma questão encontrada</h2>
+                <p>Comece manualmente ou solicite uma questão nova à IA.</p>
+            </article>
+            {% endfor %}
+        </div>
+    </form>
+</section>
+{% endblock %}
