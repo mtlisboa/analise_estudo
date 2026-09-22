@@ -11,7 +11,7 @@ from .models import User
 
 
 def landing(request: HttpRequest) -> HttpResponse:
-    return render(request, "accounts/landing.html")
+    return render(request, "accounts/landing.html", {"public_page": True})
 
 
 class SessionLoginView(LoginView):
