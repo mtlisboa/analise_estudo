@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.core.validators import FileExtensionValidator
 from django.db import models, transaction
 
 from .models import (
@@ -11,10 +12,88 @@ from .models import (
     MembershipStatus,
     Organization,
     OrganizationMembership,
+    SchoolApplication,
+    SchoolVerificationDocument,
     SelfAssessment,
+    validate_school_document_size,
 )
 
 User = get_user_model()
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        files = data if isinstance(data, (list, tuple)) else [data]
+        clean_file = super().clean
+        return [clean_file(item, initial) for item in files if item]
+
+
+class SchoolApplicationForm(forms.ModelForm):
+    documents = MultipleFileField(
+        label="Documentos comprobatórios",
+        help_text="Envie ao menos um PDF, JPG ou PNG, com até 10 MB por arquivo.",
+        validators=(
+            FileExtensionValidator(("pdf", "jpg", "jpeg", "png")),
+            validate_school_document_size,
+        ),
+    )
+
+    class Meta:
+        model = SchoolApplication
+        fields = (
+            "legal_name",
+            "display_name",
+            "school_type",
+            "cnpj",
+            "inep_code",
+            "address",
+            "city",
+            "state",
+        )
+
+    def clean_state(self) -> str:
+        state = self.cleaned_data["state"].strip().upper()
+        if len(state) != 2 or not state.isalpha():
+            raise forms.ValidationError("Informe a UF com duas letras.")
+        return state
+
+    def clean(self):
+        cleaned_data = super().clean()
+        cnpj = cleaned_data.get("cnpj", "").strip()
+        inep_code = cleaned_data.get("inep_code", "").strip()
+        if not cnpj and not inep_code:
+            raise forms.ValidationError("Informe o CNPJ ou o código INEP da escola.")
+        duplicates = SchoolApplication.objects.filter(
+            status__in=(SchoolApplication.Status.PENDING, SchoolApplication.Status.APPROVED)
+        )
+        if cnpj and duplicates.filter(cnpj=cnpj).exists():
+            self.add_error("cnpj", "Já existe uma solicitação ativa com este CNPJ.")
+        if inep_code and duplicates.filter(inep_code=inep_code).exists():
+            self.add_error("inep_code", "Já existe uma solicitação ativa com este código INEP.")
+        return cleaned_data
+
+    @transaction.atomic
+    def save_for(self, requester) -> SchoolApplication:
+        application = super().save(commit=False)
+        application.requester = requester
+        application.cnpj = application.cnpj.strip()
+        application.inep_code = application.inep_code.strip()
+        application.save()
+        for document in self.cleaned_data["documents"]:
+            SchoolVerificationDocument.objects.create(
+                application=application,
+                file=document,
+                original_name=document.name,
+            )
+        return application
 
 
 class RelationshipRequestForm(forms.Form):

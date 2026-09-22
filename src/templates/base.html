@@ -13,7 +13,7 @@
             document.documentElement.dataset.theme = theme;
         }());
     </script>
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=14">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=15">
 </head>
 <body{% if user.is_authenticated and not onboarding_mode %} class="has-sidebar"{% endif %}>
     {% if user.is_authenticated and not onboarding_mode %}

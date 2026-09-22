@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitar escola | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+
+{% block content %}
+<section class="manager-shell narrow-shell">
+    <a class="back-link" href="{% url 'users-manager:dashboard' %}">← Voltar para organizações e turmas</a>
+    <div class="card manager-form-card school-application-card">
+        <div class="manager-heading">
+            <p class="section-kicker">CREDENCIAMENTO ESCOLAR</p>
+            <h1>Solicitar cadastro de escola</h1>
+            <p>Preencha os dados da escola pública ou privada e anexe os documentos comprobatórios. O cadastro só será criado após a análise do sysadmin.</p>
+        </div>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <div class="school-review-note">
+                <strong>O que acontece depois?</strong>
+                <p>A solicitação ficará pendente. Somente o administrador do sistema poderá aprovar, rejeitar ou excluir a escola credenciada.</p>
+            </div>
+            <button class="button form-submit" type="submit">Enviar para aprovação <span>→</span></button>
+        </form>
+    </div>
+</section>
+{% endblock %}

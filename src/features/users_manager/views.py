@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Prefetch, Q
-from django.http import Http404, HttpRequest, HttpResponse, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import (
@@ -13,6 +13,7 @@ from .forms import (
     OrganizationForm,
     OrganizationMemberForm,
     RelationshipRequestForm,
+    SchoolApplicationForm,
     SelfAssessmentForm,
 )
 from .models import (
@@ -23,6 +24,7 @@ from .models import (
     MembershipStatus,
     Organization,
     OrganizationMembership,
+    SchoolVerificationDocument,
 )
 from .permissions import (
     accessible_group_ids,
@@ -87,7 +89,44 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "users_manager/dashboard.html",
-        {"institution_cards": institution_cards},
+        {
+            "institution_cards": institution_cards,
+            "can_request_school": request.user.is_manager,
+            "school_applications": request.user.school_applications.select_related(
+                "approved_school__organization"
+            ).all(),
+        },
+    )
+
+
+@login_required
+def create_school_application(request: HttpRequest) -> HttpResponse:
+    if not request.user.is_manager:
+        return HttpResponseForbidden("Somente gestores podem solicitar o cadastro de escolas.")
+    form = SchoolApplicationForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        form.save_for(request.user)
+        messages.success(
+            request,
+            "Solicitação enviada. A escola será criada após a aprovação do sysadmin.",
+        )
+        return redirect("users-manager:dashboard")
+    return render(
+        request,
+        "users_manager/school_application_form.html",
+        {"form": form},
+    )
+
+
+@login_required
+def download_school_document(request: HttpRequest, pk: int) -> FileResponse:
+    if not request.user.is_system_admin:
+        return HttpResponseForbidden("Somente o sysadmin pode acessar estes documentos.")
+    document = get_object_or_404(SchoolVerificationDocument, pk=pk)
+    return FileResponse(
+        document.file.open("rb"),
+        as_attachment=True,
+        filename=document.original_name,
     )
 
 

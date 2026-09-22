@@ -1,8 +1,9 @@
+import tempfile
 from unittest.mock import patch
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from features.accounts.models import User
 from features.analytics_dashboard.models import SavedAnalysis
@@ -21,11 +22,27 @@ from features.users_manager.models import (
     MembershipStatus,
     Organization,
     OrganizationMembership,
+    School,
+    SchoolApplication,
+    SchoolVerificationDocument,
     SelfAssessment,
 )
 
 
 class SeedMockDataCommandTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.media_directory = tempfile.TemporaryDirectory()
+        cls.media_override = override_settings(MEDIA_ROOT=cls.media_directory.name)
+        cls.media_override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.media_override.disable()
+        cls.media_directory.cleanup()
+        super().tearDownClass()
+
     @patch.dict("os.environ", {}, clear=True)
     def test_requires_mock_user_password(self) -> None:
         with self.assertRaisesMessage(CommandError, "MOCK_USER_PASSWORD"):
@@ -73,6 +90,13 @@ class SeedMockDataCommandTests(TestCase):
         self.assertEqual(Question.objects.filter(assessment__owner=teacher).count(), 14)
         self.assertEqual(SavedAnalysis.objects.filter(created_by=teacher).count(), 6)
         self.assertEqual(EducationalRelationship.objects.count(), 4)
+        self.assertEqual(School.objects.count(), 1)
+        self.assertEqual(SchoolApplication.objects.count(), 3)
+        self.assertEqual(SchoolVerificationDocument.objects.count(), 3)
+        self.assertEqual(
+            set(SchoolApplication.objects.values_list("status", flat=True)),
+            set(SchoolApplication.Status.values),
+        )
 
         self.assertEqual(
             set(Classroom.objects.values_list("shift", flat=True)),

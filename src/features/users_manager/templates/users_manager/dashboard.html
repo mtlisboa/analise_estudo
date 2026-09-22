@@ -13,9 +13,40 @@
         </div>
         <div class="manager-actions">
             <a class="button button-small button-secondary" href="{% url 'analytics-dashboard:dashboard' %}">Ver análises</a>
-            <a class="button button-small" href="{% url 'users-manager:organization-create' %}">Nova instituição</a>
+            <a class="button button-small button-secondary" href="{% url 'users-manager:organization-create' %}">Novo espaço</a>
+            {% if can_request_school %}
+                <a class="button button-small" href="{% url 'users-manager:school-application-create' %}">Solicitar escola</a>
+            {% endif %}
         </div>
     </div>
+
+    {% if can_request_school %}
+    <section class="school-credential-card" aria-labelledby="school-credential-title">
+        <div>
+            <p class="section-kicker">CREDENCIAMENTO ESCOLAR</p>
+            <h2 id="school-credential-title">Escolas públicas e privadas</h2>
+            <p>Uma escola só é criada após o envio dos documentos e a aprovação do administrador do sistema.</p>
+        </div>
+        <a class="button button-small" href="{% url 'users-manager:school-application-create' %}">Enviar solicitação</a>
+    </section>
+
+    {% if school_applications %}
+    <section class="school-requests" aria-labelledby="school-requests-title">
+        <h2 id="school-requests-title">Minhas solicitações</h2>
+        <div class="school-request-list">
+            {% for application in school_applications %}
+            <article class="school-request-item">
+                <div>
+                    <strong>{{ application.display_name }}</strong>
+                    <small>{{ application.get_school_type_display }} · enviada em {{ application.created_at|date:"d/m/Y" }}</small>
+                </div>
+                <span class="request-status status-{{ application.status|lower }}">{{ application.get_status_display }}</span>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% endif %}
 
     <div class="institution-grid">
         {% for card in institution_cards %}
@@ -41,8 +72,8 @@
             <article class="dash-card institution-empty">
                 <div class="institution-symbol">+</div>
                 <h2>Nenhuma instituição por aqui</h2>
-                <p>Crie uma instituição ou aguarde ser adicionado a uma para começar.</p>
-                <a class="button button-small" href="{% url 'users-manager:organization-create' %}">Criar instituição</a>
+                <p>Crie um espaço educacional, solicite o credenciamento de uma escola ou aguarde um convite.</p>
+                <a class="button button-small" href="{% url 'users-manager:organization-create' %}">Criar espaço</a>
             </article>
         {% endfor %}
     </div>

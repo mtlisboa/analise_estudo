@@ -481,6 +481,26 @@ svg { display: block; }
 .assessment-history small { color: var(--text-faint); font-size: 7px; }
 .back-link { display: inline-block; margin-bottom: 22px; color: var(--primary); font-size: 11px; font-weight: 750; text-decoration: none; }
 .manager-form-card { max-width: 620px; margin: auto; padding: 38px; }
+.school-credential-card { display: flex; margin: 0 0 25px; padding: 23px 25px; align-items: center; justify-content: space-between; gap: 24px; border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border)); border-left: 4px solid var(--primary); border-radius: 9px; background: color-mix(in srgb, var(--primary-soft) 58%, var(--surface)); }
+.school-credential-card h2 { margin: 3px 0 5px; font-size: 21px; }
+.school-credential-card p:last-child { margin: 0; color: var(--text-soft); font-size: 12px; }
+.school-credential-card .button { flex: 0 0 auto; }
+.school-requests { margin: 0 0 28px; }
+.school-requests > h2 { margin: 0 0 12px; font-size: 17px; }
+.school-request-list { display: grid; gap: 8px; }
+.school-request-item { display: flex; padding: 14px 16px; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.school-request-item div { display: flex; min-width: 0; flex-direction: column; }
+.school-request-item strong { font-size: 12px; }
+.school-request-item small { margin-top: 3px; color: var(--text-faint); font-size: 9px; }
+.request-status { padding: 5px 8px; border-radius: 999px; font-size: 8px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.status-pending { background: #fff1cf; color: #8a5b00; }
+.status-approved { background: #dff7e8; color: #17653a; }
+.status-rejected { background: #ffe3e1; color: #9a2e27; }
+.school-application-card { max-width: 720px; }
+.school-review-note { margin-top: 22px; padding: 16px; border-radius: 8px; background: var(--bg-soft); }
+.school-review-note strong { font-size: 11px; }
+.school-review-note p { margin: 4px 0 0; color: var(--text-soft); font-size: 10px; line-height: 1.55; }
+.form-field input[type="file"] { padding: 10px; }
 .form-field select, .form-field textarea { width: 100%; padding: 11px 13px; border: 1px solid var(--border-strong); border-radius: 9px; outline: none; background: var(--bg); color: var(--text); }
 .form-field select { min-height: 48px; }
 .form-field textarea { resize: vertical; }
@@ -836,6 +856,8 @@ body.analytics-chart-expanded { overflow: hidden; }
     .manager-grid { grid-template-columns: 1fr; }
     .institution-grid, .class-group-grid, .classroom-letter-grid { grid-template-columns: 1fr; }
     .institution-grid { grid-template-columns: 1fr 1fr; }
+    .school-credential-card { align-items: stretch; flex-direction: column; }
+    .school-credential-card .button { width: 100%; }
     .assessment-card { grid-template-columns: 1fr; }
     .assessment-history { justify-content: flex-start; }
     .inline-actions { flex-direction: column; }

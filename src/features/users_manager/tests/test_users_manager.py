@@ -1,5 +1,9 @@
+import tempfile
+
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models.deletion import ProtectedError
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from features.users_manager.models import (
@@ -10,8 +14,11 @@ from features.users_manager.models import (
     MembershipStatus,
     Organization,
     OrganizationMembership,
+    School,
+    SchoolApplication,
     SelfAssessment,
 )
+from features.users_manager.services import approve_school_application
 
 User = get_user_model()
 
@@ -551,3 +558,115 @@ class UsersManagerTests(TestCase):
             reverse("users-manager:classroom-detail", kwargs={"pk": classroom.pk}),
         )
         self.assertTrue(classroom.tests.filter(title="Teste do gestor").exists())
+
+
+class SchoolCredentialingTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.media_directory = tempfile.TemporaryDirectory()
+        cls.media_override = override_settings(MEDIA_ROOT=cls.media_directory.name)
+        cls.media_override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.media_override.disable()
+        cls.media_directory.cleanup()
+        super().tearDownClass()
+
+    def setUp(self):
+        self.manager = User.objects.create_user(
+            username="gestor_escolar",
+            password="senha-segura",
+            system_role=User.SystemRole.MANAGER,
+        )
+        self.sysadmin = User.objects.create_user(
+            username="sysadmin_escolar",
+            password="senha-segura",
+            system_role=User.SystemRole.SYSADMIN,
+            is_staff=True,
+        )
+        self.platform_admin = User.objects.create_user(
+            username="admin_plataforma",
+            password="senha-segura",
+            system_role=User.SystemRole.ADMIN,
+            is_staff=True,
+        )
+
+    def application_data(self):
+        return {
+            "legal_name": "Escola Municipal do Futuro",
+            "display_name": "EM Futuro",
+            "school_type": SchoolApplication.SchoolType.PUBLIC,
+            "cnpj": "12.345.678/0001-90",
+            "inep_code": "12345678",
+            "address": "Rua do Saber, 100",
+            "city": "Recife",
+            "state": "PE",
+            "documents": SimpleUploadedFile(
+                "portaria.pdf", b"documento comprobatorio", content_type="application/pdf"
+            ),
+        }
+
+    def create_application(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(
+            reverse("users-manager:school-application-create"), self.application_data()
+        )
+        self.assertRedirects(response, reverse("users-manager:dashboard"))
+        return SchoolApplication.objects.get()
+
+    def test_manager_submits_school_with_required_document(self):
+        application = self.create_application()
+
+        self.assertEqual(application.status, SchoolApplication.Status.PENDING)
+        self.assertEqual(application.requester, self.manager)
+        self.assertEqual(application.documents.count(), 1)
+        self.assertFalse(School.objects.exists())
+        self.assertContains(self.client.get(reverse("users-manager:dashboard")), "Pendente")
+
+    def test_non_manager_cannot_submit_school(self):
+        member = User.objects.create_user(username="membro", password="senha-segura")
+        self.client.force_login(member)
+
+        response = self.client.post(
+            reverse("users-manager:school-application-create"), self.application_data()
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(SchoolApplication.objects.exists())
+
+    def test_sysadmin_approval_creates_school_and_operational_organization(self):
+        application = self.create_application()
+
+        school = approve_school_application(application, self.sysadmin)
+        application.refresh_from_db()
+
+        self.assertEqual(application.status, SchoolApplication.Status.APPROVED)
+        self.assertEqual(application.reviewed_by, self.sysadmin)
+        self.assertEqual(application.approved_school, school)
+        self.assertEqual(school.organization.owner, self.manager)
+        self.assertEqual(school.organization.name, "EM Futuro")
+        with self.assertRaises(ProtectedError):
+            school.organization.delete()
+
+    def test_only_sysadmin_can_download_proof_document(self):
+        application = self.create_application()
+        document = application.documents.get()
+        url = reverse("users-manager:school-document-download", args=(document.pk,))
+
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.client.force_login(self.sysadmin)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        response.close()
+
+    def test_only_sysadmin_has_admin_delete_permission_for_school(self):
+        school = approve_school_application(self.create_application(), self.sysadmin)
+        url = reverse("admin:users_manager_school_delete", args=(school.pk,))
+
+        self.client.force_login(self.platform_admin)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.client.force_login(self.sysadmin)
+        self.assertEqual(self.client.get(url).status_code, 200)

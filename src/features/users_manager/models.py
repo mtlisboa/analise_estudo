@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, Q
 from django.utils import timezone
@@ -30,6 +30,139 @@ class Organization(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+def validate_school_document_size(document) -> None:
+    if document.size > 10 * 1024 * 1024:
+        raise ValidationError("Cada documento deve ter no máximo 10 MB.")
+
+
+class SchoolApplication(models.Model):
+    class SchoolType(models.TextChoices):
+        PUBLIC = "PUBLIC", "Pública"
+        PRIVATE = "PRIVATE", "Privada"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pendente"
+        APPROVED = "APPROVED", "Aprovada"
+        REJECTED = "REJECTED", "Rejeitada"
+
+    requester = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="school_applications",
+        verbose_name="gestor solicitante",
+    )
+    legal_name = models.CharField("razão social", max_length=180)
+    display_name = models.CharField("nome da escola", max_length=180)
+    school_type = models.CharField("tipo", max_length=10, choices=SchoolType.choices)
+    cnpj = models.CharField("CNPJ", max_length=18, blank=True)
+    inep_code = models.CharField("código INEP", max_length=12, blank=True)
+    address = models.CharField("endereço", max_length=240)
+    city = models.CharField("cidade", max_length=120)
+    state = models.CharField("UF", max_length=2)
+    status = models.CharField(
+        "status", max_length=10, choices=Status.choices, default=Status.PENDING
+    )
+    review_notes = models.TextField("parecer", blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="reviewed_school_applications",
+        verbose_name="revisada por",
+        null=True,
+        blank=True,
+    )
+    reviewed_at = models.DateTimeField("revisada em", null=True, blank=True)
+    approved_school = models.OneToOneField(
+        "School",
+        on_delete=models.SET_NULL,
+        related_name="source_application",
+        verbose_name="escola aprovada",
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField("enviada em", auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "solicitação de escola"
+        verbose_name_plural = "solicitações de escolas"
+
+    def clean(self) -> None:
+        self.cnpj = self.cnpj.strip()
+        self.inep_code = self.inep_code.strip()
+        self.state = self.state.strip().upper()
+        if not self.cnpj and not self.inep_code:
+            raise ValidationError("Informe o CNPJ ou o código INEP da escola.")
+
+    def __str__(self) -> str:
+        return f"{self.display_name} · {self.get_status_display()}"
+
+
+class School(models.Model):
+    organization = models.OneToOneField(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="school",
+        verbose_name="organização operacional",
+    )
+    legal_name = models.CharField("razão social", max_length=180)
+    display_name = models.CharField("nome da escola", max_length=180)
+    school_type = models.CharField(
+        "tipo", max_length=10, choices=SchoolApplication.SchoolType.choices
+    )
+    cnpj = models.CharField("CNPJ", max_length=18, blank=True, unique=True, null=True)
+    inep_code = models.CharField(
+        "código INEP", max_length=12, blank=True, unique=True, null=True
+    )
+    address = models.CharField("endereço", max_length=240)
+    city = models.CharField("cidade", max_length=120)
+    state = models.CharField("UF", max_length=2)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="approved_schools",
+        verbose_name="aprovada por",
+    )
+    approved_at = models.DateTimeField("aprovada em", default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("display_name",)
+        verbose_name = "escola credenciada"
+        verbose_name_plural = "escolas credenciadas"
+
+    def __str__(self) -> str:
+        return self.display_name
+
+
+class SchoolVerificationDocument(models.Model):
+    application = models.ForeignKey(
+        SchoolApplication,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="solicitação",
+    )
+    file = models.FileField(
+        "arquivo",
+        upload_to="school_applications/%Y/%m/",
+        validators=(
+            FileExtensionValidator(("pdf", "jpg", "jpeg", "png")),
+            validate_school_document_size,
+        ),
+    )
+    original_name = models.CharField("nome original", max_length=255)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("uploaded_at",)
+        verbose_name = "documento comprobatório"
+        verbose_name_plural = "documentos comprobatórios"
+
+    def __str__(self) -> str:
+        return self.original_name
 
 
 class OrganizationMembership(models.Model):

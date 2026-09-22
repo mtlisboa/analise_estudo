@@ -6,6 +6,12 @@ app_name = "users-manager"
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("escolas/solicitar/", views.create_school_application, name="school-application-create"),
+    path(
+        "escolas/documentos/<int:pk>/",
+        views.download_school_document,
+        name="school-document-download",
+    ),
     path("organizacoes/nova/", views.create_organization, name="organization-create"),
     path("organizacoes/<int:pk>/", views.organization_detail, name="organization-detail"),
     path(

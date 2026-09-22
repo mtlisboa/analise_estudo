@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
@@ -23,6 +24,9 @@ from features.users_manager.models import (
     MembershipStatus,
     Organization,
     OrganizationMembership,
+    School,
+    SchoolApplication,
+    SchoolVerificationDocument,
     SelfAssessment,
 )
 
@@ -102,6 +106,97 @@ class Command(BaseCommand):
                 "is_active": True,
             },
         )
+        sysadmin = get_user_model().objects.filter(
+            system_role=get_user_model().SystemRole.SYSADMIN
+        ).first()
+        if not sysadmin:
+            sysadmin = get_user_model().objects.create(
+                username="mock_school_reviewer",
+                system_role=get_user_model().SystemRole.SYSADMIN,
+                is_staff=True,
+                is_active=True,
+            )
+            sysadmin.set_unusable_password()
+            sysadmin.save(update_fields=("password",))
+        school, _ = School.objects.update_or_create(
+            organization=organization,
+            defaults={
+                "legal_name": "Colégio Lumini Demonstração Ltda.",
+                "display_name": "Colégio Lumini Demo",
+                "school_type": SchoolApplication.SchoolType.PRIVATE,
+                "cnpj": "10.000.000/0001-10",
+                "inep_code": "26000010",
+                "address": "Avenida da Aprendizagem, 100",
+                "city": "Recife",
+                "state": "PE",
+                "approved_by": sysadmin,
+            },
+        )
+        approved_application, _ = SchoolApplication.objects.update_or_create(
+            requester=teacher,
+            cnpj="10.000.000/0001-10",
+            defaults={
+                "legal_name": school.legal_name,
+                "display_name": school.display_name,
+                "school_type": school.school_type,
+                "inep_code": school.inep_code,
+                "address": school.address,
+                "city": school.city,
+                "state": school.state,
+                "status": SchoolApplication.Status.APPROVED,
+                "review_notes": "Documentação demonstrativa aprovada.",
+                "reviewed_by": sysadmin,
+                "reviewed_at": school.approved_at,
+                "approved_school": school,
+            },
+        )
+        pending_application, _ = SchoolApplication.objects.update_or_create(
+            requester=manager,
+            cnpj="20.000.000/0001-20",
+            defaults={
+                "legal_name": "Escola Horizonte Público",
+                "display_name": "Escola Horizonte",
+                "school_type": SchoolApplication.SchoolType.PUBLIC,
+                "inep_code": "26000020",
+                "address": "Rua das Descobertas, 25",
+                "city": "Olinda",
+                "state": "PE",
+                "status": SchoolApplication.Status.PENDING,
+                "review_notes": "",
+                "reviewed_by": None,
+                "reviewed_at": None,
+                "approved_school": None,
+            },
+        )
+        rejected_application, _ = SchoolApplication.objects.update_or_create(
+            requester=manager,
+            cnpj="30.000.000/0001-30",
+            defaults={
+                "legal_name": "Instituto Exemplo Privado",
+                "display_name": "Instituto Exemplo",
+                "school_type": SchoolApplication.SchoolType.PRIVATE,
+                "inep_code": "26000030",
+                "address": "Rua da Amostra, 30",
+                "city": "Jaboatão dos Guararapes",
+                "state": "PE",
+                "status": SchoolApplication.Status.REJECTED,
+                "review_notes": "Documento demonstrativo ilegível; solicitar novo envio.",
+                "reviewed_by": sysadmin,
+                "reviewed_at": timezone.now(),
+                "approved_school": None,
+            },
+        )
+        for application in (approved_application, pending_application, rejected_application):
+            if not application.documents.exists():
+                document = SchoolVerificationDocument(
+                    application=application,
+                    original_name="comprovante-mock.pdf",
+                )
+                document.file.save(
+                    f"comprovante-{application.pk}.pdf",
+                    ContentFile("Documento comprobatório demonstrativo da Lumini.".encode()),
+                    save=True,
+                )
         OrganizationMembership.objects.update_or_create(
             organization=organization,
             user=teacher,
@@ -369,7 +464,8 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 "Dados mock atualizados: perfis demonstrativos, duas instituições, "
-                "grupos, turmas, convites, vínculos, avaliações e análises salvas."
+                "credenciamento escolar, grupos, turmas, convites, vínculos, "
+                "avaliações e análises salvas."
             )
         )
 
