@@ -14,9 +14,10 @@
         }());
     </script>
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v=16">
+    <link rel="stylesheet" href="{% static 'css/notifications.css' %}?v=1">
 </head>
-<body{% if user.is_authenticated and not onboarding_mode %} class="has-sidebar"{% endif %}>
-    {% if user.is_authenticated and not onboarding_mode %}
+<body{% if user.is_authenticated and not onboarding_mode and not public_page %} class="has-sidebar"{% endif %}>
+    {% if user.is_authenticated and not onboarding_mode and not public_page %}
     <aside class="app-sidebar" aria-label="Navegação principal">
         <div class="sidebar-brand-row">
             <a class="brand sidebar-brand" href="{% url 'accounts:dashboard' %}" aria-label="Lumini, meu painel">
@@ -102,13 +103,17 @@
         </div>
     </header>
     {% endif %}
+    {% if user.is_authenticated and not onboarding_mode and not public_page %}
+        {% include "notifications/bell.html" %}
+        <script src="{% static 'js/notifications.js' %}?v=1" defer></script>
+    {% endif %}
     <main class="app-main {% block main_class %}container{% endblock %}">
         {% for message in messages %}
             <p class="message {{ message.tags }}">{{ message }}</p>
         {% endfor %}
         {% block content %}{% endblock %}
     </main>
-    {% if user.is_authenticated and not onboarding_mode and request.resolver_match.namespace != 'ia-integrations' %}
+    {% if user.is_authenticated and not onboarding_mode and not public_page and request.resolver_match.namespace != 'ia-integrations' %}
     <a id="floating-ai-assistant" class="floating-ai-assistant" href="{% url 'ia-integrations:chat-bot' %}" aria-label="Abrir Assistente IA">
         <span class="floating-ai-assistant-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a7 7 0 0 0-7 7v3a7 7 0 0 0 7 7h6l2 2V10a7 7 0 0 0-7-7h-1Z"/><path d="M9 11h.01M12.5 11h.01M16 11h.01"/></svg>
@@ -120,3 +125,4 @@
     {% block scripts %}{% endblock %}
 </body>
 </html>
+

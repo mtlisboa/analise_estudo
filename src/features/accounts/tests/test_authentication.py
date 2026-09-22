@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -38,6 +39,35 @@ class SessionAuthenticationTests(TestCase):
 
         self.assertRedirects(response, reverse("accounts:dashboard"))
         self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
+
+    def test_login_uses_browser_session_cookie(self) -> None:
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"username": "matheus", "password": "senha-forte-123"},
+        )
+        cookie = response.cookies[settings.SESSION_COOKIE_NAME]
+        self.assertEqual(cookie["expires"], "")
+        self.assertEqual(cookie["max-age"], "")
+        self.assertTrue(self.client.session.get_expire_at_browser_close())
+
+    def test_authenticated_landing_keeps_public_layout_and_session(self) -> None:
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("accounts:landing"))
+
+        self.assertContains(response, 'class="site-header"')
+        self.assertContains(response, "Acessar painel")
+        self.assertNotContains(response, 'class="has-sidebar"')
+        self.assertNotContains(response, 'class="app-sidebar"')
+        self.assertNotContains(response, 'id="floating-ai-assistant"')
+        self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
+
+    def test_anonymous_landing_does_not_create_authenticated_session(self) -> None:
+        response = self.client.get(reverse("accounts:landing"))
+
+        self.assertContains(response, 'class="site-header"')
+        self.assertNotContains(response, 'class="app-sidebar"')
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_authenticated_area_uses_vertical_sidebar(self) -> None:
         self.client.force_login(self.user)

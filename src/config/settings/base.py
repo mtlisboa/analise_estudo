@@ -27,6 +27,7 @@ if railway_public_origin := railway_origin(RAILWAY_PUBLIC_DOMAIN):
 
 INSTALLED_APPS = [
     "channels",
+    "features.notifications.apps.NotificationsConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -117,5 +118,15 @@ LOGIN_REDIRECT_URL = "accounts:dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
 SESSION_COOKIE_HTTPONLY = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+# Use shared Redis for websocket delivery across ASGI workers.
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [REDIS_URL]},
+    } if REDIS_URL else {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+}
