@@ -129,3 +129,35 @@ class PreferencesForm(OnboardingForm):
         fields = ("theme_preference", "onboarding_role", "education_level", "app_goal", "app_goal_details")
         labels = {**OnboardingForm.Meta.labels, "onboarding_role": "Seu perfil", "theme_preference": "Tema da interface"}
         widgets = {**OnboardingForm.Meta.widgets, "onboarding_role": forms.Select}
+
+
+class AvatarForm(forms.Form):
+    photo = forms.FileField(label="Escolher foto", widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}))
+
+    def clean_photo(self):
+        from io import BytesIO
+        import warnings
+        from PIL import Image, ImageOps, UnidentifiedImageError
+        from django.core.files.base import ContentFile
+
+        photo = self.cleaned_data["photo"]
+        if photo.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("A foto deve ter no máximo 5 MB.")
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)
+                with Image.open(photo) as image:
+                    if image.format not in {"JPEG", "PNG", "WEBP"}:
+                        raise forms.ValidationError("Envie uma imagem JPG, PNG ou WebP.")
+                    if image.width * image.height > 16_000_000:
+                        raise forms.ValidationError("A imagem deve ter no máximo 16 megapixels.")
+                    image.load()
+                    image = ImageOps.exif_transpose(image).convert("RGBA")
+                    image.thumbnail((512, 512))
+                    background = Image.new("RGB", image.size, "white")
+                    background.paste(image, mask=image.getchannel("A"))
+                    output = BytesIO()
+                    background.save(output, "JPEG", quality=88)
+                    return ContentFile(output.getvalue(), name="avatar.jpg")
+        except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+            raise forms.ValidationError("Não foi possível ler a imagem. Envie uma foto válida.")

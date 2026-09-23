@@ -17,12 +17,12 @@
     </script>
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v=16">
     <link rel="stylesheet" href="{% static 'css/notifications.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'css/account.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'css/account.css' %}?v=2">
 </head>
 <body{% if user.is_authenticated and not onboarding_mode and not public_page %} class="has-sidebar"{% endif %}>
     {% if user.is_authenticated and not onboarding_mode and not public_page %}
     <a class="mobile-account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>
+        {% if user.avatar %}<img class="mobile-user-photo user-photo" src="{% url 'accounts:avatar' %}" alt="">{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>{% endif %}
     </a>
     <aside class="app-sidebar" aria-label="Navegação principal">
         <div class="sidebar-brand-row">
@@ -64,7 +64,7 @@
 
         <div class="sidebar-footer">
             <a class="sidebar-user account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências">
-                <span class="sidebar-avatar">{{ user.first_name|default:user.username|first|upper }}</span>
+                {% if user.avatar %}<img class="sidebar-avatar user-photo" src="{% url 'accounts:avatar' %}" alt="">{% else %}<span class="sidebar-avatar">{{ user.first_name|default:user.username|first|upper }}</span>{% endif %}
                 <span class="sidebar-user-copy sidebar-label"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.email|default:"Conta Lumini" }}</small><small>Minha conta e preferências</small></span>
             </a>
             <form class="sidebar-logout" method="post" action="{% url 'accounts:logout' %}">

@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     account,
+    avatar,
     update_theme,
     SessionLoginView,
     SessionLogoutView,
@@ -17,6 +18,7 @@ app_name = "accounts"
 urlpatterns = [
     path("", landing, name="landing"),
     path("conta/", account, name="account"),
+    path("conta/foto/", avatar, name="avatar"),
     path("conta/tema/", update_theme, name="update-theme"),
     path("painel/", dashboard, name="dashboard"),
     path("conta/entrar/", SessionLoginView.as_view(), name="login"),

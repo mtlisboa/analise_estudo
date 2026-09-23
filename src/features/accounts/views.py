@@ -9,7 +9,10 @@ from django.urls import reverse, reverse_lazy
 
 from .forms import LoginForm, OnboardingForm, SignUpForm, SysAdminLoginForm
 from .models import User
-from .forms import ProfileForm, PreferencesForm
+from .forms import ProfileForm, PreferencesForm, AvatarForm
+from .avatar_service import change_avatar
+from django.http import FileResponse, Http404
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
 
@@ -105,8 +108,13 @@ def onboarding(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def account(request):
     action = request.POST.get("action") if request.method == "POST" else None
-    if request.method == "POST" and action not in {"profile", "preferences", "password"}:
+    if request.method == "POST" and action not in {"profile", "preferences", "password", "photo", "remove-photo"}:
         return HttpResponse("Ação inválida.", status=400)
+    avatar_form = AvatarForm(request.POST if action == "photo" else None, request.FILES if action == "photo" else None)
+    if action == "remove-photo" or (action == "photo" and avatar_form.is_valid()):
+        change_avatar(request.user.pk, avatar_form.cleaned_data["photo"] if action == "photo" else None)
+        messages.success(request, "Foto atualizada." if action == "photo" else "Foto removida.")
+        return redirect("accounts:account")
     # Separate instances keep an invalid form from changing the displayed identity.
     profile_form = ProfileForm(request.POST if action == "profile" else None,
                                instance=User.objects.get(pk=request.user.pk))
@@ -114,7 +122,7 @@ def account(request):
                                        instance=User.objects.get(pk=request.user.pk))
     password_form = PasswordChangeForm(request.user, request.POST if action == "password" else None)
     forms = {"profile": profile_form, "preferences": preferences_form, "password": password_form}
-    if action and forms[action].is_valid():
+    if action in forms and forms[action].is_valid():
         user = forms[action].save()
         if action == "password":
             update_session_auth_hash(request, user)
@@ -122,7 +130,7 @@ def account(request):
         return redirect("accounts:account")
     return render(request, "accounts/account.html", {
         "profile_form": profile_form, "preferences_form": preferences_form,
-        "password_form": password_form,
+        "password_form": password_form, "avatar_form": avatar_form,
     })
 
 
@@ -134,3 +142,17 @@ def update_theme(request):
         return JsonResponse({"error": "Tema inválido."}, status=400)
     User.objects.filter(pk=request.user.pk).update(theme_preference=theme)
     return JsonResponse({"theme": theme})
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "HEAD"])
+def avatar(request):
+    if not request.user.avatar:
+        raise Http404
+    try:
+        response = FileResponse(request.user.avatar.open("rb"), content_type="image/jpeg")
+    except FileNotFoundError:
+        raise Http404
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
