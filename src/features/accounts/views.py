@@ -1,13 +1,16 @@
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 
 from .forms import LoginForm, OnboardingForm, SignUpForm, SysAdminLoginForm
 from .models import User
+from .forms import ProfileForm, PreferencesForm
+from django.views.decorators.http import require_http_methods, require_POST
 
 
 def landing(request: HttpRequest) -> HttpResponse:
@@ -95,3 +98,39 @@ def onboarding(request: HttpRequest) -> HttpResponse:
         "accounts/onboarding.html",
         {"form": form, "onboarding_mode": True},
     )
+
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def account(request):
+    action = request.POST.get("action") if request.method == "POST" else None
+    if request.method == "POST" and action not in {"profile", "preferences", "password"}:
+        return HttpResponse("Ação inválida.", status=400)
+    # Separate instances keep an invalid form from changing the displayed identity.
+    profile_form = ProfileForm(request.POST if action == "profile" else None,
+                               instance=User.objects.get(pk=request.user.pk))
+    preferences_form = PreferencesForm(request.POST if action == "preferences" else None,
+                                       instance=User.objects.get(pk=request.user.pk))
+    password_form = PasswordChangeForm(request.user, request.POST if action == "password" else None)
+    forms = {"profile": profile_form, "preferences": preferences_form, "password": password_form}
+    if action and forms[action].is_valid():
+        user = forms[action].save()
+        if action == "password":
+            update_session_auth_hash(request, user)
+        messages.success(request, {"profile": "Dados atualizados.", "preferences": "Preferências salvas.", "password": "Senha alterada com sucesso."}[action])
+        return redirect("accounts:account")
+    return render(request, "accounts/account.html", {
+        "profile_form": profile_form, "preferences_form": preferences_form,
+        "password_form": password_form,
+    })
+
+
+@login_required
+@require_POST
+def update_theme(request):
+    theme = request.POST.get("theme")
+    if theme not in User.Theme.values:
+        return JsonResponse({"error": "Tema inválido."}, status=400)
+    User.objects.filter(pk=request.user.pk).update(theme_preference=theme)
+    return JsonResponse({"theme": theme})

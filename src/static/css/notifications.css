@@ -18,4 +18,10 @@
 .notification-list p { font-size: 13px; margin: 0 0 6px; white-space: pre-wrap; }
 .notification-list time { display: block; font-size: 11px; color: var(--text-soft); }
 .notifications [hidden] { display: none !important; }
-@media(max-width: 640px) { .notifications { top: 14px; right: 16px; } }
+/* The mobile top bar is 64px tall. Reserve a separate row below it. */
+@media(max-width: 760px) {
+    .notifications { top: 78px; right: 16px; z-index: 59; }
+    .has-sidebar .app-main { padding-top: 144px; }
+    .notification-panel { max-height: calc(100dvh - 230px - env(safe-area-inset-bottom)); }
+}
+

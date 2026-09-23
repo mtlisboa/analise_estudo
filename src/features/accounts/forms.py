@@ -94,3 +94,38 @@ class OnboardingForm(forms.ModelForm):
                 "Descreva brevemente o seu objetivo.",
             )
         return cleaned_data
+
+
+
+class ProfileForm(forms.ModelForm):
+    email = forms.EmailField(label="E-mail", required=True)
+    current_password = forms.CharField(
+        label="Senha atual", required=False, strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+        help_text="Obrigatória somente para alterar seu e-mail ou nome de usuário.",
+    )
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "username", "email")
+        labels = {"first_name": "Nome", "last_name": "Sobrenome", "username": "Nome de usuário"}
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Este e-mail já está em uso.")
+        return email
+
+    def clean(self):
+        data = super().clean()
+        if {"username", "email"}.intersection(self.changed_data):
+            if not self.instance.check_password(data.get("current_password", "")):
+                self.add_error("current_password", "Informe sua senha atual para alterar estes dados.")
+        return data
+
+
+class PreferencesForm(OnboardingForm):
+    class Meta(OnboardingForm.Meta):
+        fields = ("theme_preference", "onboarding_role", "education_level", "app_goal", "app_goal_details")
+        labels = {**OnboardingForm.Meta.labels, "onboarding_role": "Seu perfil", "theme_preference": "Tema da interface"}
+        widgets = {**OnboardingForm.Meta.widgets, "onboarding_role": forms.Select}

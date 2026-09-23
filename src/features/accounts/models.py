@@ -49,6 +49,13 @@ class User(AbstractUser):
         LATER = "LATER", "Deixar para depois"
         STARTED = "STARTED", "Iniciar agora"
 
+    class Theme(models.TextChoices):
+        SYSTEM = "system", "Acompanhar o dispositivo"
+        LIGHT = "light", "Claro"
+        DARK = "dark", "Escuro"
+
+    theme_preference = models.CharField("aparência", max_length=8, choices=Theme.choices, default=Theme.SYSTEM)
+
     system_role = models.CharField(
         "papel no sistema",
         max_length=16,
@@ -126,3 +133,4 @@ class User(AbstractUser):
             or self.learning_relationships.filter(status="ACTIVE").exists()
             or self.classroom_memberships.filter(role="STUDENT", status="ACTIVE").exists()
         )
+
