@@ -8,13 +8,13 @@
 <section class="analytics-shell">
     <header class="analytics-header">
         <div>
-            <a class="back-link" href="{% url 'analytics-dashboard:dashboard' %}">← Análises salvas</a>
+            <a class="back-link" href="{% url 'analytics-dashboard:dashboard' %}">Análises salvas</a>
             {% if is_preview %}
-                <p class="section-kicker">ANÁLISE GERADA</p>
+                <p class="section-kicker">Análise gerada</p>
                 <h1>Resultado da análise</h1>
                 <p>{{ scope_title }} · {{ analytics_payload.periodLabel }} · Esta análise ainda não foi salva.</p>
             {% else %}
-                <p class="section-kicker">ANÁLISE SALVA</p>
+                <p class="section-kicker">Análise salva</p>
                 <h1>{{ saved_analysis.title }}</h1>
                 <p>{{ saved_analysis.scope_title }} · {{ saved_analysis.period_label }} · Gerada em {{ saved_analysis.created_at|date:"d/m/Y à\s H:i" }}</p>
             {% endif %}
@@ -45,7 +45,7 @@
 
     <article class="analytics-card analytics-selector-card">
         <div class="analytics-card-heading selector-heading">
-            <div><span>SELETOR VISUAL</span><h2>Mapa de dispersão por turma</h2><p>Clique em um aluno, selecione um grupo com o laço ou escolha uma turma. Use a barra do gráfico ou a roda do mouse para controlar o zoom.</p></div>
+            <div><span>Seletor visual</span><h2>Mapa de percepção por turma</h2><p>Clique em um aluno, selecione um grupo com o laço ou escolha uma turma. Os pontos representam respostas de autoavaliação.</p></div>
             <div class="selector-controls">
                 <label for="classroom-scope-select">Turma</label>
                 <select id="classroom-scope-select"><option value="">Todas as turmas</option></select>
@@ -56,24 +56,25 @@
         <div id="classroom-scatter-chart" class="analytics-chart classroom-scatter-chart" role="img" aria-label="Mapa de dispersão interativo dos alunos, colorido por turma"></div>
         <div class="selection-summary" id="analysis-selection-summary" aria-live="polite">
             <span class="selection-summary-icon">◎</span>
-            <div><small>ESCOPO ATUAL</small><strong>Todos os alunos</strong><p>Use o gráfico para selecionar uma turma, um grupo ou um aluno.</p></div>
+            <div><small>Escopo atual</small><strong>Todos os alunos</strong><p>Use o gráfico para selecionar uma turma, um grupo ou um aluno.</p></div>
         </div>
     </article>
 
     <div class="analytics-metrics" aria-label="Indicadores gerais">
-        <article><span>ORGANIZAÇÕES</span><strong>{{ metrics.organizations }}</strong><small>no escopo atual</small></article>
-        <article><span>TURMAS</span><strong>{{ metrics.classrooms }}</strong><small>ativas</small></article>
-        <article><span>ALUNOS</span><strong id="metric-students">{{ metrics.students }}</strong><small>no recorte selecionado</small></article>
-        <article><span>PROFESSORES</span><strong>{{ metrics.teachers }}</strong><small>nos contextos</small></article>
-        <article><span>TESTES</span><strong>{{ metrics.tests }}</strong><small>criados</small></article>
-        <article class="highlight-metric"><span>ÍNDICE MÉDIO</span><strong id="metric-average">{% if metrics.assessment_average is not None %}{{ metrics.assessment_average }}%{% else %}—{% endif %}</strong><small>autoavaliações</small></article>
+        <article><span>Organizações</span><strong>{{ metrics.organizations }}</strong><small>no escopo atual</small></article>
+        <article><span>Turmas</span><strong>{{ metrics.classrooms }}</strong><small>ativas</small></article>
+        <article><span>Alunos</span><strong id="metric-students">{{ metrics.students }}</strong><small>no recorte selecionado</small></article>
+        <article><span>Professores</span><strong>{{ metrics.teachers }}</strong><small>nos contextos</small></article>
+        <article><span>Testes</span><strong>{{ metrics.tests }}</strong><small>criados</small></article>
+        <article class="highlight-metric"><span>Percepção média</span><strong id="metric-average">{% if metrics.assessment_average is not None %}{{ metrics.assessment_average }}%{% else %}Sem dados{% endif %}</strong><small>nas autoavaliações</small></article>
     </div>
+    <p class="analytics-method-note">A percepção média combina respostas autodeclaradas de foco, organização, compreensão e motivação. Ela apoia a conversa pedagógica e não representa uma nota de desempenho.</p>
 
     <article class="analytics-card analytics-table-card">
-        <div class="analytics-card-heading"><div><span>DETALHAMENTO</span><h2>Resumo por aluno</h2></div><small id="ranking-count">{{ ranking|length }} registro{{ ranking|length|pluralize }}</small></div>
+        <div class="analytics-card-heading"><div><span>Detalhamento</span><h2>Resumo por aluno</h2></div><small id="ranking-count">{{ ranking|length }} registro{{ ranking|length|pluralize }}</small></div>
         <div class="analytics-table-wrap">
             <table class="analytics-table">
-                <thead><tr><th>Aluno</th><th>Índice médio</th><th>Autoavaliações</th><th>Turmas</th><th>Último registro</th></tr></thead>
+                <thead><tr><th>Aluno</th><th>Percepção média</th><th>Autoavaliações</th><th>Turmas</th><th>Último registro</th></tr></thead>
                 <tbody>
                     {% for row in ranking %}
                         <tr data-student-id="{{ row.id }}"><td><strong>{{ row.name }}</strong></td><td><span class="score-pill">{{ row.score }}%</span></td><td>{{ row.assessments }}</td><td>{{ row.classrooms }}</td><td>{{ row.latest }}</td></tr>
@@ -86,7 +87,7 @@
     </article>
 
     {% if analytics_payload.empty %}
-        <aside class="analytics-notice"><strong>O mapa de dispersão aguarda dados.</strong> Assim que os alunos fizerem autoavaliações, eles aparecerão no gráfico para seleção.</aside>
+        <aside class="analytics-notice"><strong>O mapa de percepção aguarda dados.</strong> Assim que os alunos fizerem autoavaliações, eles aparecerão no gráfico para seleção.</aside>
     {% endif %}
 </section>
 
@@ -95,5 +96,5 @@
 
 {% block scripts %}
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-<script src="{% static 'js/analytics_dashboard.js' %}?v=4" defer></script>
+<script src="{% static 'js/analytics_dashboard.js' %}?v=5" defer></script>
 {% endblock %}

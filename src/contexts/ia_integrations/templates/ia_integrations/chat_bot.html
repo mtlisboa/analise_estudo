@@ -9,7 +9,7 @@
     {{ diagnostic_prompt|json_script:"diagnostic-prompt" }}
     <header class="chat-page-heading">
         <div>
-            <p class="section-kicker">LUMINI IA</p>
+            <p class="section-kicker">Lumini IA</p>
             <h1>Aprenda perguntando.</h1>
             <p>Converse com um assistente que transforma a documentação em respostas claras e práticas.</p>
         </div>
@@ -22,7 +22,7 @@
     <div class="chat-layout">
         <aside class="chat-sidebar" aria-label="Informações do assistente">
             <div class="assistant-profile">
-                <span class="assistant-avatar" aria-hidden="true">✦</span>
+                <span class="assistant-avatar" aria-hidden="true">IA</span>
                 <div>
                     <strong>Assistente Lumini</strong>
                     <small>Orientação baseada em conhecimento</small>
@@ -34,17 +34,17 @@
                     <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5v-16Z"/></svg>
                 </span>
                 <div>
-                    <small>BASE DE CONHECIMENTO</small>
+                    <small>Base de conhecimento</small>
                     <strong>Documentação Lumini</strong>
                     <p>A fonte será conectada ao agente MCP quando a documentação estiver disponível.</p>
                 </div>
             </div>
 
             <div class="chat-suggestions">
-                <span>SUGESTÕES PARA COMEÇAR</span>
-                <button type="button" data-chat-suggestion="Como posso organizar melhor minha rotina de estudos?">Organizar minha rotina <i>↗</i></button>
-                <button type="button" data-chat-suggestion="Explique como interpretar meu desempenho.">Entender meu desempenho <i>↗</i></button>
-                <button type="button" data-chat-suggestion="Qual deve ser meu próximo passo de aprendizagem?">Definir o próximo passo <i>↗</i></button>
+                <span>Sugestões para começar</span>
+                <button type="button" data-chat-suggestion="Como posso organizar melhor minha rotina de estudos?">Organizar minha rotina</button>
+                <button type="button" data-chat-suggestion="Explique como interpretar minha autoavaliação.">Entender minha autoavaliação</button>
+                <button type="button" data-chat-suggestion="Qual deve ser meu próximo passo de aprendizagem?">Definir o próximo passo</button>
             </div>
 
             <p class="chat-disclaimer"><span>i</span> As respostas podem conter imprecisões. Confirme informações importantes.</p>
@@ -53,7 +53,7 @@
         <article class="chat-panel">
             <div class="chat-panel-topbar">
                 <div>
-                    <span class="assistant-avatar assistant-avatar-small" aria-hidden="true">✦</span>
+                    <span class="assistant-avatar assistant-avatar-small" aria-hidden="true">IA</span>
                     <div><strong>Nova conversa</strong><small>Assistente de aprendizagem</small></div>
                 </div>
                 <button type="button" class="chat-clear" data-chat-clear title="Limpar conversa" aria-label="Limpar conversa">
@@ -63,7 +63,7 @@
 
             <div class="chat-messages" data-chat-messages role="log" aria-live="polite" aria-label="Mensagens da conversa">
                 <div class="chat-message assistant-message">
-                    <span class="message-avatar" aria-hidden="true">✦</span>
+                    <span class="message-avatar" aria-hidden="true">IA</span>
                     <div>
                         <small>Assistente Lumini</small>
                         <p>Olá, {{ user.first_name|default:user.username }}! Estou aqui para ajudar você a entender informações, planejar seus estudos e encontrar respostas. O que gostaria de saber?</p>
@@ -72,7 +72,7 @@
             </div>
 
             <div class="chat-thinking" data-chat-thinking hidden>
-                <span class="message-avatar" aria-hidden="true">✦</span>
+                <span class="message-avatar" aria-hidden="true">IA</span>
                 <div><i></i><i></i><i></i></div>
                 <small>Consultando a documentação…</small>
             </div>
@@ -83,7 +83,7 @@
                 <button type="submit" data-chat-send aria-label="Enviar mensagem" disabled>
                     <svg viewBox="0 0 24 24" fill="none"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
                 </button>
-                <small>Enter para enviar · Shift + Enter para nova linha</small>
+                <small>Enter para enviar. Shift + Enter para nova linha.</small>
             </form>
         </article>
     </div>

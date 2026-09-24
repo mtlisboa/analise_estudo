@@ -9,10 +9,7 @@
         <span class="pill"><span></span> {% block login_pill %}Sua jornada continua aqui{% endblock %}</span>
         <h1>{% block login_hero %}Bom ter você<br><em>de volta.</em>{% endblock %}</h1>
         <p>{% block login_intro %}Acesse seu espaço e acompanhe cada avanço na sua aprendizagem.{% endblock %}</p>
-        <div class="auth-quote">
-            <span>✦</span>
-            <p>“O progresso fica mais leve quando sabemos qual é o próximo passo.”</p>
-        </div>
+        <div class="auth-quote"><p>“O progresso fica mais leve quando sabemos qual é o próximo passo.”</p></div>
     </div>
     <div class="card auth-card">
         <div class="auth-card-heading"><span>{% block login_label %}ACESSAR CONTA{% endblock %}</span><h2>{% block login_heading %}Entre na Lumini{% endblock %}</h2><p>{% block login_help %}Use seus dados para continuar.{% endblock %}</p></div>
@@ -27,9 +24,9 @@
                 </div>
             {% endfor %}
             {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-            <button class="button form-submit" type="submit">Entrar <span>→</span></button>
+            <button class="button form-submit" type="submit">Entrar</button>
         </form>
-        {% block login_footer %}<p class="form-footer">Ainda não tem uma conta? <a href="{% url 'accounts:sign-up' %}">Comece gratuitamente</a></p>{% endblock %}
+        {% block login_footer %}<p class="form-footer">Ainda não tem uma conta? <a href="{% url 'accounts:sign-up' %}">Crie seu acesso</a></p>{% endblock %}
     </div>
 </section>
 {% endblock %}

@@ -1,0 +1,47 @@
+{
+  "name": "LuminiAI",
+  "direction": "caderno-de-progresso-contemporaneo",
+  "tokens": {
+    "color": {
+      "background": "#f6f6f3",
+      "surface": "#fdfdfb",
+      "text": "#171714",
+      "mutedText": "#5d5c56",
+      "accent": "#c24b0d",
+      "border": "#deded7",
+      "darkBackground": "#151512",
+      "darkSurface": "#22221e",
+      "darkText": "#f3f2ec",
+      "darkAccent": "#ff7935"
+    },
+    "radius": {
+      "control": "9px",
+      "surface": "14px"
+    },
+    "layout": {
+      "maxWidth": "1240px"
+    },
+    "motion": {
+      "fast": "160ms",
+      "default": "220ms",
+      "slow": "260ms",
+      "easeOut": "cubic-bezier(.23, 1, .32, 1)"
+    }
+  },
+  "typography": {
+    "family": [
+      "Aptos",
+      "Segoe UI Variable",
+      "Segoe UI",
+      "system-ui",
+      "sans-serif"
+    ]
+  },
+  "principles": [
+    "one-dominant-accent",
+    "editorial-public-operational-product",
+    "truthful-data-only",
+    "keyboard-accessible",
+    "reduced-motion-safe"
+  ]
+}

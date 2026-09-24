@@ -7,7 +7,7 @@
 <section class="manager-shell">
     <div class="manager-topbar">
         <div class="manager-heading">
-            <p class="section-kicker">SEU ESPAÇO EDUCACIONAL</p>
+            <p class="section-kicker">Seu espaço educacional</p>
             <h1>Minhas instituições</h1>
             <p>Selecione uma instituição para acessar seus grupos e turmas.</p>
         </div>
@@ -23,7 +23,7 @@
     {% if can_request_school %}
     <section class="school-credential-card" aria-labelledby="school-credential-title">
         <div>
-            <p class="section-kicker">CREDENCIAMENTO ESCOLAR</p>
+            <p class="section-kicker">Credenciamento escolar</p>
             <h2 id="school-credential-title">Escolas públicas e privadas</h2>
             <p>Uma escola só é criada após o envio dos documentos e a aprovação do administrador do sistema.</p>
         </div>
@@ -56,7 +56,7 @@
                     <span class="institution-arrow" aria-hidden="true">→</span>
                 </div>
                 <div class="institution-copy">
-                    <small>INSTITUIÇÃO</small>
+                    <small>Instituição</small>
                     <h2>{{ card.organization.name }}</h2>
                     <p>{{ card.organization.description|default:"Contexto educacional"|truncatechars:105 }}</p>
                 </div>

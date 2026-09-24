@@ -5,10 +5,10 @@
 
 {% block content %}
 <section class="manager-shell narrow-shell">
-    <a class="back-link" href="{% url 'users-manager:dashboard' %}">← Voltar para organizações e turmas</a>
+    <a class="back-link" href="{% url 'users-manager:dashboard' %}">Voltar para organizações e turmas</a>
     <div class="card manager-form-card">
         <div class="manager-heading">
-            <p class="section-kicker">USERS MANAGER</p>
+            <p class="section-kicker">Gestão</p>
             <h1>{{ title }}</h1>
         </div>
         <form method="post">
@@ -22,7 +22,7 @@
                     {{ field.errors }}
                 </div>
             {% endfor %}
-            <button class="button form-submit" type="submit">Salvar <span>→</span></button>
+            <button class="button form-submit" type="submit">Salvar</button>
         </form>
     </div>
 </section>

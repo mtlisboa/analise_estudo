@@ -6,13 +6,13 @@
 {% block content %}
 <section class="auth-layout signup-layout">
     <div class="auth-intro">
-        <span class="pill"><span></span> Comece gratuitamente</span>
+        <span class="pill"><span></span> Crie seu acesso</span>
         <h1>Seu aprendizado.<br><em>Com mais direção.</em></h1>
-        <p>Crie sua conta e transforme respostas em um plano claro para evoluir.</p>
+        <p>Crie sua conta para organizar avaliações, contextos e próximos passos.</p>
         <ul class="auth-benefits">
-            <li><span>✓</span> Diagnóstico individual de aprendizagem</li>
-            <li><span>✓</span> Insights personalizados com IA</li>
-            <li><span>✓</span> Acompanhamento visual do progresso</li>
+            <li><span>✓</span> Organizações e turmas conectadas</li>
+            <li><span>✓</span> Avaliações no contexto certo</li>
+            <li><span>✓</span> Assistente de IA com limites claros</li>
         </ul>
     </div>
     <div class="card auth-card signup-card">
@@ -27,7 +27,7 @@
                     {{ field.errors }}
                 </div>
             {% endfor %}
-            <button class="button form-submit" type="submit">Criar minha conta <span>→</span></button>
+            <button class="button form-submit" type="submit">Criar minha conta</button>
         </form>
         <p class="form-footer">Já possui uma conta? <a href="{% url 'accounts:login' %}">Entrar</a></p>
     </div>

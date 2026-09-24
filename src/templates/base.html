@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Lumini — Aprender com direção{% endblock %}</title>
+    <title>{% block title %}Lumini | Aprender com direção{% endblock %}</title>
     <meta name="description" content="Inteligência educacional para acompanhar o progresso de cada aluno e transformar dados em decisões.">
     <script>
         (function () {
@@ -18,8 +18,10 @@
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v=16">
     <link rel="stylesheet" href="{% static 'css/notifications.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/account.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/refined.css' %}?v=4">
 </head>
 <body{% if user.is_authenticated and not onboarding_mode and not public_page %} class="has-sidebar"{% endif %}>
+    <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
     {% if user.is_authenticated and not onboarding_mode and not public_page %}
     <a class="mobile-account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências">
         {% if user.avatar %}<img class="mobile-user-photo user-photo" src="{% url 'accounts:avatar' %}" alt="">{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>{% endif %}
@@ -39,7 +41,7 @@
         </div>
 
         <nav class="sidebar-nav">
-            <span class="sidebar-section-label">NAVEGAÇÃO</span>
+            <span class="sidebar-section-label">Navegação</span>
             <a class="sidebar-link{% if request.resolver_match.view_name == 'accounts:dashboard' %} active{% endif %}" href="{% url 'accounts:dashboard' %}"{% if request.resolver_match.view_name == 'accounts:dashboard' %} aria-current="page"{% endif %} title="Meu painel">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
                 <span class="sidebar-label">Meu painel</span>
@@ -113,7 +115,7 @@
         {% include "notifications/bell.html" %}
         <script src="{% static 'js/notifications.js' %}?v=1" defer></script>
     {% endif %}
-    <main class="app-main {% block main_class %}container{% endblock %}">
+    <main id="main-content" class="app-main {% block main_class %}container{% endblock %}">
         {% for message in messages %}
             <p class="message {{ message.tags }}">{{ message }}</p>
         {% endfor %}

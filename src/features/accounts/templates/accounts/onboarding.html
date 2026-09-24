@@ -6,10 +6,9 @@
 {% block content %}
 <section class="onboarding-shell">
     <header class="onboarding-heading">
-        <span class="pill"><span></span> PRIMEIRO ACESSO</span>
-        <p class="onboarding-step">ETAPA 1 DE 1</p>
+        <span class="pill"><span></span> Primeiro acesso</span>
         <h1>Vamos personalizar sua <em>experiência.</em></h1>
-        <p>Suas respostas ajudam a Lumini a adaptar o painel, as orientações e o teste diagnóstico ao que você precisa agora.</p>
+        <p>Suas respostas definem seu perfil inicial e ajudam a organizar a experiência no contexto certo.</p>
     </header>
 
     <form method="post" class="card onboarding-card">
@@ -24,7 +23,6 @@
                     <label class="role-option" for="{{ radio.id_for_label }}">
                         {{ radio.tag }}
                         <span class="role-option-copy"><strong>{{ radio.choice_label }}</strong><small>{% if radio.data.value == 'STUDENT' %}Quero aprender e acompanhar minha evolução.{% elif radio.data.value == 'TEACHER' %}Quero criar turmas e acompanhar alunos.{% elif radio.data.value == 'MANAGER' %}Quero organizar pessoas, turmas e resultados.{% elif radio.data.value == 'GUARDIAN' %}Quero acompanhar a aprendizagem de alguém.{% else %}Meu perfil não está nas opções anteriores.{% endif %}</small></span>
-                        <span class="role-check" aria-hidden="true">✓</span>
                     </label>
                 {% endfor %}
             </div>
@@ -52,22 +50,22 @@
         <div class="form-field">
             <label for="{{ form.app_goal_details.id_for_label }}">{{ form.app_goal_details.label }}</label>
             {{ form.app_goal_details }}
-            <small>Até 240 caracteres. Essa informação será usada para personalizar suas orientações.</small>
+            <small>Até 240 caracteres. Essa informação ajuda a registrar seu objetivo inicial.</small>
             {{ form.app_goal_details.errors }}
         </div>
 
         <section class="diagnostic-choice">
-            <span class="diagnostic-icon" aria-hidden="true">✦</span>
+            <span class="diagnostic-icon" aria-hidden="true">IA</span>
             <div>
-                <small>TESTE DIAGNÓSTICO COM IA</small>
-                <h2>Quer descobrir seu ponto de partida?</h2>
-                <p>A IA fará perguntas adaptadas ao seu perfil e, ao final, indicará pontos fortes e próximos passos. Você também pode fazer isso depois.</p>
+                <small>Experiência assistida por IA</small>
+                <h2>Quer explorar seu ponto de partida?</h2>
+                <p>Você pode conversar com o assistente sobre seu contexto e próximos passos. As respostas podem conter imprecisões e não substituem orientação pedagógica.</p>
             </div>
         </section>
 
         <div class="onboarding-actions">
             <button class="button button-secondary" type="submit" name="action" value="later">Deixar para depois</button>
-            <button class="button" type="submit" name="action" value="start-test">Fazer teste com IA <span>→</span></button>
+            <button class="button" type="submit" name="action" value="start-test">Conversar com a IA</button>
         </div>
     </form>
 </section>

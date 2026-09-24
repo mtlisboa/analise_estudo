@@ -115,7 +115,7 @@
                 marker: {size: classroomStudents.map(function (item) { return 10 + item.latest.motivation * 4; }), color: palette[traceIndex % palette.length], line: {color: colors.surface, width: 1}},
                 selected: {marker: {opacity: 1, line: {color: colors.text, width: 3}}},
                 unselected: {marker: {opacity: 0.18}},
-                hovertemplate: "<b>%{text}</b><br>%{customdata[2]}<br>Foco: %{x}<br>Compreensão: %{y}<br>Índice: %{customdata[1]}%<extra></extra>"
+                hovertemplate: "<b>%{text}</b><br>%{customdata[2]}<br>Foco: %{x}<br>Compreensão: %{y}<br>Percepção média: %{customdata[1]}%<extra></extra>"
             };
         });
 

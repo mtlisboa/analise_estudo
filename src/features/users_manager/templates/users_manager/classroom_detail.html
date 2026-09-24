@@ -5,24 +5,24 @@
 
 {% block content %}
 <section class="manager-shell narrow-shell">
-    <a class="back-link" href="{% url 'users-manager:classroom-group-detail' classroom.group.pk %}">← Voltar para {{ classroom.group.name }}</a>
+    <a class="back-link" href="{% url 'users-manager:classroom-group-detail' classroom.group.pk %}">Voltar para {{ classroom.group.name }}</a>
     <div class="manager-topbar">
         <div class="manager-heading"><p class="section-kicker">{{ classroom.organization.name }} · {{ classroom.group.name }}</p><h1>{{ classroom.name }}{% if classroom.letter %} · {{ classroom.letter }}{% endif %}</h1><p>{{ classroom.get_shift_display }} · {{ classroom.description|default:"Espaço de aprendizagem" }}</p></div>
         <div class="manager-actions"><a class="button button-small button-secondary" href="{% url 'analytics-dashboard:generate' %}?organization={{ classroom.organization.pk }}&amp;classroom={{ classroom.pk }}">Gerar análise</a>{% if can_manage %}<a class="button button-small button-secondary" href="{% url 'users-manager:classroom-invite' classroom.pk %}">Adicionar membro</a><a class="button button-small" href="{% url 'users-manager:classroom-test-create' classroom.pk %}">Novo teste</a>{% endif %}</div>
     </div>
     <article class="dash-card manager-card full-card">
-        <div class="manager-card-title"><div><span>PARTICIPANTES</span><h2>Professores e alunos</h2></div><strong>{{ memberships|length }}</strong></div>
+        <div class="manager-card-title"><div><span>Participantes</span><h2>Professores e alunos</h2></div><strong>{{ memberships|length }}</strong></div>
         <div class="manager-list">
             {% for membership in memberships %}
                 <div class="manager-list-item">
                     <div class="avatar-letter">{{ membership.user.username|first|upper }}</div>
                     <div class="list-copy"><strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong><small>{{ membership.get_role_display }} · {{ membership.get_status_display }}</small></div>
                 </div>
-            {% endfor %}
+            {% empty %}<p class="empty-state">Nenhum participante adicionado a esta turma.</p>{% endfor %}
         </div>
     </article>
     <article class="dash-card manager-card full-card">
-        <div class="manager-card-title"><div><span>TESTES</span><h2>Atividades da turma</h2></div><strong>{{ tests|length }}</strong></div>
+        <div class="manager-card-title"><div><span>Testes</span><h2>Atividades da turma</h2></div><strong>{{ tests|length }}</strong></div>
         <div class="manager-list">
             {% for classroom_test in tests %}<div class="manager-list-item"><div class="avatar-letter">✓</div><div class="list-copy"><strong>{{ classroom_test.title }}</strong><small>Valor: {{ classroom_test.max_score }} ponto{{ classroom_test.max_score|pluralize }} · {% if classroom_test.is_published %}Publicado{% else %}Rascunho{% endif %}</small></div></div>{% empty %}<p class="empty-state">Nenhum teste criado para esta turma.</p>{% endfor %}
         </div>

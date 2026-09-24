@@ -5,10 +5,10 @@
 
 {% block content %}
 <section class="manager-shell narrow-shell">
-    <a class="back-link" href="{% url 'users-manager:dashboard' %}">← Minhas instituições</a>
+    <a class="back-link" href="{% url 'users-manager:dashboard' %}">Minhas instituições</a>
     <div class="manager-topbar">
         <div class="manager-heading">
-            <p class="section-kicker">INSTITUIÇÃO</p>
+            <p class="section-kicker">Instituição</p>
             <h1>{{ organization.name }}</h1>
             <p>{{ organization.description|default:"Escolha um grupo para visualizar suas turmas." }}</p>
         </div>
@@ -20,7 +20,7 @@
     </div>
 
     <div class="detail-section-heading">
-        <div><span>GRUPOS DE TURMAS</span><h2>Como as turmas estão organizadas</h2></div>
+        <div><span>Grupos de turmas</span><h2>Como as turmas estão organizadas</h2></div>
         <strong>{{ classroom_groups|length }}</strong>
     </div>
     <div class="class-group-grid">
@@ -43,11 +43,11 @@
 
     {% if can_manage %}
     <article class="dash-card manager-card full-card compact-members">
-        <div class="manager-card-title"><div><span>MEMBROS</span><h2>Professores e alunos</h2></div><strong>{{ organization_memberships|length }}</strong></div>
+        <div class="manager-card-title"><div><span>Membros</span><h2>Professores e alunos</h2></div><strong>{{ organization_memberships|length }}</strong></div>
         <div class="manager-list">
             {% for membership in organization_memberships %}
                 <div class="manager-list-item"><div class="avatar-letter">{{ membership.user.username|first|upper }}</div><div class="list-copy"><strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong><small>{{ membership.roles_display }}</small></div></div>
-            {% endfor %}
+            {% empty %}<p class="empty-state">Nenhum membro adicionado a esta instituição.</p>{% endfor %}
         </div>
     </article>
     {% endif %}

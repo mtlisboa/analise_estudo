@@ -8,7 +8,7 @@
 <section class="manager-shell assessment-shell">
     <div class="manager-topbar assessment-topbar">
         <div class="manager-heading">
-            <p class="section-kicker">PLANEJAMENTO AVALIATIVO</p>
+            <p class="section-kicker">Planejamento avaliativo</p>
             <h1>Minhas avaliações</h1>
             <p>Crie avaliações alinhadas às habilidades que você deseja observar.</p>
         </div>
@@ -42,12 +42,12 @@
                 </div>
             </div>
             <div class="assessment-item-meta">
-                <small>FORMA DE MONTAGEM</small>
+                <small>Forma de montagem</small>
                 <strong>{{ assessment.get_assembly_method_display }}</strong>
                 <span>{{ assessment.get_assembly_status_display }}{% if assessment.assembly_notes %} · {{ assessment.assembly_notes }}{% endif %}</span>
             </div>
             <div class="assessment-item-observations">
-                <small>OBSERVAÇÕES E RESTRIÇÕES</small>
+                <small>Observações e restrições</small>
                 {% if assessment.observations %}
                 <ul>{% for observation in assessment.observations %}<li>{{ observation }}</li>{% endfor %}</ul>
                 {% else %}<p>Nenhuma observação adicionada.</p>{% endif %}
@@ -77,7 +77,7 @@
             <div class="assessment-questions">
                 <div class="assessment-questions-heading">
                     <div>
-                        <small>QUESTÕES DA AVALIAÇÃO</small>
+                        <small>Questões da avaliação</small>
                         <strong>{{ assessment.questions.all|length }} {% if assessment.questions.all|length == 1 %}questão criada{% else %}questões criadas{% endif %}</strong>
                     </div>
                 </div>
@@ -108,7 +108,7 @@
         </article>
         {% empty %}
         <div class="dash-card assessment-empty">
-            <div class="assessment-empty-icon">✓</div>
+            <div class="assessment-empty-icon">A</div>
             <h2>{% if query %}Nenhuma avaliação encontrada{% else %}Sua primeira avaliação começa aqui{% endif %}</h2>
             <p>{% if query %}Tente buscar por outro termo ou limpe o filtro.{% else %}Defina matéria, assunto e as habilidades que deseja avaliar.{% endif %}</p>
             {% if not query %}<button class="button button-small open-assessment-modal" type="button">Criar avaliação</button>{% endif %}
@@ -122,7 +122,7 @@
     <div class="assessment-modal-panel">
         <div class="assessment-modal-header">
             <div>
-                <p class="section-kicker">AVALIAÇÃO</p>
+                <p class="section-kicker">Avaliação</p>
                 <h2 id="assessment-modal-title">{% if editing_assessment %}Editar avaliação{% else %}Nova avaliação{% endif %}</h2>
             </div>
             <button class="assessment-modal-close close-assessment-modal" type="button" aria-label="Fechar">×</button>
@@ -194,7 +194,7 @@
     <div class="assessment-modal-panel question-modal-panel">
         <div class="assessment-modal-header">
             <div>
-                <p class="section-kicker">QUESTÃO</p>
+                <p class="section-kicker">Questão</p>
                 <h2 id="question-modal-title">Nova questão</h2>
                 <small id="question-assessment-name">{% if question_assessment %}{{ question_assessment.subject }} — {{ question_assessment.topic }}{% endif %}</small>
             </div>
@@ -247,5 +247,5 @@
 {{ default_techniques|json_script:"assessment-default-techniques" }}
 {% if assessment_form.errors %}<script>document.documentElement.dataset.openAssessmentModal = "true";</script>{% endif %}
 {% if question_form.errors %}<script>document.documentElement.dataset.openQuestionModal = "true";</script>{% endif %}
-<script src="{% static 'js/assessments.js' %}?v=3"></script>
+<script src="{% static 'js/assessments.js' %}?v=4"></script>
 {% endblock %}

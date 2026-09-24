@@ -12,6 +12,46 @@
     var defaultTechniques = JSON.parse(document.getElementById("assessment-default-techniques").textContent);
     var createAction = form.dataset.createAction;
     var observations = [];
+    var activeModal = null;
+    var previouslyFocused = null;
+    var inertRegions = [];
+
+    function focusableElements(dialog) {
+        return Array.from(dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'))
+            .filter(function (element) { return !element.hidden && element.offsetParent !== null; });
+    }
+
+    function setPageInert(dialog, isInert) {
+        if (isInert) {
+            var main = dialog.parentElement;
+            inertRegions = Array.from(document.body.children).filter(function (element) {
+                return element !== main && element.tagName !== "SCRIPT";
+            }).concat(Array.from(main.children).filter(function (element) {
+                return element !== dialog && element.tagName !== "SCRIPT";
+            }));
+            inertRegions.forEach(function (element) { element.inert = true; });
+        } else {
+            inertRegions.forEach(function (element) { element.inert = false; });
+            inertRegions = [];
+        }
+    }
+
+    function openDialog(dialog, initialFocus) {
+        previouslyFocused = document.activeElement;
+        activeModal = dialog;
+        dialog.hidden = false;
+        setPageInert(dialog, true);
+        document.body.classList.add("modal-open");
+        window.setTimeout(function () { initialFocus.focus(); }, 20);
+    }
+
+    function closeDialog(dialog) {
+        dialog.hidden = true;
+        setPageInert(dialog, false);
+        document.body.classList.remove("modal-open");
+        activeModal = null;
+        if (previouslyFocused && document.contains(previouslyFocused)) previouslyFocused.focus();
+    }
 
     function escapeText(value) {
         var element = document.createElement("span");
@@ -89,14 +129,11 @@
         }
         updateTechniqueHint();
         updateAssemblyFields();
-        modal.hidden = false;
-        document.body.classList.add("modal-open");
-        window.setTimeout(function () { form.querySelector("#id_subject").focus(); }, 20);
+        openDialog(modal, form.querySelector("#id_subject"));
     }
 
     function closeModal() {
-        modal.hidden = true;
-        document.body.classList.remove("modal-open");
+        closeDialog(modal);
     }
 
     document.getElementById("new-assessment").addEventListener("click", function () { openModal(); });
@@ -125,13 +162,25 @@
     });
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape" && !modal.hidden) closeModal();
+        if (event.key === "Tab" && activeModal) {
+            var focusable = focusableElements(activeModal);
+            if (!focusable.length) return;
+            var first = focusable[0];
+            var last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
     });
     form.addEventListener("submit", function () { syncObservations(); });
 
     seedObservations(observationValue.value);
     if (document.documentElement.dataset.openAssessmentModal === "true") {
-        modal.hidden = false;
-        document.body.classList.add("modal-open");
+        openDialog(modal, form.querySelector("#id_subject"));
         updateTechniqueHint();
         updateAssemblyFields();
     }
@@ -158,14 +207,11 @@
         questionForm.action = button.dataset.questionAction;
         questionAssessmentName.textContent = button.dataset.assessment;
         updateQuestionFields();
-        questionModal.hidden = false;
-        document.body.classList.add("modal-open");
-        window.setTimeout(function () { document.getElementById("id_statement").focus(); }, 20);
+        openDialog(questionModal, document.getElementById("id_statement"));
     }
 
     function closeQuestionModal() {
-        questionModal.hidden = true;
-        document.body.classList.remove("modal-open");
+        closeDialog(questionModal);
     }
 
     document.querySelectorAll(".add-question").forEach(function (button) {
@@ -179,8 +225,7 @@
         if (event.key === "Escape" && !questionModal.hidden) closeQuestionModal();
     });
     if (document.documentElement.dataset.openQuestionModal === "true") {
-        questionModal.hidden = false;
-        document.body.classList.add("modal-open");
+        openDialog(questionModal, document.getElementById("id_statement"));
         updateQuestionFields();
     }
 }());
