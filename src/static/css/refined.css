@@ -169,7 +169,59 @@ a, button, input, select, textarea { accent-color: var(--primary); }
 .solutions-heading { max-width: 790px; }
 .solution-grid { display: grid; grid-template-columns: .88fr 1.12fr; gap: 18px; margin-top: 52px; }
 .solution-card { min-height: 430px; padding: clamp(31px, 4.5vw, 54px); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: none; }
-.solution-card.institution-card { background: var(--primary-soft); }
+.solution-card.institution-card {
+    --institution-surface: #33271f;
+    --institution-ink: #fff9f2;
+    --institution-muted: #ddcfc3;
+    --institution-line: rgba(255, 249, 242, .16);
+    overflow: hidden;
+    isolation: isolate;
+    border-color: transparent;
+    background: var(--institution-surface);
+    box-shadow: 0 26px 64px rgba(73, 46, 28, .16);
+    color: var(--institution-ink);
+    transform: none;
+}
+:root[data-theme="dark"] .solution-card.institution-card {
+    --institution-surface: #3b271e;
+    --institution-muted: #e4d0c1;
+    box-shadow: 0 24px 58px rgba(0, 0, 0, .24);
+}
+.solution-card.institution-card .solution-tag { color: #ff9a68 !important; }
+.solution-card.institution-card h3 { color: var(--institution-ink); }
+.solution-card.institution-card > p,
+.solution-card.institution-card li { color: var(--institution-muted); }
+.solution-card.institution-card li { padding-left: 25px; }
+.solution-card.institution-card li::before {
+    top: .72em;
+    display: block;
+    width: 14px;
+    height: 1px;
+    background: #ff9a68;
+    content: "";
+}
+.solution-card.institution-card li + li { border-color: var(--institution-line); }
+.solution-card.institution-card ul { margin-bottom: 28px; }
+.solution-card.institution-card > a {
+    position: static;
+    display: inline-flex;
+    min-height: 44px;
+    margin-top: auto;
+    padding: 0 17px;
+    align-self: flex-start;
+    align-items: center;
+    border: 1px solid var(--institution-line);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--institution-ink);
+    text-decoration: none;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 150ms var(--ease-out);
+}
+.solution-card.institution-card > a:focus-visible {
+    outline-color: var(--institution-ink);
+    outline-offset: 4px;
+}
+.solution-card.institution-card > a:active { transform: scale(.97); }
 .solution-tag { display: inline-block; padding: 0; border-radius: 0; background: transparent !important; color: var(--primary) !important; font-size: 12px; font-weight: 760; letter-spacing: 0; text-transform: none; }
 .solution-card h3 { max-width: 460px; margin: 66px 0 0; font-family: inherit; font-size: clamp(28px, 3vw, 40px); font-weight: 740; letter-spacing: -.04em; line-height: 1.08; }
 .solution-card > p { max-width: 510px; margin: 16px 0 25px; color: var(--text-soft); font-size: 14px; }
@@ -305,6 +357,14 @@ a, button, input, select, textarea { accent-color: var(--primary); }
     .hero-visual figcaption { animation: lumini-enter 520ms var(--ease-out) 120ms both; }
     @keyframes lumini-enter { from { opacity: .01; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes lumini-reveal { from { clip-path: inset(0 0 100% 0); transform: scale(.98); } to { clip-path: inset(0); transform: scale(1); } }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .solution-card.institution-card > a:hover {
+        border-color: var(--institution-ink);
+        background: var(--institution-ink);
+        color: var(--institution-surface);
+    }
 }
 
 @media (max-width: 1080px) {
