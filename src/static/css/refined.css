@@ -1,24 +1,25 @@
 /* Lumini 2026 refinement layer: one visual system for public and product surfaces. */
 :root {
-    --bg: #f6f6f3;
-    --bg-soft: #eeeeea;
-    --surface: #fdfdfb;
+    color-scheme: light;
+    --bg: #f7f2ea;
+    --bg-soft: #eee6da;
+    --surface: #fffdf8;
     --surface-raised: #ffffff;
-    --surface-purple: #fff1e5;
-    --text: #171714;
-    --text-soft: #5d5c56;
-    --text-faint: #7b7a73;
-    --primary: #c24b0d;
-    --primary-strong: #9f3808;
-    --primary-soft: #ffeadb;
-    --lime: #ef9b62;
-    --lime-ink: #311306;
-    --border: #deded7;
-    --border-strong: #c8c8bf;
-    --shadow: 0 28px 70px rgba(68, 45, 27, .12);
-    --shadow-soft: 0 12px 34px rgba(68, 45, 27, .08);
-    --header-bg: rgba(246, 246, 243, .9);
-    --chart-grid: #dfdfd8;
+    --surface-purple: #f8e7d8;
+    --text: #251f19;
+    --text-soft: #625a50;
+    --text-faint: #71685e;
+    --primary: #b64716;
+    --primary-strong: #8f330d;
+    --primary-soft: #f5dfcc;
+    --lime: #d99b55;
+    --lime-ink: #35200b;
+    --border: #ded3c5;
+    --border-strong: #c8b9a7;
+    --shadow: 0 28px 70px rgba(64, 43, 27, .11);
+    --shadow-soft: 0 12px 34px rgba(64, 43, 27, .07);
+    --header-bg: rgba(247, 242, 234, .92);
+    --chart-grid: #ddd1c2;
     --radius: 14px;
     --radius-small: 9px;
     --ease-out: cubic-bezier(.23, 1, .32, 1);
@@ -28,6 +29,7 @@
 }
 
 :root[data-theme="dark"] {
+    color-scheme: dark;
     --bg: #151512;
     --bg-soft: #1d1d19;
     --surface: #22221e;
@@ -167,7 +169,7 @@ a, button, input, select, textarea { accent-color: var(--primary); }
 .solutions-heading { max-width: 790px; }
 .solution-grid { display: grid; grid-template-columns: .88fr 1.12fr; gap: 18px; margin-top: 52px; }
 .solution-card { min-height: 430px; padding: clamp(31px, 4.5vw, 54px); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: none; }
-.institution-card { background: var(--primary-soft); }
+.solution-card.institution-card { background: var(--primary-soft); }
 .solution-tag { display: inline-block; padding: 0; border-radius: 0; background: transparent !important; color: var(--primary) !important; font-size: 12px; font-weight: 760; letter-spacing: 0; text-transform: none; }
 .solution-card h3 { max-width: 460px; margin: 66px 0 0; font-family: inherit; font-size: clamp(28px, 3vw, 40px); font-weight: 740; letter-spacing: -.04em; line-height: 1.08; }
 .solution-card > p { max-width: 510px; margin: 16px 0 25px; color: var(--text-soft); font-size: 14px; }
@@ -216,7 +218,8 @@ a, button, input, select, textarea { accent-color: var(--primary); }
 .sidebar-section-label { color: var(--text-faint); font-size: 12px; letter-spacing: .04em; }
 .sidebar-link { border-radius: var(--radius-small); font-size: 12px; transition: background-color 160ms ease, color 160ms ease, transform 140ms var(--ease-out); }
 .sidebar-link:hover { transform: translateX(2px); }
-.sidebar-link.active { background: var(--text); color: var(--bg); box-shadow: none; }
+.sidebar-link.active { background: var(--primary); color: #fff; box-shadow: none; }
+:root[data-theme="dark"] .sidebar-link.active { background: var(--text); color: var(--bg); }
 .sidebar-avatar { border-radius: 50%; }
 .sidebar-user-copy strong { font-size: 11px; }
 .sidebar-user-copy small { font-size: 12px; }

@@ -3,12 +3,12 @@
   "direction": "caderno-de-progresso-contemporaneo",
   "tokens": {
     "color": {
-      "background": "#f6f6f3",
-      "surface": "#fdfdfb",
-      "text": "#171714",
-      "mutedText": "#5d5c56",
-      "accent": "#c24b0d",
-      "border": "#deded7",
+      "background": "#f7f2ea",
+      "surface": "#fffdf8",
+      "text": "#251f19",
+      "mutedText": "#625a50",
+      "accent": "#b64716",
+      "border": "#ded3c5",
       "darkBackground": "#151512",
       "darkSurface": "#22221e",
       "darkText": "#f3f2ec",

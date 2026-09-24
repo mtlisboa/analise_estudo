@@ -6,10 +6,10 @@ Uma evolução da identidade existente, construída como um caderno de progresso
 
 ## Tokens
 
-- Fundo claro: `#f6f6f3`; superfície: `#fdfdfb`; texto: `#171714`.
+- Fundo claro: `#f7f2ea`; superfície: `#fffdf8`; texto: `#251f19`.
 - Fundo escuro: `#151512`; superfície: `#22221e`; texto: `#f3f2ec`.
-- Acento claro: `#c24b0d`; acento escuro: `#ff7935`.
-- Bordas: `#deded7` no claro e `#393933` no escuro.
+- Acento claro: `#b64716`; acento escuro: `#ff7935`.
+- Bordas: `#ded3c5` no claro e `#393933` no escuro.
 - Raios: 9px para controles e 14px para superfícies.
 - Largura editorial máxima: 1240px.
 
