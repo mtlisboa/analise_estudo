@@ -8,7 +8,8 @@
     <div class="auth-intro">
         <span class="pill"><span></span> Crie seu acesso</span>
         <h1>Seu aprendizado.<br><em>Com mais direção.</em></h1>
-        <p>Crie sua conta para organizar avaliações, contextos e próximos passos.</p>
+        <p>Escolha estudante ou professor e informe o código fornecido pela sua instituição para entrar no mesmo espaço de aprendizagem.</p>
+        <p>Representa uma instituição? <a href="{% url 'accounts:institutional-contact' %}">Entre em contato para cadastrá-la.</a></p>
         <ul class="auth-benefits">
             <li><span>✓</span> Organizações e turmas conectadas</li>
             <li><span>✓</span> Avaliações no contexto certo</li>
@@ -16,9 +17,10 @@
         </ul>
     </div>
     <div class="card auth-card signup-card">
-        <div class="auth-card-heading"><span>CRIAR CONTA</span><h2>Comece sua jornada</h2><p>Leva menos de dois minutos.</p></div>
+        <div class="auth-card-heading"><span>CRIAR CONTA</span><h2>Comece sua jornada</h2><p>Use seu código institucional ou escolha uma conta pessoal.</p></div>
         <form method="post">
             {% csrf_token %}
+            {{ form.non_field_errors }}
             {% for field in form %}
                 <div class="form-field">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -33,3 +35,4 @@
     </div>
 </section>
 {% endblock %}
+

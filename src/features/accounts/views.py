@@ -1,4 +1,7 @@
 from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required
@@ -54,10 +57,14 @@ def sign_up(request: HttpRequest) -> HttpResponse:
 
     form = SignUpForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        user = form.save()
-        login(request, user)
-        messages.success(request, "Conta criada com sucesso.")
-        return redirect("accounts:onboarding")
+        try:
+            user = form.save()
+        except ValidationError as exc:
+            form.add_error('institutional_code', exc)
+        else:
+            login(request, user)
+            messages.success(request, "Conta criada e vinculada à instituição." if form.cleaned_data['registration_role'] != 'PERSONAL' else "Conta criada com sucesso.")
+            return redirect("accounts:onboarding")
 
     return render(request, "accounts/sign_up.html", {"form": form})
 
@@ -156,3 +163,20 @@ def avatar(request):
         raise Http404
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+
+@require_http_methods(['GET', 'POST'])
+def institutional_contact(request):
+    from features.users_manager.institutional_forms import InstitutionalContactForm
+    from features.users_manager.models import InstitutionalContact
+
+    form = InstitutionalContactForm(request.POST if request.method == 'POST' else None)
+    if request.method == 'POST' and form.is_valid():
+        fields = {key: form.cleaned_data[key] for key in form.Meta.fields}
+        if not InstitutionalContact.objects.filter(**fields, created_at__gte=timezone.now()-timedelta(minutes=15)).exists():
+            form.save()
+        request.session['institutional_contact_sent'] = True
+        return redirect('accounts:institutional-contact')
+    sent = request.session.pop('institutional_contact_sent', False) if request.method == 'GET' else False
+    return render(request, 'accounts/institutional_contact.html', {'form': form, 'sent': sent, 'public_page': True})

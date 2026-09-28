@@ -1,3 +1,5 @@
+import secrets
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
@@ -122,7 +124,14 @@ class SchoolApplication(models.Model):
         return f"{self.display_name} · {self.get_status_display()}"
 
 
+def generate_institutional_code():
+    return "LUM-" + secrets.token_hex(8).upper()
+
+
 class School(models.Model):
+    institutional_code = models.CharField("código institucional", max_length=20, unique=True, default=generate_institutional_code, editable=False)
+    registration_enabled = models.BooleanField("cadastro por código habilitado", default=True)
+
     organization = models.OneToOneField(
         Organization,
         on_delete=models.PROTECT,
@@ -501,3 +510,32 @@ class SelfAssessment(models.Model):
 
     def __str__(self) -> str:
         return f"Autoavaliação de {self.user} ({self.created_at:%d/%m/%Y})"
+
+
+
+class InstitutionalContact(models.Model):
+    class Status(models.TextChoices):
+        NEW = 'NEW', 'Novo contato'
+        CONTACTED = 'CONTACTED', 'Em atendimento'
+        COMPLETED = 'COMPLETED', 'Instituição cadastrada'
+        CLOSED = 'CLOSED', 'Encerrado'
+
+    institution_name = models.CharField('instituição', max_length=180)
+    contact_name = models.CharField('nome do responsável pelo contato', max_length=150)
+    email = models.EmailField('e-mail')
+    phone = models.CharField('telefone / WhatsApp', max_length=30)
+    city = models.CharField('cidade', max_length=120)
+    state = models.CharField('UF', max_length=2)
+    message = models.TextField('mensagem', max_length=3000, blank=True)
+    status = models.CharField('situação', max_length=12, choices=Status.choices, default=Status.NEW)
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='instituição cadastrada')
+    internal_notes = models.TextField('observações internas', blank=True)
+    created_at = models.DateTimeField('recebido em', auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'contato institucional'
+        verbose_name_plural = 'contatos institucionais'
+
+    def __str__(self):
+        return f'{self.institution_name} · {self.contact_name}'

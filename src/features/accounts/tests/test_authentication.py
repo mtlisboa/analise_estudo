@@ -28,7 +28,8 @@ class SessionAuthenticationTests(TestCase):
         response = self.client.get(reverse("accounts:landing"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Cada aluno aprende de um jeito")
+        self.assertContains(response, reverse("accounts:institutional-contact"))
+        self.assertContains(response, "Cadastrar instituição")
         self.assertContains(response, reverse("accounts:sign-up"))
 
     def test_login_creates_authenticated_session(self) -> None:
@@ -260,3 +261,4 @@ class SessionAuthenticationTests(TestCase):
 
         self.assertRedirects(response, reverse("admin:index"))
         self.assertEqual(int(self.client.session["_auth_user_id"]), sysadmin.pk)
+

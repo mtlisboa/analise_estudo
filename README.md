@@ -309,3 +309,48 @@ Os resultados deste módulo têm exportação própria e ainda não alimentam os
 indicadores do dashboard analítico.
 
 Testes do módulo: `python src/manage.py test features.paper_exams`.
+
+
+## Contato e acesso institucional
+
+A landing page tem o caminho **Cadastrar instituição** / **Quero cadastrar minha
+instituição**, que abre `/instituicoes/contato/`. O formulário é público, não
+cria escola nem conta e registra os dados em **Admin → Contatos institucionais**.
+Nenhum e-mail ou WhatsApp é enviado automaticamente: a equipe acompanha a fila no
+painel e entra em contato usando os dados informados.
+
+Fluxo da equipe:
+1. Entre por `/sysadmin/entrar/` com uma conta SYSADMIN habilitada para o admin.
+2. Abra **Contatos institucionais**, consulte o contato e use **Cadastrar
+   instituição a partir deste contato**. Também é possível adicionar diretamente
+   em **Escolas credenciadas**.
+3. Preencha os dados da escola, CNPJ ou INEP e, se houver, selecione uma conta
+   existente como responsável pela organização. Sem responsável selecionado, a
+   organização fica sob gestão do administrador que a cadastrou; a gestão pode
+   ser transferida depois pelo cadastro da organização.
+4. Salve e consulte o **código institucional** na página da escola. Entregue-o à
+   instituição para distribuição. O contato usado no cadastro fica associado à
+   escola e marcado como **Instituição cadastrada**.
+
+No cadastro público, selecionar **Estudante** ou **Professor** exige um código
+institucional válido. A conta recebe automaticamente o vínculo correspondente
+com a organização da escola; não recebe gestão, permissões globais nem acesso
+a todas as turmas. O código é compartilhado pela instituição e permite escolher
+entre os dois perfis; não existe aprovação adicional de professor neste fluxo.
+O onboarding continua disponível e sua seleção de perfil não altera o vínculo
+institucional nem as permissões.
+
+A opção **Conta pessoal, sem instituição** preserva o cadastro anterior. Contas,
+organizações, turmas e vínculos existentes permanecem. O fluxo anterior de
+solicitação documental/aprovação de escolas também foi mantido. Cada escola
+credenciada existente recebe um código próprio na migration, assim como escolas
+aprovadas pelo fluxo anterior. Organizações comuns não recebem código de escola.
+
+Somente SYSADMIN pode consultar, substituir ou desativar códigos no admin.
+Desmarcar **cadastro por código habilitado** ou desativar a organização impede
+novos vínculos. A ação **Gerar novos códigos institucionais** invalida os códigos
+anteriores, preserva usuários/vínculos já criados e registra a alteração no
+histórico administrativo. Cadastro e criação do vínculo são transacionais.
+
+Após atualizar: `python src/manage.py migrate` (automático no entrypoint Docker).
+Testes específicos: `python src/manage.py test features.accounts.tests.test_institutional`.

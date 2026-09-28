@@ -3,6 +3,8 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 
 from .models import User
+from .institutional import ROLES, normalize_code, find_school, attach_membership
+from django.db import transaction
 
 
 class LoginForm(AuthenticationForm):
@@ -37,6 +39,12 @@ class SysAdminLoginForm(LoginForm):
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(label="E-mail", required=True)
+    registration_role = forms.ChoiceField(label='Tipo de conta',
+        choices=ROLES + [('PERSONAL', 'Conta pessoal, sem instituição')], initial='STUDENT', required=False)
+    institutional_code = forms.CharField(label='Código institucional', max_length=20, required=False,
+        help_text='Obrigatório para estudante ou professor. Solicite o código à sua instituição.',
+        widget=forms.TextInput(attrs={'autocomplete': 'off', 'placeholder': 'LUM-…', 'autocapitalize': 'characters'}))
+    field_order = ['registration_role', 'institutional_code', 'username', 'email', 'password1', 'password2']
 
     class Meta(UserCreationForm.Meta):
         model = User
@@ -47,6 +55,40 @@ class SignUpForm(UserCreationForm):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("Este e-mail já está em uso.")
         return email
+
+
+    def clean(self):
+        data = super().clean()
+        role = data.get('registration_role') or 'PERSONAL'
+        data['registration_role'] = role
+        code = normalize_code(data.get('institutional_code', ''))
+        data['institutional_code'] = code
+        if role in dict(ROLES):
+            if not code:
+                self.add_error('institutional_code', 'Informe o código fornecido pela instituição.')
+            else:
+                try:
+                    find_school(code)
+                except ValidationError as exc:
+                    self.add_error('institutional_code', exc)
+        elif code:
+            self.add_error('registration_role', 'Para usar um código, selecione estudante ou professor.')
+        return data
+
+    @transaction.atomic
+    def save(self, commit=True):
+        if not commit:
+            raise ValueError('O cadastro deve salvar a conta e o vínculo na mesma transação.')
+        user = super().save(commit=False)
+        role = self.cleaned_data['registration_role']
+        if role in dict(ROLES):
+            user.onboarding_role = role
+            # Revalidate before creating the account in case the code was disabled.
+            find_school(self.cleaned_data['institutional_code'], lock=True)
+        user.save()
+        if role in dict(ROLES):
+            attach_membership(user, self.cleaned_data['institutional_code'], role)
+        return user
 
 
 class OnboardingForm(forms.ModelForm):
@@ -161,3 +203,4 @@ class AvatarForm(forms.Form):
                     return ContentFile(output.getvalue(), name="avatar.jpg")
         except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
             raise forms.ValidationError("Não foi possível ler a imagem. Envie uma foto válida.")
+

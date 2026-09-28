@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Cadastrar instituição | Lumini{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+{% block content %}
+<section class="auth-layout signup-layout">
+    <div class="auth-intro">
+        <a href="{% url 'accounts:landing' %}">← Página inicial</a>
+        <h1>Sua instituição.<br><em>Um espaço em comum.</em></h1>
+        <p>Deixe os dados de contato para conversar com nossa equipe sobre o cadastro da sua instituição.</p>
+        <ol>
+            <li>Você envia os dados e nossa equipe acompanha o contato.</li>
+            <li>Nós cadastramos a instituição e geramos o código institucional.</li>
+            <li>Estudantes e professores usam esse código ao criar suas contas.</li>
+        </ol>
+        <p>Já recebeu um código? <a href="{% url 'accounts:sign-up' %}">Cadastre-se como estudante ou professor.</a></p>
+    </div>
+    <div class="card auth-card signup-card">
+        {% if sent %}
+            <div role="status"><h2>Contato recebido</h2><p>Seus dados foram registrados para atendimento pela nossa equipe. A instituição ainda não foi cadastrada; o código será disponibilizado após essa etapa.</p></div>
+            <p><a class="button" href="{% url 'accounts:landing' %}">Voltar ao início</a></p>
+        {% else %}
+            <div class="auth-card-heading"><h2>Fale com a equipe</h2><p>Não é necessário criar uma conta para entrar em contato.</p></div>
+            <form method="post">
+                {% csrf_token %}{{ form.non_field_errors }}
+                {% for hidden in form.hidden_fields %}{{ hidden }}{{ hidden.errors }}{% endfor %}
+                {% for field in form.visible_fields %}
+                    <div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %} (opcional){% endif %}</label>{{ field }}{{ field.errors }}</div>
+                {% endfor %}
+                <p>Usaremos estes dados para atender à solicitação de cadastro institucional.</p>
+                <button class="button form-submit" type="submit">Enviar contato</button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
