@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import F, Q
+from django.db.models.functions import Lower
 from django.utils import timezone
 
 
@@ -129,8 +130,7 @@ def generate_institutional_code():
 
 
 class School(models.Model):
-    institutional_code = models.CharField("código institucional", max_length=20, unique=True, default=generate_institutional_code, editable=False)
-    registration_enabled = models.BooleanField("cadastro por código habilitado", default=True)
+    email_domain = models.CharField("domínio dos e-mails institucionais", max_length=100, unique=True, null=True, blank=True)
 
     organization = models.OneToOneField(
         Organization,
@@ -539,3 +539,31 @@ class InstitutionalContact(models.Model):
 
     def __str__(self):
         return f'{self.institution_name} · {self.contact_name}'
+
+
+class InstitutionalAccount(models.Model):
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Administrativo'
+        STUDENT = 'STUDENT', 'Estudante'
+        TEACHER = 'TEACHER', 'Professor'
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='institutional_account')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='institutional_accounts')
+    registration = models.CharField('matrícula / registro', max_length=40)
+    email = models.EmailField('e-mail institucional', max_length=150, unique=True)
+    role = models.CharField('perfil', max_length=10, choices=Role.choices)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='provisioned_accounts')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['role', 'registration']
+        constraints = [
+            models.UniqueConstraint(fields=['organization', 'registration'], name='unique_institution_registration'),
+            models.UniqueConstraint(Lower('email'), name='unique_institution_email_lower'),
+            models.UniqueConstraint(fields=['organization'], condition=Q(role='ADMIN'), name='one_institution_admin'),
+        ]
+        verbose_name = 'acesso institucional'
+        verbose_name_plural = 'acessos institucionais'
+
+    def __str__(self):
+        return f'{self.email} · {self.get_role_display()}'

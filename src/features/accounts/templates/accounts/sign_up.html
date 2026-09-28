@@ -8,7 +8,7 @@
     <div class="auth-intro">
         <span class="pill"><span></span> Crie seu acesso</span>
         <h1>Seu aprendizado.<br><em>Com mais direção.</em></h1>
-        <p>Escolha estudante ou professor e informe o código fornecido pela sua instituição para entrar no mesmo espaço de aprendizagem.</p>
+        <p>Esta página cria uma conta pessoal. Para entrar como estudante ou professor de uma instituição, solicite seu e-mail de acesso ao administrativo.</p>
         <p>Representa uma instituição? <a href="{% url 'accounts:institutional-contact' %}">Entre em contato para cadastrá-la.</a></p>
         <ul class="auth-benefits">
             <li><span>✓</span> Organizações e turmas conectadas</li>
@@ -17,7 +17,7 @@
         </ul>
     </div>
     <div class="card auth-card signup-card">
-        <div class="auth-card-heading"><span>CRIAR CONTA</span><h2>Comece sua jornada</h2><p>Use seu código institucional ou escolha uma conta pessoal.</p></div>
+        <div class="auth-card-heading"><span>CRIAR CONTA</span><h2>Comece sua jornada</h2><p>Cadastro pessoal, sem vínculo automático com uma instituição.</p></div>
         <form method="post">
             {% csrf_token %}
             {{ form.non_field_errors }}

@@ -54,6 +54,8 @@ class User(AbstractUser):
         LIGHT = "light", "Claro"
         DARK = "dark", "Escuro"
 
+    must_change_password = models.BooleanField("trocar senha no próximo acesso", default=False)
+
     avatar = models.FileField("foto de perfil", upload_to="avatars/", blank=True)
 
     theme_preference = models.CharField("aparência", max_length=8, choices=Theme.choices, default=Theme.SYSTEM)
@@ -135,4 +137,5 @@ class User(AbstractUser):
             or self.learning_relationships.filter(status="ACTIVE").exists()
             or self.classroom_memberships.filter(role="STUDENT", status="ACTIVE").exists()
         )
+
 

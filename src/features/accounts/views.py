@@ -29,6 +29,8 @@ class SessionLoginView(LoginView):
     redirect_authenticated_user = True
 
     def get_success_url(self) -> str:
+        if self.request.user.must_change_password:
+            return str(reverse_lazy("accounts:institutional-password"))
         if not self.request.user.has_completed_onboarding:
             requested_url = self.get_redirect_url()
             if requested_url:
@@ -57,14 +59,10 @@ def sign_up(request: HttpRequest) -> HttpResponse:
 
     form = SignUpForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        try:
-            user = form.save()
-        except ValidationError as exc:
-            form.add_error('institutional_code', exc)
-        else:
-            login(request, user)
-            messages.success(request, "Conta criada e vinculada à instituição." if form.cleaned_data['registration_role'] != 'PERSONAL' else "Conta criada com sucesso.")
-            return redirect("accounts:onboarding")
+        user = form.save()
+        login(request, user)
+        messages.success(request, "Conta pessoal criada com sucesso.")
+        return redirect("accounts:onboarding")
 
     return render(request, "accounts/sign_up.html", {"form": form})
 
@@ -180,3 +178,23 @@ def institutional_contact(request):
         return redirect('accounts:institutional-contact')
     sent = request.session.pop('institutional_contact_sent', False) if request.method == 'GET' else False
     return render(request, 'accounts/institutional_contact.html', {'form': form, 'sent': sent, 'public_page': True})
+
+
+@login_required
+@never_cache
+@require_http_methods(['GET', 'POST'])
+def institutional_password(request):
+    from django.contrib.auth.forms import SetPasswordForm
+    if not request.user.must_change_password:
+        return redirect('accounts:account')
+    form = SetPasswordForm(request.user, request.POST if request.method == 'POST' else None)
+    if request.method == 'POST' and form.is_valid() and request.user.check_password(form.cleaned_data['new_password1']):
+        form.add_error('new_password1', 'Escolha uma senha diferente da provisória.')
+    if request.method == 'POST' and form.is_valid():
+        user = form.save(commit=False)
+        user.must_change_password = False
+        user.save(update_fields=['password', 'must_change_password'])
+        update_session_auth_hash(request, user)
+        messages.success(request, 'Sua senha pessoal foi definida.')
+        return redirect('accounts:dashboard')
+    return render(request, 'accounts/institutional_password.html', {'form': form, 'onboarding_mode': True})

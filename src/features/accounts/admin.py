@@ -6,6 +6,12 @@ from .models import User
 
 @admin.register(User)
 class ApplicationUserAdmin(UserAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        if obj and hasattr(obj, 'institutional_account'):
+            return tuple(fields) + ('username', 'email')
+        return fields
+
     fieldsets = UserAdmin.fieldsets + (
         (
             "Lumini",
@@ -29,3 +35,4 @@ class ApplicationUserAdmin(UserAdmin):
         "onboarding_role",
         "onboarding_completed_at",
     )
+

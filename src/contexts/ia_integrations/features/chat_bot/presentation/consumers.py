@@ -24,7 +24,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self) -> None:
         user = self.scope.get("user")
-        if user is None or not user.is_authenticated:
+        if user is None or not user.is_authenticated or getattr(user, "must_change_password", False):
             await self.close(code=4401)
             return
 
@@ -91,3 +91,4 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
         if conversation_id:
             payload["conversation_id"] = conversation_id
         await self.send_json(payload)
+

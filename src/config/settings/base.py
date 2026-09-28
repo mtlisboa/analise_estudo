@@ -50,6 +50,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "features.accounts.middleware.InstitutionalPasswordMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -132,3 +133,5 @@ CHANNEL_LAYERS = {
     } if REDIS_URL else {"BACKEND": "channels.layers.InMemoryChannelLayer"}
 }
 
+
+AUTHENTICATION_BACKENDS = ["features.accounts.backends.InstitutionalBackend"]

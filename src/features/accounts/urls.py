@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     account,
     institutional_contact,
+    institutional_password,
     avatar,
     update_theme,
     SessionLoginView,
@@ -17,6 +18,7 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
+    path("conta/definir-senha/", institutional_password, name="institutional-password"),
     path("instituicoes/contato/", institutional_contact, name="institutional-contact"),
     path("", landing, name="landing"),
     path("conta/", account, name="account"),

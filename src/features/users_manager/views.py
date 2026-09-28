@@ -296,6 +296,8 @@ def add_organization_member(request: HttpRequest, pk: int) -> HttpResponse:
     organization = get_object_or_404(Organization, pk=pk, is_active=True)
     if not can_manage_organization(request.user, organization):
         return HttpResponseForbidden("Somente o responsável pode adicionar membros.")
+    if getattr(getattr(organization, 'school', None), 'email_domain', None):
+        return redirect('users-manager:institutional-accounts', pk=organization.pk)
     form = OrganizationMemberForm(
         request.POST or None,
         organization=organization,
@@ -506,3 +508,4 @@ def create_self_assessment(request: HttpRequest) -> HttpResponse:
         "users_manager/form.html",
         {"form": form, "title": "Nova autoavaliação"},
     )
+

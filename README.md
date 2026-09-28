@@ -311,46 +311,73 @@ indicadores do dashboard analítico.
 Testes do módulo: `python src/manage.py test features.paper_exams`.
 
 
-## Contato e acesso institucional
+## Contato e acesso institucional por e-mail
 
-A landing page tem o caminho **Cadastrar instituição** / **Quero cadastrar minha
-instituição**, que abre `/instituicoes/contato/`. O formulário é público, não
-cria escola nem conta e registra os dados em **Admin → Contatos institucionais**.
-Nenhum e-mail ou WhatsApp é enviado automaticamente: a equipe acompanha a fila no
-painel e entra em contato usando os dados informados.
+O cadastro por código foi substituído pelo provisionamento de contas pela
+instituição. Os códigos antigos foram removidos da aplicação e do banco; os
+usuários, suas senhas e os vínculos já existentes são preservados.
 
-Fluxo da equipe:
-1. Entre por `/sysadmin/entrar/` com uma conta SYSADMIN habilitada para o admin.
-2. Abra **Contatos institucionais**, consulte o contato e use **Cadastrar
-   instituição a partir deste contato**. Também é possível adicionar diretamente
-   em **Escolas credenciadas**.
-3. Preencha os dados da escola, CNPJ ou INEP e, se houver, selecione uma conta
-   existente como responsável pela organização. Sem responsável selecionado, a
-   organização fica sob gestão do administrador que a cadastrou; a gestão pode
-   ser transferida depois pelo cadastro da organização.
-4. Salve e consulte o **código institucional** na página da escola. Entregue-o à
-   instituição para distribuição. O contato usado no cadastro fica associado à
-   escola e marcado como **Instituição cadastrada**.
+### Configuração pela plataforma
 
-No cadastro público, selecionar **Estudante** ou **Professor** exige um código
-institucional válido. A conta recebe automaticamente o vínculo correspondente
-com a organização da escola; não recebe gestão, permissões globais nem acesso
-a todas as turmas. O código é compartilhado pela instituição e permite escolher
-entre os dois perfis; não existe aprovação adicional de professor neste fluxo.
-O onboarding continua disponível e sua seleção de perfil não altera o vínculo
-institucional nem as permissões.
+1. Entre em `/sysadmin/entrar/` como SYSADMIN.
+2. Em **Escolas credenciadas → Adicionar**, informe dados da instituição,
+   CNPJ/INEP, domínio de e-mail (ex.: `escola.edu.br`), identificação do
+   administrativo (ex.: `administrativo`), nome e senha provisória.
+3. A criação salva escola, organização e conta administrativa em uma transação.
+   O administrativo passa a gerenciar a organização; não recebe acesso ao Django
+   admin nem privilégios de administrador global.
+4. Entregue o acesso `administrativo@escola.edu.br` e a senha provisória ao
+   responsável. Não existe envio automático de credenciais por e-mail.
 
-A opção **Conta pessoal, sem instituição** preserva o cadastro anterior. Contas,
-organizações, turmas e vínculos existentes permanecem. O fluxo anterior de
-solicitação documental/aprovação de escolas também foi mantido. Cada escola
-credenciada existente recebe um código próprio na migration, assim como escolas
-aprovadas pelo fluxo anterior. Organizações comuns não recebem código de escola.
+A landing page mantém **Cadastrar instituição**, com formulário público em
+`/instituicoes/contato/`. A solicitação fica em **Admin → Contatos institucionais**;
+o formulário não cria instituições automaticamente. O atalho do contato abre o
+cadastro da escola e associa a solicitação ao resultado.
 
-Somente SYSADMIN pode consultar, substituir ou desativar códigos no admin.
-Desmarcar **cadastro por código habilitado** ou desativar a organização impede
-novos vínculos. A ação **Gerar novos códigos institucionais** invalida os códigos
-anteriores, preserva usuários/vínculos já criados e registra a alteração no
-histórico administrativo. Cadastro e criação do vínculo são transacionais.
+### Cadastro pelo administrativo
 
-Após atualizar: `python src/manage.py migrate` (automático no entrypoint Docker).
+Depois de entrar e definir sua senha pessoal, o administrativo acessa
+**Organizações e turmas → instituição → Cadastrar acessos**. Informa matrícula ou
+registro, nome, perfil (estudante/professor) e senha provisória. O sistema cria
+`registro@dominio-da-instituicao` e o vínculo correto com a organização. O usuário
+não escolhe nem promove seu próprio perfil institucional. A inclusão em turmas
+continua sendo feita pelo fluxo existente.
+
+- Registro único por instituição, de até 40 caracteres, normalizado em minúsculas.
+  São aceitos letras sem acento, números, ponto, hífen e sublinhado, começando por
+  letra ou número. Um domínio pertence a uma instituição.
+- E-mails existentes não são reaproveitados nem sobrescritos; conflitos bloqueiam
+  o cadastro. A conta institucional tem e-mail e nome de usuário gerenciados,
+  que não podem ser alterados pelo titular no formulário de perfil.
+- O login aceita e-mail institucional sem diferenciar maiúsculas/minúsculas.
+  Contas pessoais antigas ainda podem entrar por usuário ou e-mail não ambíguo.
+- A senha é armazenada somente como hash. Toda conta nova ou com senha redefinida
+  precisa escolher uma senha diferente da provisória antes de acessar o produto.
+- O administrativo pode redefinir senhas de alunos/professores da própria
+  instituição. Apenas SYSADMIN redefine a senha do administrativo. A alteração
+  invalida as sessões anteriores.
+- Instituição desativada bloqueia login e sessões de suas contas institucionais.
+  Cadastros/recuperação de outra instituição são recusados.
+- O cadastro público continua disponível somente para contas pessoais; não aceita
+  códigos antigos nem cria contas em domínios institucionais configurados.
+
+### Instituições e usuários existentes
+
+Para uma escola já cadastrada, o SYSADMIN abre **Escolas credenciadas → escola →
+Configurar administrativo e gerenciar contas**. Informa domínio e dados do novo
+administrativo. A gestão passa para essa conta; matrículas, provas e vínculos
+existentes permanecem. Não há conversão automática das identidades anteriores
+porque seus registros e domínios não são conhecidos: elas mantêm o acesso
+anterior. O fluxo documental antigo de aprovação de escola permanece e pode ser
+seguido dessa configuração administrativa.
+
+Estes e-mails são **identificadores de login**: o sistema não cria caixas postais,
+não hospeda correio e não configura domínio ou DNS. Caixas reais exigem integração
+separada com um provedor (Google Workspace, Microsoft 365 etc.).
+
+Atualização: instale `requirements.txt` e execute `python src/manage.py migrate`
+(automático no entrypoint Docker). A mudança de backend de autenticação pode
+exigir novo login nas sessões abertas antes da atualização. Não há nova variável
+de ambiente obrigatória.
+
 Testes específicos: `python src/manage.py test features.accounts.tests.test_institutional`.

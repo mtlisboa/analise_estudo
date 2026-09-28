@@ -11,7 +11,7 @@ class NotificationsConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.group = None
         user = self.scope.get("user")
-        if not user or not user.is_authenticated or not user.is_active:
+        if not user or not user.is_authenticated or not user.is_active or getattr(user, "must_change_password", False):
             await self.close(code=4401)
             return
         self.user_id = user.pk
@@ -29,7 +29,7 @@ class NotificationsConsumer(AsyncJsonWebsocketConsumer):
         session = self.scope["session"]
         session._session_cache = await database_sync_to_async(session.load)()
         user = await get_user(self.scope)
-        if not user.is_authenticated or not user.is_active or user.pk != self.user_id:
+        if not user.is_authenticated or not user.is_active or user.pk != self.user_id or getattr(user, "must_change_password", False):
             await self.close(code=4401)
             return False
         return True
@@ -90,3 +90,4 @@ class NotificationsConsumer(AsyncJsonWebsocketConsumer):
         if notification_id is not None:
             queryset = queryset.filter(pk=notification_id)
         queryset.update(read_at=timezone.now())
+

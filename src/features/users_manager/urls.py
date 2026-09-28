@@ -1,10 +1,12 @@
 from django.urls import path
 
-from . import views
+from . import views, institutional_views
 
 app_name = "users-manager"
 
 urlpatterns = [
+    path("organizacoes/<int:pk>/acessos/", institutional_views.accounts, name="institutional-accounts"),
+    path("organizacoes/<int:pk>/acessos/<int:account_pk>/senha/", institutional_views.reset_password, name="institutional-password-reset"),
     path("", views.dashboard, name="dashboard"),
     path("escolas/solicitar/", views.create_school_application, name="school-application-create"),
     path(
@@ -64,3 +66,4 @@ urlpatterns = [
     ),
     path("autoavaliacoes/nova/", views.create_self_assessment, name="assessment-create"),
 ]
+

@@ -13,8 +13,9 @@
             <p>{{ organization.description|default:"Escolha um grupo para visualizar suas turmas." }}</p>
         </div>
         <div class="manager-actions">
+            {% if can_manage and organization.school.email_domain %}<a class="button button-small" href="{% url 'users-manager:institutional-accounts' organization.pk %}">Cadastrar acessos</a>{% endif %}
             {% if can_manage %}<a class="button button-small button-secondary" href="{% url 'organization-settings:detail' organization.pk %}">Configurações</a>{% endif %}
-            {% if can_manage %}<a class="button button-small button-secondary" href="{% url 'users-manager:organization-member-add' organization.pk %}">Adicionar membro</a>{% endif %}
+            {% if can_manage and not organization.school.email_domain %}<a class="button button-small button-secondary" href="{% url 'users-manager:organization-member-add' organization.pk %}">Adicionar membro</a>{% endif %}
             {% if can_create_classroom %}<a class="button button-small" href="{% url 'users-manager:classroom-group-create' organization.pk %}">Novo grupo</a>{% endif %}
         </div>
     </div>
@@ -53,3 +54,4 @@
     {% endif %}
 </section>
 {% endblock %}
+

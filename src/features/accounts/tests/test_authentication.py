@@ -30,7 +30,7 @@ class SessionAuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("accounts:institutional-contact"))
         self.assertContains(response, "Cadastrar instituição")
-        self.assertContains(response, reverse("accounts:sign-up"))
+        self.assertContains(response, reverse("accounts:login"))
 
     def test_login_creates_authenticated_session(self) -> None:
         response = self.client.post(
