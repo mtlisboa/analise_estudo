@@ -54,6 +54,7 @@
             </div>
             <div class="assessment-item-actions">
                 <small>Atualizada em {{ assessment.updated_at|date:"d/m/Y H:i" }}</small>
+                <a class="button" href="{% url 'paper-exams:index' assessment.pk %}">Imprimir e corrigir</a>
                 <button
                     class="button button-small add-question"
                     type="button"
@@ -249,3 +250,4 @@
 {% if question_form.errors %}<script>document.documentElement.dataset.openQuestionModal = "true";</script>{% endif %}
 <script src="{% static 'js/assessments.js' %}?v=4"></script>
 {% endblock %}
+

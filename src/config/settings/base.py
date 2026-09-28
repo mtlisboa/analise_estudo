@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "features.accounts.apps.AccountsConfig",
     "features.assessments.apps.AssessmentsConfig",
+    "features.paper_exams.apps.PaperExamsConfig",
     "features.users_manager.apps.UsersManagerConfig",
     "features.organization_settings.apps.OrganizationSettingsConfig",
     "features.analytics_dashboard.apps.AnalyticsDashboardConfig",
@@ -130,3 +131,4 @@ CHANNEL_LAYERS = {
         "CONFIG": {"hosts": [REDIS_URL]},
     } if REDIS_URL else {"BACKEND": "channels.layers.InMemoryChannelLayer"}
 }
+

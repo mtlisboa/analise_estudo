@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel">
+    <a href="{% url 'paper-exams:index' run.assessment_id %}">← Emissões</a>
+    <h1>{{ run.title }}</h1>
+    <p>{{ run.classroom_name }} · {{ run.created_at|date:'d/m/Y H:i' }}</p>
+    <h2>1. Imprimir</h2>
+    <p><a class="button" href="{% url 'paper-exams:download' run.pk 'provas' %}">Baixar provas</a> <a class="button" href="{% url 'paper-exams:download' run.pk 'folhas' %}">Baixar folhas de respostas</a></p>
+    <p>Imprima em A4, tamanho real (100%). Cada folha contém nome, registro e ID do aluno, turma e QR code. Preserve os quatro marcadores nos cantos.</p>
+</section>
+<section class="panel">
+    <h2>2. Importar respostas</h2>
+    <p>Envie PDF, imagem PNG/JPG, ZIP com imagens/PDFs ou CSV. Limites: 30 MB por envio, 100 páginas e 100 MB descompactados. Digitalize a folha inteira, sem sombras ou recortes, preferencialmente em 300 dpi.</p>
+    <p><a href="{% url 'paper-exams:download' run.pk 'modelo' %}">Baixar modelo CSV desta emissão</a>. Preencha q1, q2… com A–E; vazio significa sem resposta. Preserve sheet_id e student_id. Não envie o modelo vazio como teste: ele será corrigido como respostas em branco.</p>
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Importar e corrigir</button></form>
+    <p>Marcações incertas ficam sem nota até revisão. Folhas já importadas não são sobrescritas.</p>
+</section>
+<section class="panel">
+    <h2>3. Resultados</h2>
+    <p><a href="{% url 'paper-exams:download' run.pk 'resultados' %}">Exportar resultados CSV</a></p>
+    <div style="overflow-x:auto"><table><thead><tr><th>Aluno</th><th>ID</th><th>Estado</th><th>Nota</th><th>Revisão</th></tr></thead><tbody>
+    {% for sheet in sheets %}<tr><td>{{ sheet.student_name }}</td><td>{{ sheet.student_id }}</td>
+        {% if sheet.result %}<td>{{ sheet.result.get_status_display }}</td><td>{{ sheet.result.score|default_if_none:'Pendente' }} / {{ sheet.result.maximum_score }}</td><td><a href="{% url 'paper-exams:review' sheet.result.pk %}">{% if sheet.result.reviewed_at %}Ver revisão{% else %}Conferir{% endif %}</a></td>
+        {% else %}<td>Não importado</td><td>—</td><td>—</td>{% endif %}</tr>{% endfor %}
+    </tbody></table></div>
+</section>
+<section class="panel"><h2>Últimos lotes</h2>
+{% for batch in batches %}<details {% if batch.errors %}open{% endif %}><summary>{{ batch.filename }} · {{ batch.created_at|date:'d/m/Y H:i' }} · {{ batch.errors|length }} ocorrências</summary>
+<ul>{% for error in batch.errors %}<li>{{ error }}</li>{% empty %}<li>Processamento concluído sem ocorrências.</li>{% endfor %}</ul></details>{% empty %}<p>Nenhum lote importado.</p>{% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel">
+    <a href="{% url 'assessments:index' %}">← Avaliações</a>
+    <h1>Provas impressas</h1>
+    <p>{{ assessment }}</p>
+    <p>Emita provas e folhas individuais para os alunos ativos de uma turma. As questões e o gabarito ficam preservados nesta emissão.</p>
+    <p>De 1 a 50 questões objetivas, com 2 a 5 alternativas. A correção usa a pontuação cadastrada em cada questão.</p>
+    <form method="post">{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Emitir para a turma</button></form>
+</section>
+<section class="panel">
+    <h2>Emissões anteriores</h2>
+    {% for run in runs %}<p><a href="{% url 'paper-exams:detail' run.pk %}">{{ run.classroom_name }} · {{ run.created_at|date:'d/m/Y H:i' }}</a></p>{% empty %}<p>Nenhuma emissão criada.</p>{% endfor %}
+</section>
+{% endblock %}

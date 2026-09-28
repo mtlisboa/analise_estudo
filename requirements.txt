@@ -9,3 +9,11 @@ whitenoise==6.9.0
 channels-redis>=4.2,<5
 Pillow>=12.3,<13
 websockets>=15,<17
+
+
+# Printable exams and optical mark recognition
+reportlab>=4.4,<5
+qrcode>=8.2,<9
+opencv-python-headless>=4.12,<6
+pypdfium2>=5,<6
+zxing-cpp>=2.3,<4

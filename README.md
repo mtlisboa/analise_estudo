@@ -264,3 +264,48 @@ Contrato do socket: o servidor envia `notifications.snapshot` com `items` e
 `unread_count`. O cliente envia `notifications.sync`, `notifications.read` com
 `id`, ou `notifications.read_all`. Só são consultadas e alteradas notificações
 do usuário autenticado. A mensagem é renderizada como texto, sem HTML.
+
+
+## Provas impressas e correção por bolinhas
+
+Em **Avaliações → Imprimir e corrigir**, selecione uma turma para emitir provas e
+folhas de respostas individuais. O responsável precisa ser dono da avaliação e
+ter permissão de gestão da turma. A emissão copia questões, ordem, alternativas,
+gabarito e pontuação; alterações posteriores na avaliação não afetam as folhas
+já emitidas. Os alunos precisam ter vínculo ativo com a turma.
+
+- PDFs A4 de provas e folhas de respostas, com nome, registro (username), ID do
+  aluno, turma, bolinhas A–E e QR code assinado contendo o ID do aluno e da folha.
+- Até 50 questões objetivas, de 2 a 5 alternativas distintas, e 100 alunos por
+  emissão. Discursivas e avaliações com gabarito inválido impedem a emissão.
+- Importação de PDF, PNG/JPG, ZIP de imagens/PDFs ou CSV UTF-8. O modelo CSV é
+  específico da emissão: `sheet_id,student_id,q1,q2,...`; letras A–E ou campo vazio.
+  Vírgula e ponto e vírgula são aceitos. CSV vazio significa resposta em branco,
+  portanto não envie o modelo sem preencher apenas para testar.
+- Limites: 30 MB por upload, 100 arquivos/páginas e 100 MB descompactados por ZIP.
+  Arquivos ZIP nunca são extraídos no disco; formatos inesperados são recusados.
+- A leitura alinha os quatro marcadores e verifica a assinatura do QR. Marcação
+  dupla ou incerta fica sem nota até revisão. Em branco recebe zero na questão.
+  QR ilegível ou folha incompatível gera ocorrência, sem associar nota a aluno.
+- A correção soma a pontuação cadastrada das questões acertadas. Duplicatas não
+  substituem resultados. A revisão permite alterar respostas com justificativa,
+  preservando leitura original, imagem alinhada, autor e histórico de mudanças.
+- Resultados podem ser exportados em CSV. O acesso aos resultados e às imagens
+  exige sessão do emissor e permissão atual sobre a turma.
+
+Imprima em A4 a 100%, sem cortar os marcadores. Digitalize a folha inteira,
+preferencialmente a 300 dpi, sem sombras. O leitor aceita rotações de 90 graus e
+corrige perspectiva, mas não garante interpretação de rasuras, dobras, fotos
+borradas ou marcações muito claras. Valide com amostras físicas antes de usar
+notas em decisões escolares. Esta versão foi testada com imagens sintéticas,
+PDFs gerados, rotações e perspectiva; não há taxa de precisão medida em scans reais.
+
+Instale `requirements.txt` e execute `python src/manage.py migrate`; o entrypoint
+Docker já aplica migrations. O processamento é síncrono e limitado por lote.
+As imagens alinhadas ficam no banco junto aos resultados; preserve o volume do
+banco e dimensione armazenamento conforme o uso. Uma rotação de `DJANGO_SECRET_KEY`
+precisa manter a chave anterior em `SECRET_KEY_FALLBACKS` para ler folhas antigas.
+Os resultados deste módulo têm exportação própria e ainda não alimentam os
+indicadores do dashboard analítico.
+
+Testes do módulo: `python src/manage.py test features.paper_exams`.
