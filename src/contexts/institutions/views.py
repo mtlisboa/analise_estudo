@@ -60,9 +60,9 @@ def workspace(request, slug):
             for lesson in offer.published_schedule:
                 if account.role == 'TEACHER' and lesson['teacher_id'] != account.pk:
                     continue
-                itinerary.append({**lesson, 'classroom': offer.name, 'period': offer.period.name,
-                    'starts_on': offer.period.starts_on, 'ends_on': offer.period.ends_on,
-                    'code': str(offer.code)})
+                from datetime import date
+                itinerary.append({**lesson, 'starts_on': date.fromisoformat(lesson['period_start']),
+                    'ends_on': date.fromisoformat(lesson['period_end'])})
         data['itinerary'] = sorted(itinerary, key=lambda row: (row['starts_on'], row['day'], row['start'], row['classroom']))
         data['metrics'] = [('Minhas turmas', classrooms.count()), ('Atividades', tests.count())]
     elif account.role in ('ADMIN', 'MANAGER'):

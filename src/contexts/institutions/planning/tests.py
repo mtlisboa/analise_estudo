@@ -301,3 +301,32 @@ class PlanningTests(TestCase):
         response = self.client.get(reverse("institutions:professor"))
         self.assertContains(response, "Horários publicados")
         self.assertContains(response, "MATEMÁTICA")
+
+    def test_published_itinerary_does_not_leak_draft_names_or_dates(self):
+        self.requirement()
+        self.requirement(self.offer_b)
+        self.operation(generate_timetable)
+        self.operation(lambda p: publish(p, self.admin))
+        Offer.objects.filter(pk=self.offer.pk).update(name="Unpublished name")
+        Period.objects.filter(pk=self.period.pk).update(name="Unpublished period")
+        self.client.force_login(self.accounts["TEACHER"].user)
+        response = self.client.get(reverse("institutions:professor"))
+        self.assertNotContains(response, "Unpublished name")
+        self.assertNotContains(response, "Unpublished period")
+
+    def test_other_period_draft_cannot_free_published_teacher_slot(self):
+        self.requirement()
+        self.requirement(self.offer_b)
+        self.operation(generate_timetable)
+        self.operation(lambda p: publish(p, self.admin))
+        Lesson.objects.filter(requirement__offer__period=self.period).delete()
+        other = Period.objects.create(organization=self.organization, name="Concurrent",
+            starts_on=date(2026, 2, 1), ends_on=date(2026, 3, 1))
+        offer = Offer.objects.create(period=other, name="Other", grade="7", shift="MORNING", capacity=20)
+        teacher = Teacher.objects.create(period=other, account=self.accounts["TEACHER"],
+            subjects="MATEMÁTICA", max_lessons=10)
+        slot = Slot.objects.create(period=other, weekday=1, starts_at=time(8), ends_at=time(9), shift="MORNING")
+        teacher.availability.add(slot)
+        req = Requirement.objects.create(offer=offer, subject="MATEMÁTICA", weekly_lessons=1, teacher=teacher)
+        with self.assertRaises(ValidationError):
+            Lesson(requirement=req, slot=slot).full_clean()

@@ -2,6 +2,8 @@
 import csv
 import io
 from collections import Counter, defaultdict
+from datetime import date, time
+from types import SimpleNamespace
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
@@ -37,6 +39,32 @@ def concurrent_lessons(period):
     ).select_related("slot", "requirement__teacher__account", "requirement__offer__period")
 
 
+def occupied_lessons(period, exclude_id=None):
+    rows = list(concurrent_lessons(period).exclude(pk=exclude_id))
+    def key(row):
+        teacher_id = row.requirement.teacher.account_id if row.requirement.teacher_id else None
+        return (row.requirement.offer_id, row.requirement.subject, teacher_id,
+                row.slot.weekday, row.slot.starts_at, row.slot.ends_at)
+    seen = {key(row) for row in rows}
+    # A draft in another period must not free a teacher's currently published time.
+    for offer in Offer.objects.filter(period__organization=period.organization,
+            period__published_at__isnull=False).exclude(period=period).select_related("period"):
+        for entry in offer.published_schedule:
+            start = date.fromisoformat(entry["period_start"])
+            end = date.fromisoformat(entry["period_end"])
+            if start > period.ends_on or end < period.starts_on:
+                continue
+            row = SimpleNamespace(
+                slot=SimpleNamespace(weekday=entry["day"], starts_at=time.fromisoformat(entry["start"]),
+                                     ends_at=time.fromisoformat(entry["end"])),
+                requirement=SimpleNamespace(offer_id=offer.pk, subject=entry["subject"],
+                    teacher_id=entry["teacher_id"], teacher=SimpleNamespace(account_id=entry["teacher_id"])))
+            if key(row) not in seen:
+                seen.add(key(row))
+                rows.append(row)
+    return rows
+
+
 def validate_lesson(lesson):
     req, slot = lesson.requirement, lesson.slot
     period = req.offer.period
@@ -48,7 +76,7 @@ def validate_lesson(lesson):
     teacher.full_clean()
     if not teacher.availability.filter(pk=slot.pk, period=period).exists():
         raise ValidationError("O professor não está disponível neste horário.")
-    others = list(concurrent_lessons(period).exclude(pk=lesson.pk))
+    others = occupied_lessons(period, exclude_id=lesson.pk)
     teacher_lessons = [v for v in others if v.requirement.teacher_id
                        and v.requirement.teacher.account_id == teacher.account_id]
     if len(teacher_lessons) >= teacher.max_lessons:
@@ -183,7 +211,7 @@ def generate_timetable(period):
         needed = req.weekly_lessons - existing
         if needed <= 0:
             continue
-        occupied = list(concurrent_lessons(period))
+        occupied = occupied_lessons(period)
         best = None
         for teacher in candidates(req):
             if not teacher:
@@ -275,7 +303,9 @@ def publish(period, actor):
             {"weekday": lesson.slot.get_weekday_display(), "day": lesson.slot.weekday,
              "start": lesson.slot.starts_at.strftime("%H:%M"), "end": lesson.slot.ends_at.strftime("%H:%M"),
              "teacher_id": lesson.requirement.teacher.account_id,
-             "teacher": str(lesson.requirement.teacher), "subject": lesson.requirement.subject}
+             "teacher": str(lesson.requirement.teacher), "subject": lesson.requirement.subject,
+             "classroom": offer.name, "period": period.name, "code": str(offer.code),
+             "period_start": period.starts_on.isoformat(), "period_end": period.ends_on.isoformat()}
             for lesson in Lesson.objects.filter(requirement__offer=offer).select_related(
                 "slot", "requirement__teacher__account__user")
         ]
