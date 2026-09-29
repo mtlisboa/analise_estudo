@@ -1,0 +1,9 @@
+{% extends 'planning/base.html' %}
+{% block planning_content %}
+<article class="dash-card manager-card"><h1>Excluir registro</h1>
+<p>Excluir <strong>{{ object }}</strong> do planejamento? As turmas publicadas só serão atualizadas na próxima publicação.</p>
+<form method="post">{% csrf_token %}{% include 'components/planning/fields.html' %}
+<div class="manager-actions"><button class="button" type="submit">Confirmar exclusão</button>
+<a href="{% url 'planning:detail' period.pk %}">Cancelar</a></div></form>
+</article>
+{% endblock %}

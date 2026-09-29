@@ -1,0 +1,11 @@
+<article id="offers" class="dash-card manager-card">
+<div class="manager-card-title"><h2>Ofertas de turmas</h2>
+<a class="button button-small button-secondary" href="{% url 'planning:create' period.pk 'offer' %}">Adicionar oferta</a></div>
+<p>Crie as turmas e defina série, turno e quantidade de vagas antes de distribuir os alunos.</p>
+<div class="planning-grid">
+{% for item in offers %}<section class="planning-offer">
+<h3>{{ item.name }}</h3><p>{{ item.grade }} · {{ item.get_shift_display }} · {{ item.students.count }}/{{ item.capacity }} alunos</p>
+<small>Código da oferta</small><code class="planning-code">{{ item.code }}</code>
+{% include 'components/planning/row_actions.html' with kind='offer' %}
+</section>{% empty %}<p>Nenhuma oferta cadastrada.</p>{% endfor %}
+</div></article>

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Montagem de turmas | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/planning.css' %}">
+<section class="manager-shell planning-shell">
+    <nav class="manager-actions" aria-label="Caminho">
+        <a href="{% url 'institutions:index' %}">Meu contexto</a>
+        <a href="{% url 'planning:index' %}">Montagem de turmas</a>
+        {% if period %}<a href="{% url 'planning:detail' period.pk %}">{{ period.name }}</a>{% endif %}
+    </nav>
+    {% block planning_content %}{% endblock %}
+</section>
+{% endblock %}

@@ -1,0 +1,27 @@
+<article id="students" class="dash-card manager-card">
+<div class="manager-card-title"><h2>Lista de alunos</h2>
+<a class="button button-small button-secondary" href="{% url 'planning:create' period.pk 'student' %}">Adicionar aluno</a></div>
+<details><summary>Cadastrar lista de alunos</summary>
+<form method="post" action="{% url 'planning:action' period.pk 'import' %}">{% csrf_token %}
+{% include 'components/planning/fields.html' with form=batch_form %}
+<button class="button button-small" type="submit">Cadastrar lista</button></form></details>
+<p>A distribuição favorece colegas de períodos anteriores publicados e grupos informados na lista.
+Respeita série, turno, vagas e alunos fixados. Gerar novamente pode mover todos os alunos não fixados.</p>
+{% include 'components/planning/action.html' with action='distribute' label='Distribuir alunos automaticamente' secondary=True %}
+<form method="get" class="manager-actions"><label for="student-q">Nome ou matrícula</label>
+<input type="search" name="q" id="student-q" value="{{ query }}" maxlength="100">
+<button type="submit" class="button button-small button-secondary">Buscar</button></form>
+<div class="planning-table"><table>
+<caption>Alunos e distribuição atual</caption>
+<thead><tr><th>Aluno</th><th>Série / turno</th><th>Turma</th><th>Ações</th></tr></thead>
+<tbody>{% for item in student_page %}<tr>
+<td>{{ item.name }}<small>{{ item.registration }}</small></td>
+<td>{{ item.grade }}<small>{{ item.get_shift_display }}</small></td>
+<td>{{ item.offer.name|default:'Sem turma' }}{% if item.locked %}<small>Distribuição fixada</small>{% endif %}</td>
+<td>{% include 'components/planning/row_actions.html' with kind='student' %}</td>
+</tr>{% empty %}<tr><td colspan="4">Nenhum aluno encontrado.</td></tr>{% endfor %}</tbody></table></div>
+<nav class="manager-actions" aria-label="Páginas de alunos">
+{% if student_page.has_previous %}<a href="?q={{ query|urlencode }}&amp;page={{ student_page.previous_page_number }}#students">Anterior</a>{% endif %}
+<span>Página {{ student_page.number }} de {{ student_page.paginator.num_pages }}</span>
+{% if student_page.has_next %}<a href="?q={{ query|urlencode }}&amp;page={{ student_page.next_page_number }}#students">Próxima</a>{% endif %}
+</nav></article>

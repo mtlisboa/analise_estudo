@@ -1,0 +1,12 @@
+<article id="curriculum" class="dash-card manager-card">
+<div class="manager-card-title"><h2>Disciplinas por turma</h2>
+<a class="button button-small button-secondary" href="{% url 'planning:create' period.pk 'requirement' %}">Adicionar disciplina</a></div>
+<p>Informe quantas aulas semanais cada turma precisa. Deixe o professor em branco para seleção automática ou escolha e fixe o vínculo.</p>
+<div class="planning-table"><table><caption>Carga semanal e professores atribuídos</caption>
+<thead><tr><th>Turma / disciplina</th><th>Carga</th><th>Professor</th><th>Ações</th></tr></thead>
+<tbody>{% for item in requirements %}<tr><td>{{ item.offer.name }}<small>{{ item.subject }}</small></td>
+<td>{{ item.lessons.count }}/{{ item.weekly_lessons }} aulas</td>
+<td>{{ item.teacher|default:'A definir' }}{% if item.locked %}<small>Professor fixado</small>{% endif %}</td>
+<td>{% include 'components/planning/row_actions.html' with kind='requirement' %}</td></tr>
+{% empty %}<tr><td colspan="4">Nenhuma disciplina cadastrada.</td></tr>{% endfor %}</tbody></table></div>
+</article>

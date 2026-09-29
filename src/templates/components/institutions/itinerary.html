@@ -1,0 +1,9 @@
+{% if itinerary %}
+<article class="dash-card manager-card full-card"><h2>Horários publicados</h2>
+<div class="manager-list">{% for lesson in itinerary %}
+<div class="manager-list-item"><div class="list-copy">
+<strong>{{ lesson.weekday }} · {{ lesson.start }}–{{ lesson.end }} · {{ lesson.subject }}</strong>
+<small>{{ lesson.classroom }} · {{ lesson.teacher }} · {{ lesson.period }}</small>
+<small>{{ lesson.starts_on|date:"d/m/Y" }} a {{ lesson.ends_on|date:"d/m/Y" }} · Oferta {{ lesson.code }}</small>
+</div></div>{% endfor %}</div></article>
+{% endif %}

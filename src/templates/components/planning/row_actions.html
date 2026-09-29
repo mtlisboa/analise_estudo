@@ -1,0 +1,4 @@
+<div class="manager-actions">
+<a href="{% url 'planning:edit' period.pk kind item.pk %}">Editar<span class="planning-sr"> {{ item }}</span></a>
+<a href="{% url 'planning:delete' period.pk kind item.pk %}">Excluir<span class="planning-sr"> {{ item }}</span></a>
+</div>
