@@ -6,8 +6,8 @@
     <a class="back-link" href="{% url 'users-manager:dashboard' %}">Organizações e turmas</a>
     <div class="manager-heading"><h1>{{ organization.name }}</h1><p>Acessos institucionais</p></div>
     <article class="dash-card manager-card">
-        <h2>{% if has_admin %}Cadastrar estudante ou professor{% else %}Criar acesso administrativo{% endif %}</h2>
-        {% if has_admin %}<p>Use a matrícula ou registro da pessoa. O sistema formará o e-mail de acesso com o domínio <strong>{{ organization.school.email_domain }}</strong>.</p>{% else %}<p>Esta conta será responsável pela organização e pelo cadastro de estudantes e professores. Os vínculos atuais serão preservados.</p>{% endif %}
+        <h2>{% if has_admin %}Cadastrar acesso institucional{% else %}Criar acesso administrativo{% endif %}</h2>
+        {% if has_admin %}<p>Use a matrícula ou registro da pessoa. O sistema formará o e-mail de acesso com o domínio <strong>{{ organization.school.email_domain }}</strong>.</p>{% else %}<p>Esta conta será responsável pela organização e pelo cadastro de alunos, professores, gestores, operadores e responsáveis. Os vínculos atuais serão preservados.</p>{% endif %}
         <p>O e-mail identifica a conta na plataforma. Este cadastro não cria uma caixa postal. Entregue a senha provisória à pessoa; a troca será exigida no primeiro acesso.</p>
         <form method="post">{% csrf_token %}{{ form.non_field_errors }}
         {% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}

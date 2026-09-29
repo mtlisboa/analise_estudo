@@ -1,0 +1,7 @@
+{% if metrics %}
+<div class="institution-grid" aria-label="Resumo do contexto">
+    {% for label, value in metrics %}
+    <article class="dash-card manager-card"><p>{{ label }}</p><strong>{{ value }}</strong></article>
+    {% endfor %}
+</div>
+{% endif %}

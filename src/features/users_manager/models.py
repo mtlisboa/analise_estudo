@@ -546,6 +546,9 @@ class InstitutionalAccount(models.Model):
         ADMIN = 'ADMIN', 'Administrativo'
         STUDENT = 'STUDENT', 'Estudante'
         TEACHER = 'TEACHER', 'Professor'
+        MANAGER = 'MANAGER', 'Gestor'
+        OPERATOR = 'OPERATOR', 'Operador'
+        GUARDIAN = 'GUARDIAN', 'Responsável'
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='institutional_account')
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='institutional_accounts')

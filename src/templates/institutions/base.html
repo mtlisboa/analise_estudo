@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{{ workspace.title }} · {{ institution.display_name }} | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}
+<section class="manager-shell">
+    {% include 'components/institutions/heading.html' %}
+    {% include 'components/institutions/metrics.html' %}
+    {% block workspace_content %}{% endblock %}
+</section>
+{% endblock %}

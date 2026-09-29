@@ -47,7 +47,7 @@ class InstitutionalUserForm(TemporaryPasswordForm):
     registration = forms.CharField(label='Matrícula / registro', max_length=40)
     first_name = forms.CharField(label='Nome', max_length=150)
     last_name = forms.CharField(label='Sobrenome', max_length=150, required=False)
-    role = forms.ChoiceField(label='Perfil', choices=[('STUDENT', 'Estudante'), ('TEACHER', 'Professor')])
+    role = forms.ChoiceField(label='Perfil', choices=[choice for choice in InstitutionalAccount.Role.choices if choice[0] != 'ADMIN'])
     field_order = ['registration', 'first_name', 'last_name', 'role', 'password', 'password_confirm']
 
     def __init__(self, *args, organization, **kwargs):

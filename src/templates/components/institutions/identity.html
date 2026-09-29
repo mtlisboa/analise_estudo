@@ -1,0 +1,8 @@
+<article class="dash-card manager-card full-card">
+    <h2>Meu vínculo institucional</h2>
+    <dl>
+        <dt>Nome</dt><dd>{{ user.get_full_name|default:user.username }}</dd>
+        <dt>Registro</dt><dd>{{ identity.registration }}</dd>
+        <dt>E-mail institucional</dt><dd>{{ identity.email }}</dd>
+    </dl>
+</article>

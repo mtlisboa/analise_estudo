@@ -99,7 +99,7 @@ class InstitutionalAccessTests(TestCase):
     def test_admin_member_page_and_form(self):
         self.client.force_login(self.admin)
         url = reverse('users-manager:institutional-accounts', args=[self.organization.pk])
-        self.assertContains(self.client.get(url), 'Cadastrar estudante ou professor')
+        self.assertContains(self.client.get(url), 'Cadastrar acesso institucional')
         response = self.client.post(url, {'registration': '2026002', 'first_name': 'Ana', 'last_name': 'Silva',
             'role': 'TEACHER', 'password': TEMP, 'password_confirm': TEMP})
         self.assertRedirects(response, url)

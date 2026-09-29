@@ -1,0 +1,10 @@
+<div class="manager-topbar">
+    <div class="manager-heading">
+        <p class="section-kicker">{{ institution.display_name }} · Instituição</p>
+        <h1>{{ workspace.title }}</h1>
+        <p>{{ workspace.description }}</p>
+    </div>
+    {% if actions %}<div class="manager-actions">
+        {% for action in actions %}<a class="button button-small button-secondary" href="{{ action.url }}">{{ action.label }}</a>{% endfor %}
+    </div>{% endif %}
+</div>

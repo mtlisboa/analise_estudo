@@ -39,6 +39,8 @@ from .permissions import (
 
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
+    if hasattr(request.user, 'institutional_account'):
+        return redirect('institutions:index')
     organizations = list(
         Organization.objects.filter(
             Q(owner=request.user) | Q(memberships__user=request.user),
@@ -508,4 +510,3 @@ def create_self_assessment(request: HttpRequest) -> HttpResponse:
         "users_manager/form.html",
         {"form": form, "title": "Nova autoavaliação"},
     )
-

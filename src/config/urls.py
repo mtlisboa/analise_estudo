@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
+    path("instituicao/", include("contexts.institutions.urls")),
     path("provas-impressas/", include("features.paper_exams.urls")),
     path("admin/", admin.site.urls),
     path("assistente/", include("contexts.ia_integrations.urls")),
@@ -11,4 +12,3 @@ urlpatterns = [
     path("manager/", include("features.users_manager.urls")),
     path("", include("features.accounts.urls")),
 ]
-

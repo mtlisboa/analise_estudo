@@ -1,0 +1,8 @@
+{% extends 'institutions/base.html' %}
+{% block workspace_content %}
+{% include 'components/institutions/identity.html' %}
+<article class="dash-card manager-card full-card">
+    <h2>Alunos sob responsabilidade</h2>
+    {% include 'components/institutions/empty.html' with text='O vínculo entre responsáveis e alunos ainda não está disponível. Nenhum dado de aluno é exibido nesta etapa.' %}
+</article>
+{% endblock %}

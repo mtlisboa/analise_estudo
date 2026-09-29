@@ -71,6 +71,8 @@ def sign_up(request: HttpRequest) -> HttpResponse:
 def dashboard(request: HttpRequest) -> HttpResponse:
     if not request.user.has_completed_onboarding and not request.user.is_system_admin:
         return redirect("accounts:onboarding")
+    if hasattr(request.user, 'institutional_account'):
+        return redirect('institutions:index')
     return render(request, "accounts/dashboard.html")
 
 

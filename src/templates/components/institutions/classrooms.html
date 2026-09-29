@@ -1,0 +1,13 @@
+<article class="dash-card manager-card full-card">
+    <div class="manager-card-title"><h2>Turmas</h2></div>
+    <div class="manager-list">
+    {% for classroom in classrooms %}
+        <div class="manager-list-item"><div class="list-copy">
+            {% if link_classrooms %}<a href="{% url 'users-manager:classroom-detail' classroom.pk %}"><strong>{{ classroom.name }}</strong></a>{% else %}<strong>{{ classroom.name }}</strong>{% endif %}
+            <small>{{ classroom.get_shift_display }}{% if classroom.letter %} · {{ classroom.letter }}{% endif %}</small>
+        </div></div>
+    {% empty %}
+        {% include 'components/institutions/empty.html' with text='Nenhuma turma disponível neste contexto.' %}
+    {% endfor %}
+    </div>
+</article>

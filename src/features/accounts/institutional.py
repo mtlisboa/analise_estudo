@@ -50,13 +50,13 @@ def _new_identity(organization, actor, registration, role, password, first_name=
         raise ValidationError('Este registro já existe na instituição.')
     User = get_user_model()
     user = User(username=email, email=email, first_name=first_name, last_name=last_name,
-                must_change_password=True, onboarding_role=role if role != 'ADMIN' else 'MANAGER')
+                must_change_password=True, onboarding_role={'ADMIN': 'MANAGER', 'OPERATOR': 'OTHER'}.get(role, role))
     validate_password(password, user)
     user.set_password(password)
     user.save()
     identity = InstitutionalAccount.objects.create(user=user, organization=organization, registration=registration,
         email=email, role=role, created_by=actor)
-    if role != 'ADMIN':
+    if role in ('STUDENT', 'TEACHER'):
         OrganizationMembership.objects.create(organization=organization, user=user,
             is_student=role == 'STUDENT', is_teacher=role == 'TEACHER', added_by=actor)
     return identity
@@ -92,8 +92,8 @@ def provision_member(organization, actor, *, registration, role, password, first
         raise PermissionDenied('Somente o administrativo desta instituição pode cadastrar acessos.')
     if not organization.is_active or not School.objects.filter(organization=organization).exclude(email_domain__isnull=True).exclude(email_domain='').exists():
         raise ValidationError('Configure o domínio institucional antes de cadastrar usuários.')
-    if role not in ('STUDENT', 'TEACHER'):
-        raise ValidationError('Selecione estudante ou professor.')
+    if role not in ('STUDENT', 'TEACHER', 'MANAGER', 'OPERATOR', 'GUARDIAN'):
+        raise ValidationError('Selecione aluno, professor, gestor, operador ou responsável.')
     return _new_identity(organization, actor, registration, role, password, first_name, last_name)
 
 

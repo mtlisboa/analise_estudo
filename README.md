@@ -381,3 +381,40 @@ exigir novo login nas sessões abertas antes da atualização. Não há nova var
 de ambiente obrigatória.
 
 Testes específicos: `python src/manage.py test features.accounts.tests.test_institutional`.
+
+### Contextos institucionais
+
+O escopo institucional fica em `src/contexts/institutions/`, separado do painel
+pessoal. Para contas institucionais, **Meu painel** e **Organizações e turmas**
+direcionam para `/instituicao/`, que resolve o contexto pelo perfil persistido.
+
+| Perfil | Rota | Conteúdo inicial |
+| --- | --- | --- |
+| Professor | `/instituicao/professor/` | Turmas com vínculo ativo e atividades dessas turmas |
+| Aluno | `/instituicao/aluno/` | Turmas com vínculo ativo e atividades publicadas |
+| Gestor | `/instituicao/gestor/` | Resumo institucional e relação de turmas |
+| Operador | `/instituicao/operador/` | Consulta paginada de nomes, registros e perfis da instituição |
+| Responsável | `/instituicao/responsavel/` | Identificação institucional e estrutura inicial de acompanhamento |
+
+O administrativo existente (`ADMIN`) utiliza o contexto gestor, mantendo sua
+exclusividade de provisionamento e redefinição de acessos. O perfil `MANAGER`
+é institucional e não recebe permissões globais nem se torna dono da organização.
+O administrativo pode cadastrar os cinco perfis. Operador é, nesta etapa, somente
+consulta; ações operacionais adicionais ainda precisam ser definidas.
+
+O contexto responsável não expõe dados de alunos: o vínculo responsável/aluno e
+as funcionalidades de acompanhamento ainda não foram implementados. Alterar o
+perfil informado nas preferências/onboarding não concede acesso institucional.
+Rotas de outro perfil retornam 403; a instituição é obtida da conta autenticada.
+As permissões das funcionalidades anteriores permanecem em seus módulos.
+
+Os templates de cada contexto compõem cabeçalho, indicadores, turmas, atividades,
+diretório, identidade e estados vazios em `src/templates/components/institutions/`.
+O menu lateral foi extraído sem mudanças de marcação para
+`components/layout/sidebar.html`; o sino continua em `notifications/bell.html`,
+com os mesmos estilos e JavaScript. Nenhum framework de frontend adicional foi
+introduzido.
+
+Aplicar a migração `users_manager.0010` com `python src/manage.py migrate`.
+Ela acrescenta as opções de perfil sem converter nem excluir contas existentes.
+Testes dos contextos: `python src/manage.py test features.accounts.tests.test_institutional_contexts`.

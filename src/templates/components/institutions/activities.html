@@ -1,0 +1,12 @@
+<article class="dash-card manager-card full-card">
+    <div class="manager-card-title"><h2>Atividades recentes</h2></div>
+    <div class="manager-list">
+    {% for test in tests %}
+        <div class="manager-list-item"><div class="list-copy">
+            <strong>{{ test.title }}</strong><small>{{ test.classroom.name }} · {% if test.is_published %}Publicada{% else %}Rascunho{% endif %}</small>
+        </div></div>
+    {% empty %}
+        {% include 'components/institutions/empty.html' with text='Nenhuma atividade disponível.' %}
+    {% endfor %}
+    </div>
+</article>

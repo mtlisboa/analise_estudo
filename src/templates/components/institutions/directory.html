@@ -1,0 +1,19 @@
+<article class="dash-card manager-card full-card">
+    <h2>Registros da instituição</h2>
+    <p>Consulta de nomes, registros e perfis cadastrados.</p>
+    <form method="get" class="manager-actions">
+        <div class="form-field"><label for="directory-query">Nome ou registro</label><input id="directory-query" name="q" value="{{ query }}" maxlength="100" type="search"></div>
+        <button class="button button-small" type="submit">Buscar</button>
+    </form>
+    <div class="manager-list">
+        {% for account in account_page %}<div class="manager-list-item"><div class="list-copy">
+            <strong>{{ account.user.get_full_name|default:account.registration }}</strong>
+            <small>{{ account.registration }} · {{ account.get_role_display }}</small>
+        </div></div>{% empty %}{% include 'components/institutions/empty.html' with text='Nenhum registro encontrado.' %}{% endfor %}
+    </div>
+    {% if account_page.paginator.num_pages > 1 %}<nav class="manager-actions" aria-label="Páginas de registros">
+        {% if account_page.has_previous %}<a href="?q={{ query|urlencode }}&amp;page={{ account_page.previous_page_number }}">Anterior</a>{% endif %}
+        <span>Página {{ account_page.number }} de {{ account_page.paginator.num_pages }}</span>
+        {% if account_page.has_next %}<a href="?q={{ query|urlencode }}&amp;page={{ account_page.next_page_number }}">Próxima</a>{% endif %}
+    </nav>{% endif %}
+</article>
