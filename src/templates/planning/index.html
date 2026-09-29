@@ -1,0 +1,16 @@
+{% extends 'planning/base.html' %}
+{% block planning_content %}
+<header class="manager-heading"><p class="section-kicker">Organização escolar</p><h1>Montagem de turmas</h1>
+<p>Cadastre os alunos, organize as ofertas e monte os horários dos professores por período letivo.</p></header>
+<div class="planning-grid">
+<article class="dash-card manager-card"><h2>Períodos letivos</h2>
+{% for item in periods %}<div class="manager-list-item"><div class="list-copy">
+<a href="{% url 'planning:detail' item.pk %}"><strong>{{ item.name }}</strong></a>
+<small>{{ item.starts_on|date:"d/m/Y" }} a {{ item.ends_on|date:"d/m/Y" }}</small>
+</div></div>{% empty %}<p>Nenhum período cadastrado.</p>{% endfor %}
+</article>
+<article class="dash-card manager-card"><h2>Novo período</h2>
+<form method="post">{% csrf_token %}{% include 'components/planning/fields.html' %}
+<button class="button" type="submit">Criar período</button></form>
+</article></div>
+{% endblock %}

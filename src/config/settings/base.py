@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "features.organization_settings.apps.OrganizationSettingsConfig",
     "features.analytics_dashboard.apps.AnalyticsDashboardConfig",
     "contexts.ia_integrations.apps.IaIntegrationsConfig",
+    "contexts.institutions.planning.apps.PlanningConfig",
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,28 @@
+{% extends 'planning/base.html' %}
+{% block planning_content %}
+<header class="manager-heading">
+<p class="section-kicker">Montagem de turmas</p><h1>{{ period.name }}</h1>
+<p>{{ period.starts_on|date:"d/m/Y" }} a {{ period.ends_on|date:"d/m/Y" }} ·
+{% if period.published_at %}{% if dirty %}Alterações ainda não publicadas{% else %}Publicado{% endif %}{% else %}Rascunho{% endif %}</p>
+<a href="{% url 'planning:edit' period.pk 'period' period.pk %}">Editar período</a>
+</header>
+<nav class="planning-tabs" aria-label="Etapas do planejamento">
+<a href="#offers">1. Ofertas</a><a href="#students">2. Alunos</a>
+<a href="#teachers">3. Professores e horários</a><a href="#curriculum">4. Disciplinas</a>
+<a href="#timetable">5. Itinerário</a><a href="#publish">6. Publicar</a>
+</nav>
+{% include 'components/planning/offers.html' %}
+{% include 'components/planning/students.html' %}
+{% include 'components/planning/teachers.html' %}
+{% include 'components/planning/curriculum.html' %}
+{% include 'components/planning/timetable.html' %}
+<article id="publish" class="dash-card manager-card">
+<h2>Revisar e publicar</h2>
+<p>As edições ficam no planejamento até a publicação. Publicar atualiza as turmas e os vínculos de alunos e professores.
+Os códigos das ofertas são permanentes.</p>
+{% if issues %}<details open><summary>{{ issues|length }} pendência(s)</summary>
+<ul>{% for issue in issues %}<li>{{ issue }}</li>{% endfor %}</ul></details>
+{% else %}<p>Não há pendências de distribuição ou carga horária. A publicação verificará novamente os conflitos.</p>{% endif %}
+{% include 'components/planning/action.html' with action='publish' label='Publicar turmas e vínculos' %}
+</article>
+{% endblock %}

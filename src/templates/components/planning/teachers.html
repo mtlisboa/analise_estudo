@@ -1,0 +1,17 @@
+<section id="teachers" class="planning-grid">
+<article class="dash-card manager-card"><div class="manager-card-title"><h2>Horários da instituição</h2>
+<a class="button button-small button-secondary" href="{% url 'planning:create' period.pk 'slot' %}">Adicionar horário</a></div>
+<p>Cadastre cada intervalo de aula por dia da semana e turno. Intervalos de descanso ficam fora da grade.</p>
+{% for item in slots %}<div class="manager-list-item"><div class="list-copy"><strong>{{ item }}</strong>
+{% include 'components/planning/row_actions.html' with kind='slot' %}</div></div>
+{% empty %}<p>Nenhum horário cadastrado.</p>{% endfor %}
+</article>
+<article class="dash-card manager-card"><div class="manager-card-title"><h2>Professores</h2>
+<a class="button button-small button-secondary" href="{% url 'planning:create' period.pk 'teacher' %}">Configurar professor</a></div>
+<p>Selecione um acesso de professor já cadastrado pelo administrativo e marque os horários em que pode trabalhar.
+Sem horários marcados, o professor não participa da geração.</p>
+{% for item in teachers %}<div class="manager-list-item"><div class="list-copy"><strong>{{ item }}</strong>
+<small>{{ item.subjects }} · Limite: {{ item.max_lessons }} aulas/semana · {{ item.availability.count }} horários disponíveis</small>
+{% include 'components/planning/row_actions.html' with kind='teacher' %}</div></div>
+{% empty %}<p>Nenhum professor configurado.</p>{% endfor %}
+</article></section>

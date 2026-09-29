@@ -52,6 +52,18 @@ def workspace(request, slug):
         if account.role == 'STUDENT':
             tests = tests.filter(is_published=True)
         data.update(classrooms=classrooms, tests=tests.select_related('classroom')[:20])
+        from .planning.models import Offer
+        itinerary = []
+        published_offers = Offer.objects.filter(period__organization=organization,
+            classroom__in=classrooms, period__published_at__isnull=False).select_related('period')
+        for offer in published_offers:
+            for lesson in offer.published_schedule:
+                if account.role == 'TEACHER' and lesson['teacher_id'] != account.pk:
+                    continue
+                itinerary.append({**lesson, 'classroom': offer.name, 'period': offer.period.name,
+                    'starts_on': offer.period.starts_on, 'ends_on': offer.period.ends_on,
+                    'code': str(offer.code)})
+        data['itinerary'] = sorted(itinerary, key=lambda row: (row['starts_on'], row['day'], row['start'], row['classroom']))
         data['metrics'] = [('Minhas turmas', classrooms.count()), ('Atividades', tests.count())]
     elif account.role in ('ADMIN', 'MANAGER'):
         data['metrics'] = [
@@ -80,6 +92,8 @@ def workspace(request, slug):
                 Q(user__first_name__icontains=query) | Q(user__last_name__icontains=query))
         from django.core.paginator import Paginator
         data.update(query=query, account_page=Paginator(accounts, 20).get_page(request.GET.get('page')))
+    if account.role in ('ADMIN', 'OPERATOR'):
+        data['actions'].append({'url': reverse('planning:index'), 'label': 'Montagem de turmas'})
     if account.role in ('STUDENT', 'TEACHER'):
         data['link_classrooms'] = True
     return render(request, f'institutions/{slug}.html', data)

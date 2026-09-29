@@ -1,0 +1,17 @@
+<article id="timetable" class="dash-card manager-card">
+<div class="manager-card-title"><h2>Itinerário dos professores</h2>
+<a class="button button-small button-secondary" href="{% url 'planning:create' period.pk 'lesson' %}">Adicionar aula manualmente</a></div>
+<p>Gerar novamente substitui aulas não fixadas e pode trocar professores não fixados. Aulas fixadas preservam também seu professor.
+A proposta considera disponibilidade, carga semanal e conflitos de horários em períodos sobrepostos.</p>
+{% include 'components/planning/action.html' with action='schedule' label='Gerar professores e horários' secondary=True %}
+<form method="get" class="manager-actions">
+<label for="teacher-filter">Professor</label><select name="teacher" id="teacher-filter"><option value="">Todos</option>
+{% for teacher in teachers %}<option value="{{ teacher.pk }}"{% if selected_teacher == teacher.pk|stringformat:'s' %} selected{% endif %}>{{ teacher }}</option>{% endfor %}
+</select><button class="button button-small button-secondary" type="submit">Filtrar</button></form>
+<div class="planning-table"><table><caption>Grade semanal atual do planejamento</caption>
+<thead><tr><th>Dia / horário</th><th>Professor</th><th>Turma / disciplina</th><th>Ações</th></tr></thead>
+<tbody>{% for item in lessons %}<tr><td>{{ item.slot.get_weekday_display }}<small>{{ item.slot.starts_at|time:"H:i" }}–{{ item.slot.ends_at|time:"H:i" }}</small></td>
+<td>{{ item.requirement.teacher }}</td><td>{{ item.requirement.offer.name }}<small>{{ item.requirement.subject }}{% if item.locked %} · Horário fixado{% endif %}</small></td>
+<td>{% include 'components/planning/row_actions.html' with kind='lesson' %}</td></tr>
+{% empty %}<tr><td colspan="4">Nenhuma aula neste filtro.</td></tr>{% endfor %}</tbody></table></div>
+</article>

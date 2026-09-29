@@ -1,0 +1,26 @@
+name: Institutional planning
+on:
+  push:
+    branches: [feat/institution-class-planning]
+  pull_request:
+    branches: [dev]
+permissions:
+  contents: read
+jobs:
+  django:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DJANGO_SECRET_KEY: test-only-institution-planning
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m compileall -q src
+      - run: python src/manage.py check
+      - run: python src/manage.py makemigrations --check --dry-run
+      - run: python src/manage.py test contexts.institutions.planning features.accounts features.users_manager features.notifications

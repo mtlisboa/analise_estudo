@@ -1,0 +1,31 @@
+.planning-shell { display: grid; gap: 1.5rem; }
+.planning-shell .dash-card { min-width: 0; }
+.planning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem; }
+.planning-tabs { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; padding-block: .6rem; }
+.planning-offer { border: 1px solid currentColor; border-radius: 9px; padding: 1rem; }
+.planning-code { display: block; overflow-wrap: anywhere; font-size: .85rem; margin: .4rem 0 1rem; }
+.planning-shell article, .planning-shell section[id] { scroll-margin-top: 2rem; }
+.planning-shell .manager-card-title { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; justify-content: space-between; }
+.planning-shell form { display: grid; gap: 1rem; margin-block: 1rem; }
+.planning-shell form.manager-actions { display: flex; flex-wrap: wrap; }
+.planning-shell .form-field { display: grid; gap: .4rem; min-width: 0; }
+.planning-shell input:not([type=hidden]):not([type=checkbox]), .planning-shell select, .planning-shell textarea {
+    max-width: 100%; width: 100%; padding: .7rem; font: inherit; color: inherit; background: transparent;
+    border: 1px solid currentColor; border-radius: 9px;
+}
+.planning-shell input[type=checkbox] { width: 1.1rem; height: 1.1rem; }
+.planning-shell :focus-visible { outline: 3px solid #b64716; outline-offset: 3px; }
+.planning-shell details { padding-block: 1rem; }
+.planning-shell summary { cursor: pointer; font-weight: 600; }
+.planning-table { overflow-x: auto; }
+.planning-table table { width: 100%; border-collapse: collapse; text-align: left; }
+.planning-table th, .planning-table td { padding: .8rem .5rem; border-bottom: 1px solid currentColor; vertical-align: top; }
+.planning-table caption { text-align: left; padding-block: .8rem; }
+.planning-table small { display: block; margin-top: .25rem; }
+.planning-shell .errorlist { color: #a32317; }
+[data-theme=dark] .planning-shell .errorlist { color: #ffb4a9; }
+.planning-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 600px) {
+    .planning-table th, .planning-table td { padding: .65rem .35rem; font-size: .875rem; }
+    .planning-shell .manager-actions { flex-wrap: wrap; }
+}
