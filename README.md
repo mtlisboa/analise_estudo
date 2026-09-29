@@ -399,8 +399,8 @@ direcionam para `/instituicao/`, que resolve o contexto pelo perfil persistido.
 O administrativo existente (`ADMIN`) utiliza o contexto gestor, mantendo sua
 exclusividade de provisionamento e redefinição de acessos. O perfil `MANAGER`
 é institucional e não recebe permissões globais nem se torna dono da organização.
-O administrativo pode cadastrar os cinco perfis. Operador é, nesta etapa, somente
-consulta; ações operacionais adicionais ainda precisam ser definidas.
+O administrativo pode cadastrar os cinco perfis. O operador consulta registros e
+acessa a montagem de turmas descrita abaixo; não provisiona credenciais.
 
 O contexto responsável não expõe dados de alunos: o vínculo responsável/aluno e
 as funcionalidades de acompanhamento ainda não foram implementados. Alterar o
@@ -418,3 +418,22 @@ introduzido.
 Aplicar a migração `users_manager.0010` com `python src/manage.py migrate`.
 Ela acrescenta as opções de perfil sem converter nem excluir contas existentes.
 Testes dos contextos: `python src/manage.py test features.accounts.tests.test_institutional_contexts`.
+
+
+### Montagem de turmas e itinerário docente
+
+Administrativo e operador acessam **Montagem de turmas** em seus contextos, na rota
+`/instituicao/montagem/`. O fluxo permite cadastrar períodos, ofertas com código
+UUID único, listas de alunos, horários, professores e cargas por disciplina.
+A distribuição favorece colegas anteriores, respeitando série, turno e capacidade.
+A geração da grade atribui professores e horários conforme habilitação,
+disponibilidade e limite semanal, com pendências explícitas quando não completa.
+Tudo pode ser ajustado manualmente; alocações, professores e aulas podem ser fixados.
+
+A publicação sincroniza turmas e vínculos e disponibiliza o itinerário nos contextos
+de aluno e professor. A lista de alunos não cria credenciais: o administrativo
+continua responsável pelos acessos institucionais. Rascunhos e dados publicados
+são separados. As heurísticas não garantem a melhor solução possível.
+
+Aplique `python src/manage.py migrate`. Detalhes e limites em
+[docs/institution-planning.md](docs/institution-planning.md).
