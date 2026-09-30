@@ -6,7 +6,7 @@
     <p>{{ assessment }}</p>
     <p>Emita provas e folhas individuais para os alunos ativos de uma turma. As questões e o gabarito ficam preservados nesta emissão.</p>
     <p>De 1 a 50 questões objetivas, com 2 a 5 alternativas. A correção usa a pontuação cadastrada em cada questão.</p>
-    <form method="post">{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Emitir para a turma</button></form>
+    <form method="post">{% csrf_token %}{% include 'components/forms/fields.html' %}<button class="button primary" type="submit">Emitir para a turma</button></form>
 </section>
 <section class="panel">
     <h2>Emissões anteriores</h2>

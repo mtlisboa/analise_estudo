@@ -8,7 +8,7 @@
 <p>A distribuição favorece colegas de períodos anteriores publicados e grupos informados na lista.
 Respeita série, turno, vagas e alunos fixados. Gerar novamente pode mover todos os alunos não fixados.</p>
 {% include 'components/planning/action.html' with action='distribute' label='Distribuir alunos automaticamente' secondary=True %}
-<form method="get" class="manager-actions"><label for="student-q">Nome ou matrícula</label>
+<form method="get" action="#students" class="manager-actions"><label for="student-q">Nome ou matrícula</label>
 <input type="search" name="q" id="student-q" value="{{ query }}" maxlength="100">
 <button type="submit" class="button button-small button-secondary">Buscar</button></form>
 <div class="planning-table"><table>
