@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from features.users_manager.models import InstitutionalAccount
+from .demo import permits_demo_alias
 
 
 class InstitutionalBackend(ModelBackend):
@@ -23,8 +24,10 @@ class InstitutionalBackend(ModelBackend):
             if user is None and '@' in value:
                 matches = list(User.objects.filter(email__iexact=value)[:2])
                 user = matches[0] if len(matches) == 1 else None
-            if user and InstitutionalAccount.objects.filter(user=user).exists():
-                return None  # Managed accounts use their institutional address only.
+            if user:
+                managed = InstitutionalAccount.objects.filter(user=user).select_related('organization__school').first()
+                if managed and not permits_demo_alias(user, managed):
+                    return None  # Only explicit seeded demo aliases are allowed in MOCK mode.
         if user is None:
             User().set_password(password)
             return None

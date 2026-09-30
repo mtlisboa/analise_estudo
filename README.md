@@ -187,18 +187,19 @@ configure no serviço Railway:
 
 ```dotenv
 DEPLOY_MODE=MOCK
-MOCK_USER_PASSWORD=defina-uma-senha-segura
+MOCK_PASSWORD=defina-uma-senha-segura
 ```
 
 O comando é idempotente e atualiza os mesmos registros a cada inicialização.
-Ele cria os perfis `demo_professor`, `demo_professor_aux`, `demo_gestor`,
-`demo_responsavel` e 20 alunos (`demo_ana`, `demo_bruno`, etc.). A carga inclui
+Ele cria os perfis `demo_admin`, `demo_gestor`, `demo_operador`, `demo_professor`,
+`demo_professor_aux`, `demo_aluno`, `demo_responsavel` e 20 alunos adicionais
+(`demo_ana`, `demo_bruno`, etc.). A carga inclui
 duas instituições, hierarquias com até quatro níveis de grupos terminando em
 turmas nos quatro turnos, membros e
 convites em estados diferentes, vínculos educacionais, testes publicados e em
 rascunho, histórico de autoavaliações, avaliações cobrindo todo o catálogo de
 tipos e técnicas e quatro análises salvas. Todas as contas mock usam a senha
-definida em `MOCK_USER_PASSWORD`. Remova `DEPLOY_MODE=MOCK` para impedir novas
+definida em `MOCK_PASSWORD`. Remova `DEPLOY_MODE=MOCK` para impedir novas
 cargas; os dados já persistidos não são apagados automaticamente.
 
 ## Estrutura
@@ -437,3 +438,43 @@ são separados. As heurísticas não garantem a melhor solução possível.
 
 Aplique `python src/manage.py migrate`. Detalhes e limites em
 [docs/institution-planning.md](docs/institution-planning.md).
+
+### Módulos da gestão institucional
+
+O contexto `/instituicao/gestor/` organiza a interface em **Acadêmico**, **Análise**,
+**Administração** e **Institucional**. **Desempenho** pertence ao Acadêmico, na rota
+`/instituicao/gestor/academico/desempenho/`, e apresenta resultados agregados de
+provas impressas corrigidas, normalizados pela pontuação máxima. Resultados em
+revisão ou sem pontuação máxima válida não entram na média.
+
+Análise mostra a composição dos acessos e a distribuição de turmas por turno;
+Administração permite consultar os registros; Institucional reúne os dados da
+escola. Todas as consultas são limitadas à instituição autenticada. Os atalhos de
+provisionamento, montagem de turmas e configuração continuam respeitando as
+permissões do administrativo. O menu lateral e o sino não foram alterados.
+
+
+### Acessos institucionais de demonstração
+
+Com `DEPLOY_MODE=MOCK` e `MOCK_PASSWORD` definido, o entrypoint cria ou atualiza:
+
+| Login | Perfil |
+| --- | --- |
+| `demo_admin` | Administrativo, com gestão de acessos e montagem de turmas |
+| `demo_gestor` | Gestor, com módulos de consulta institucional |
+| `demo_operador` | Operador, com montagem de turmas |
+| `demo_professor` | Professor, vinculado às turmas demonstrativas |
+| `demo_aluno` | Aluno, vinculado a uma turma demonstrativa |
+| `demo_responsavel` | Responsável, com a área inicial já existente |
+
+A senha de todos vem exclusivamente de `MOCK_PASSWORD`, sem valor padrão. A carga
+é idempotente e atualiza a senha quando a variável muda. `MOCK_USER_PASSWORD` não
+é mais usada. O professor auxiliar e os alunos demonstrativos anteriores são
+preservados. Não é criado nenhum novo acesso de sysadmin com essa senha.
+
+Os seis logins acima (e `demo_professor_aux`) funcionam por nome curto apenas em
+modo MOCK. Também têm e-mail `login@demo.lumini.local`. As demais contas
+institucionais continuam exigindo e-mail. Nenhuma caixa postal é criada.
+O papel persistido na instituição define o contexto e as permissões; esses
+usuários não recebem privilégios globais de administração. Responsável continua
+sem dados de alunos até existir vínculo explícito.

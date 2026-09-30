@@ -16,16 +16,9 @@
 
     <form class="analytics-card generate-analysis-card" method="post">
         {% csrf_token %}
-        {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+        
         <div class="generate-analysis-grid">
-            {% for field in form %}
-                <div class="form-field">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
-                    {{ field.errors }}
-                </div>
-            {% endfor %}
+            {% include 'components/forms/fields.html' %}
         </div>
         <div class="generate-analysis-note">
             <strong>Nada será salvo agora</strong>

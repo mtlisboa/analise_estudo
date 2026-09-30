@@ -6,23 +6,16 @@
 {% block content %}
 <section class="auth-layout">
     <div class="auth-intro">
-        <span class="pill"><span></span> {% block login_pill %}Sua jornada continua aqui{% endblock %}</span>
-        <h1>{% block login_hero %}Bom ter você<br><em>de volta.</em>{% endblock %}</h1>
-        <p>{% block login_intro %}Acesse seu espaço e acompanhe cada avanço na sua aprendizagem.{% endblock %}</p>
-        <div class="auth-quote"><p>“O progresso fica mais leve quando sabemos qual é o próximo passo.”</p></div>
+        <span class="pill"><span></span> {% block login_pill %}Seu espaço na instituição{% endblock %}</span>
+        <h1>{% block login_hero %}Uma escola conectada.<br><em>Cada pessoa com sua visão.</em>{% endblock %}</h1>
+        <p>{% block login_intro %}Organize turmas, acompanhe aulas e consulte os módulos disponíveis para seu perfil.{% endblock %}</p>
+        <ol class="auth-steps"><li>Entre com a conta fornecida pelo administrativo.</li><li>Acesse as ferramentas do seu perfil.</li><li>Consulte o contexto da sua instituição.</li></ol>
     </div>
     <div class="card auth-card">
         <div class="auth-card-heading"><span>{% block login_label %}ACESSAR CONTA{% endblock %}</span><h2>{% block login_heading %}Entre na Lumini{% endblock %}</h2><p>{% block login_help %}Use o e-mail e a senha fornecidos pela instituição.{% endblock %}</p></div>
         <form method="post">
             {% csrf_token %}
-            {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
-            {% for field in form %}
-                <div class="form-field">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {{ field.errors }}
-                </div>
-            {% endfor %}
+            {% include 'components/forms/fields.html' %}
             {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
             <button class="button form-submit" type="submit">Entrar</button>
         </form>
