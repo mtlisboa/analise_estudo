@@ -1,0 +1,10 @@
+<article class="dash-card manager-card full-card">
+    <h2>Resultados por turma</h2>
+    <p class="manager-module-note">Provas impressas com correção concluída. Cada resultado é convertido em percentual da pontuação máxima; a média considera esses percentuais. Resultados em revisão não entram no cálculo.</p>
+    {% if performance_page %}<div class="manager-module-table"><table>
+    <caption>Aproveitamento acumulado nas provas registradas</caption>
+    <thead><tr><th scope="col">Turma</th><th scope="col">Provas corrigidas</th><th scope="col">Aproveitamento médio</th></tr></thead>
+    <tbody>{% for row in performance_page %}<tr><td>{{ row.sheet__run__classroom__name }}</td><td>{{ row.total }}</td><td>{{ row.average|floatformat:1 }}%</td></tr>{% endfor %}</tbody>
+    </table></div>{% else %}{% include 'components/institutions/empty.html' with text='Ainda não há provas corrigidas para apresentar o desempenho.' %}{% endif %}
+</article>
+{% include 'components/institutions/manager/pagination.html' with page=performance_page %}

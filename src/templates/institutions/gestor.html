@@ -1,4 +1,25 @@
-{% extends 'institutions/base.html' %}
-{% block workspace_content %}
-{% include 'components/institutions/classrooms.html' %}
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ title }} · {{ institution.display_name }} | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/manager-modules.css' %}">
+<section class="manager-shell manager-modules">
+    {% include 'components/institutions/manager/navigation.html' %}
+    <header class="manager-module-heading">
+        <div><p class="section-kicker">{{ institution.display_name }} · Gestão</p>
+        {% if module == 'desempenho' %}<p class="manager-breadcrumb"><a href="{% url 'institutions:manager-module' 'academico' %}">Acadêmico</a> / Desempenho</p>{% endif %}
+        <h1>{{ title }}</h1><p>{{ description }}</p></div>
+        {% if actions %}<div class="manager-actions">{% for action in actions %}<a class="button button-small" href="{{ action.url }}">{{ action.label }}</a>{% endfor %}</div>{% endif %}
+    </header>
+    {% include 'components/institutions/metrics.html' %}
+    {% if module == 'inicio' %}{% include 'components/institutions/manager/overview.html' %}
+    {% elif module == 'academico' %}{% include 'components/institutions/manager/academic.html' %}
+    {% elif module == 'desempenho' %}{% include 'components/institutions/manager/performance.html' %}
+    {% elif module == 'analise' %}{% include 'components/institutions/manager/analysis.html' %}
+    {% elif module == 'administracao' %}
+        {% include 'components/institutions/directory.html' %}
+        <p class="manager-module-note">A criação e a redefinição de acessos são realizadas pelo administrativo da instituição.</p>
+    {% elif module == 'institucional' %}{% include 'components/institutions/manager/institutional.html' %}{% endif %}
+</section>
 {% endblock %}

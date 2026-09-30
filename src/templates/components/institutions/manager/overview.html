@@ -1,0 +1,8 @@
+<div class="manager-module-grid">
+{% for item in modules %}<article class="manager-module-card">
+    <span class="manager-module-number" aria-hidden="true">0{{ forloop.counter }}</span>
+    <h2><a href="{{ item.url }}">{{ item.title }} <span aria-hidden="true">↗</span></a></h2>
+    <p>{{ item.description }}</p>
+    {% if item.slug == 'academico' %}<a class="manager-child-link" href="{% url 'institutions:manager-performance' %}">Desempenho <span aria-hidden="true">→</span></a>{% endif %}
+</article>{% endfor %}
+</div>

@@ -437,3 +437,17 @@ são separados. As heurísticas não garantem a melhor solução possível.
 
 Aplique `python src/manage.py migrate`. Detalhes e limites em
 [docs/institution-planning.md](docs/institution-planning.md).
+
+### Módulos da gestão institucional
+
+O contexto `/instituicao/gestor/` organiza a interface em **Acadêmico**, **Análise**,
+**Administração** e **Institucional**. **Desempenho** pertence ao Acadêmico, na rota
+`/instituicao/gestor/academico/desempenho/`, e apresenta resultados agregados de
+provas impressas corrigidas, normalizados pela pontuação máxima. Resultados em
+revisão ou sem pontuação máxima válida não entram na média.
+
+Análise mostra a composição dos acessos e a distribuição de turmas por turno;
+Administração permite consultar os registros; Institucional reúne os dados da
+escola. Todas as consultas são limitadas à instituição autenticada. Os atalhos de
+provisionamento, montagem de turmas e configuração continuam respeitando as
+permissões do administrativo. O menu lateral e o sino não foram alterados.

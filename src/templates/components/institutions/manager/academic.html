@@ -1,0 +1,3 @@
+<a class="manager-feature-link" href="{% url 'institutions:manager-performance' %}"><span><strong>Desempenho</strong><small>Acompanhe resultados e aproveitamento por turma.</small></span><span aria-hidden="true">→</span></a>
+{% include 'components/institutions/classrooms.html' with classrooms=classroom_page %}
+{% include 'components/institutions/manager/pagination.html' with page=classroom_page %}

@@ -1,0 +1,10 @@
+<nav class="manager-module-nav" aria-label="Módulos da gestão">
+    <a href="{% url 'institutions:gestor' %}"{% if module == 'inicio' %} aria-current="page"{% endif %}>Visão geral</a>
+    {% for item in modules %}<a href="{{ item.url }}"{% if active_module == item.slug %} aria-current="{% if module == 'desempenho' %}location{% else %}page{% endif %}"{% endif %}>{{ item.title }}</a>{% endfor %}
+</nav>
+{% if active_module == 'academico' %}
+<nav class="manager-submodule-nav" aria-label="Áreas do Acadêmico">
+    <a href="{% url 'institutions:manager-module' 'academico' %}"{% if module == 'academico' %} aria-current="page"{% endif %}>Turmas</a>
+    <a href="{% url 'institutions:manager-performance' %}"{% if module == 'desempenho' %} aria-current="page"{% endif %}>Desempenho</a>
+</nav>
+{% endif %}
