@@ -37,7 +37,7 @@ def render_module(request, account, module='inicio'):
         'modules': [{'slug': slug, 'title': title, 'description': description,
                      'url': reverse('institutions:manager-module', args=[slug])}
                     for slug, title, description in MODULES],
-        'title': 'Gestão da instituição', 'description': 'Escolha um módulo para acompanhar a rotina da escola.',
+        'title': 'Gestão da instituição', 'description': 'Use o menu lateral para acessar os módulos da instituição.',
         'metrics': [('Turmas ativas', classrooms.count()), ('Alunos cadastrados', counts.get('STUDENT', 0)),
                     ('Professores cadastrados', counts.get('TEACHER', 0))],
         'actions': [],

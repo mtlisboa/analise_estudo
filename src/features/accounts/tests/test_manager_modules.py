@@ -79,3 +79,31 @@ class ManagerModulesTests(TestCase):
         self.assertEqual(len(response.context['performance_page']), 1)
         self.assertContains(response, '65,0%')
         self.assertNotContains(response, 'Turma externa')
+
+
+    def test_management_modules_are_in_sidebar_on_every_module(self):
+        for role in ('ADMIN', 'MANAGER'):
+            self.client.force_login(self.users[role])
+            for url in self.urls():
+                response = self.client.get(url)
+                self.assertTemplateUsed(response, 'components/layout/management_navigation.html')
+                content = response.content.decode()
+                sidebar = content.split('<aside class="app-sidebar management-sidebar"')[1].split('</aside>')[0]
+                for slug in ('academico', 'analise', 'administracao', 'institucional'):
+                    self.assertIn(reverse('institutions:manager-module', args=[slug]), sidebar)
+                academic = sidebar.split('<details class="sidebar-academic"')[1].split('</details>')[0]
+                self.assertIn(reverse('institutions:manager-performance'), academic)
+                self.assertEqual(reverse('planning:index') in academic, role == 'ADMIN')
+                self.assertNotContains(response, 'class="manager-module-nav"')
+                self.assertEqual(sidebar.count('aria-current="page"'), 1)
+                self.assertIn('href="' + url + '" aria-current="page"', sidebar)
+
+    def test_sidebar_is_available_outside_workspace_and_tracks_role_changes(self):
+        self.client.force_login(self.users['MANAGER'])
+        self.assertTemplateUsed(self.client.get(reverse('accounts:account')),
+                                'components/layout/management_navigation.html')
+        from features.users_manager.models import InstitutionalAccount
+        InstitutionalAccount.objects.filter(user=self.users['MANAGER']).update(role='GUARDIAN')
+        response = self.client.get(reverse('institutions:responsavel'))
+        self.assertTemplateNotUsed(response, 'components/layout/management_navigation.html')
+        self.assertNotContains(response, 'management-sidebar')

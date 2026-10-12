@@ -21,7 +21,7 @@ Usar a pilha nativa Aptos, Segoe UI Variable, Segoe UI e system-ui. Títulos tê
 
 - Botões têm hierarquia primária e secundária, alvo confortável e estado pressionado com escala sutil.
 - Cartões dependem de borda, contraste e espaçamento; sombras são reservadas para elementos elevados.
-- A navegação autenticada usa barra lateral em telas grandes e dock inferior de quatro destinos no celular.
+- A navegação autenticada usa barra lateral em telas grandes e dock inferior no celular. Para gestor e administrativo, os módulos ficam na barra lateral: Acadêmico (com Turmas, Desempenho e montagem permitida por perfil), Análise, Administração e Institucional. No celular, Acadêmico abre seu submenu acima do dock.
 - O assistente de IA permanece acessível por um botão flutuante no canto inferior direito.
 - Formulários exibem foco visível, mensagens próximas ao campo e controles com altura consistente.
 
