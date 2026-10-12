@@ -7,6 +7,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
+from features.accounts.demo import DEMO_DOMAIN, DEMO_ROLES
+
 from features.analytics_dashboard.models import SavedAnalysis
 from features.analytics_dashboard.services import build_dashboard
 from features.assessments.models import (
@@ -22,6 +24,7 @@ from features.users_manager.models import (
     ClassroomMembership,
     ClassroomTest,
     EducationalRelationship,
+    InstitutionalAccount,
     MembershipStatus,
     Organization,
     OrganizationMembership,
@@ -60,11 +63,16 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options) -> None:
-        password = os.getenv("MOCK_USER_PASSWORD")
-        if not password:
+        password = os.getenv("MOCK_PASSWORD")
+        if not password or not password.strip():
             raise CommandError(
-                "Defina MOCK_USER_PASSWORD antes de carregar os dados mock."
+                "Defina MOCK_PASSWORD antes de carregar os dados mock."
             )
+        administrator = self._upsert_user('demo_admin', 'Administração', 'Demo', password,
+                                         onboarding_role=get_user_model().OnboardingRole.MANAGER)
+        operator = self._upsert_user('demo_operador', 'Operador', 'Demo', password,
+                                    onboarding_role=get_user_model().OnboardingRole.OTHER)
+        demo_student = self._upsert_user('demo_aluno', 'Aluno', 'Demo', password)
         teacher = self._upsert_user(
             "demo_professor",
             "Marina",
@@ -101,8 +109,8 @@ class Command(BaseCommand):
 
         organization, _ = Organization.objects.update_or_create(
             name="Colégio Lumini Demo",
-            owner=teacher,
             defaults={
+                "owner": administrator,
                 "description": "Instituição demonstrativa com grupos, turmas e dados de desempenho.",
                 "is_active": True,
             },
@@ -207,11 +215,6 @@ class Command(BaseCommand):
             organization=organization,
             user=assistant_teacher,
             defaults={"is_teacher": True, "is_student": False, "added_by": teacher},
-        )
-        OrganizationMembership.objects.update_or_create(
-            organization=organization,
-            user=manager,
-            defaults={"is_teacher": True, "is_student": True, "added_by": teacher},
         )
         for student in students:
             OrganizationMembership.objects.update_or_create(
@@ -411,6 +414,10 @@ class Command(BaseCommand):
                 )
 
         self._upsert_assessments(teacher)
+        self._institutional_accesses(organization, school, administrator,
+                                    [administrator, manager, operator, teacher,
+                                     assistant_teacher, demo_student, guardian], classrooms[0])
+
         self._upsert_saved_analysis(
             teacher,
             "Panorama geral demonstrativo",
@@ -481,10 +488,14 @@ class Command(BaseCommand):
         onboarding_role=None,
     ):
         User = get_user_model()
+        existing = User.objects.filter(username=username).first()
+        if existing and (existing.email != f'{username}@{DEMO_DOMAIN}' or existing.is_staff
+                         or existing.is_superuser or existing.system_role == User.SystemRole.SYSADMIN):
+            raise CommandError(f'O login {username} já está em uso por uma conta não demonstrativa.')
         user, _ = User.objects.get_or_create(username=username)
         user.first_name = first_name
         user.last_name = last_name
-        user.email = f"{username}@demo.lumini.local"
+        user.email = f"{username}@{DEMO_DOMAIN}"
         user.system_role = User.SystemRole.MANAGER if manager else User.SystemRole.MEMBER
         user.onboarding_role = onboarding_role or (
             User.OnboardingRole.TEACHER if manager else User.OnboardingRole.STUDENT
@@ -508,6 +519,41 @@ class Command(BaseCommand):
             user.set_password(password)
         user.save()
         return user
+
+    def _institutional_accesses(self, organization, school, administrator, users, classroom):
+        if School.objects.filter(email_domain=DEMO_DOMAIN).exclude(pk=school.pk).exists():
+            raise CommandError('O domínio demonstrativo já pertence a outra instituição.')
+        if InstitutionalAccount.objects.filter(organization=organization, role='ADMIN').exclude(user=administrator).exists():
+            raise CommandError('A instituição demonstrativa já possui outro administrativo.')
+        school.email_domain = DEMO_DOMAIN
+        school.save(update_fields=['email_domain'])
+        for user in users:
+            role = DEMO_ROLES[user.username]
+            identity = InstitutionalAccount.objects.filter(user=user).first()
+            if identity and identity.organization_id != organization.pk:
+                raise CommandError(f'{user.username} já pertence a outra instituição.')
+            if InstitutionalAccount.objects.filter(organization=organization, registration=user.username).exclude(user=user).exists():
+                raise CommandError(f'A matrícula {user.username} já está em uso.')
+            if get_user_model().objects.filter(email__iexact=user.email).exclude(pk=user.pk).exists():
+                raise CommandError(f'O e-mail demonstrativo de {user.username} já está em uso.')
+            InstitutionalAccount.objects.update_or_create(user=user, defaults={
+                'organization': organization, 'registration': user.username, 'email': user.email,
+                'role': role, 'created_by': administrator,
+            })
+            user.system_role = get_user_model().SystemRole.MEMBER
+            user.is_staff = False
+            user.is_superuser = False
+            user.must_change_password = False
+            user.save(update_fields=['system_role', 'is_staff', 'is_superuser', 'must_change_password'])
+            if role in ('TEACHER', 'STUDENT'):
+                OrganizationMembership.objects.update_or_create(organization=organization, user=user,
+                    defaults={'is_teacher': role == 'TEACHER', 'is_student': role == 'STUDENT',
+                              'added_by': administrator})
+            else:
+                OrganizationMembership.objects.filter(organization=organization, user=user).delete()
+            if role == 'STUDENT':
+                ClassroomMembership.objects.update_or_create(classroom=classroom, user=user,
+                    defaults={'role': 'STUDENT', 'status': MembershipStatus.ACTIVE, 'invited_by': administrator})
 
     def _upsert_organization(self, name, owner, description):
         organization, _ = Organization.objects.update_or_create(

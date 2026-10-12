@@ -1,0 +1,11 @@
+<article class="dash-card manager-card full-card"><h2>Dados da instituição</h2>
+<dl class="manager-data-list">
+<div><dt>Nome</dt><dd>{{ institution.display_name }}</dd></div>
+<div><dt>Razão social</dt><dd>{{ institution.legal_name }}</dd></div>
+<div><dt>Tipo</dt><dd>{{ institution.get_school_type_display }}</dd></div>
+<div><dt>CNPJ</dt><dd>{{ institution.cnpj|default:'Não informado' }}</dd></div>
+<div><dt>Código INEP</dt><dd>{{ institution.inep_code|default:'Não informado' }}</dd></div>
+<div><dt>Endereço</dt><dd>{{ institution.address }}</dd></div>
+<div><dt>Cidade / UF</dt><dd>{{ institution.city }} / {{ institution.state }}</dd></div>
+<div><dt>Domínio institucional</dt><dd>{{ institution.email_domain|default:'Não configurado' }}</dd></div>
+</dl></article>

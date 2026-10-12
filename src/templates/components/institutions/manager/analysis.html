@@ -1,0 +1,7 @@
+<div class="manager-module-grid">
+<article class="dash-card manager-card"><h2>Turmas por turno</h2><p>Distribuição das turmas ativas.</p>
+<dl class="manager-data-list">{% for label, count in shift_rows %}<div><dt>{{ label }}</dt><dd>{{ count }}</dd></div>{% endfor %}</dl></article>
+<article class="dash-card manager-card"><h2>Acessos por perfil</h2><p>Composição dos registros institucionais.</p>
+<dl class="manager-data-list">{% for label, count in role_rows %}<div><dt>{{ label }}</dt><dd>{{ count }}</dd></div>{% endfor %}</dl></article>
+</div>
+<p class="manager-module-note">Para resultados de provas, acesse <a href="{% url 'institutions:manager-performance' %}">Acadêmico → Desempenho</a>.</p>

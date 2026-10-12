@@ -1,0 +1,50 @@
+/* Shared institutional UI. Sidebar and notification components retain their styles. */
+.app-main { --workspace-gap: clamp(1rem, 2vw, 1.75rem); }
+.app-main :where(.manager-shell,.dashboard-shell) { width: 100%; max-width: 1440px; margin-inline: auto; }
+.app-main :where(.manager-heading,.page-heading) { padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+.app-main :where(h1,h2,h3) { text-wrap: balance; }
+.app-main h1 { letter-spacing: -.035em; line-height: 1.12; }
+.app-main :where(.manager-heading,.page-heading) p { max-width: 76ch; color: var(--text-soft); }
+.app-main :where(.dash-card,.panel,.card,.manager-module-card) { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: none; min-width: 0; }
+.app-main :where(.manager-card,.panel) { padding: clamp(1rem, 2.2vw, 1.75rem); }
+.app-main :where(.manager-card-title,.manager-actions) { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.app-main .manager-card-title { justify-content: space-between; margin-bottom: 1rem; }
+.app-main :where(.manager-list-item) { padding-block: 1rem; border-bottom: 1px solid var(--border); }
+.app-main .manager-list-item:last-child { border-bottom: 0; }
+.app-main :where(.list-copy small,.form-field small) { color: var(--text-soft); line-height: 1.6; }
+.app-main :where(.manager-module-nav,.manager-submodule-nav) { gap: .5rem; flex-wrap: wrap; }
+.app-main :where(.manager-module-nav,.manager-submodule-nav) a { padding: .75rem 1rem; border-radius: 9px; text-decoration: none; }
+.app-main :where(.manager-module-nav,.manager-submodule-nav) a[aria-current] { background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+.app-main :where(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea) { max-width: 100%; min-height: 44px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--surface); color: var(--text); padding: .7rem .85rem; font: inherit; }
+.app-main textarea { min-height: 8rem; resize: vertical; }
+.app-main :where(input[type=checkbox],input[type=radio]) { accent-color: var(--primary); }
+.app-main .form-field { display: grid; gap: .45rem; margin-bottom: 1rem; min-width: 0; }
+.app-main .form-field label { font-weight: 600; }
+.app-main :where(.button,button[type=submit]) { min-height: 44px; }
+.app-main :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.app-main .errorlist { color: #a32317; padding-left: 1.25rem; }
+[data-theme=dark] .app-main .errorlist { color: #ffb4a9; }
+.workspace-empty { border: 1px dashed var(--border-strong); border-radius: 9px; padding: 1.25rem; color: var(--text-soft); line-height: 1.6; }
+.workspace-notice { background: var(--primary-soft); border-left: 3px solid var(--primary); padding: 1rem 1.25rem; border-radius: 0 9px 9px 0; line-height: 1.6; }
+.workspace-notice p { margin: .35rem 0 0; }
+.workspace-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: var(--workspace-gap); }
+.workspace-columns > :last-child { grid-column: 1 / -1; }
+.itinerary-list { display: grid; gap: .75rem; }
+.itinerary-item { display: grid; grid-template-columns: minmax(8rem,.35fr) minmax(0,1fr); gap: 1rem; padding: 1rem; background: var(--bg-soft); border-radius: 9px; }
+.itinerary-item small,.itinerary-item time { display: block; margin-top: .3rem; color: var(--text-soft); }
+.itinerary-item code { overflow-wrap: anywhere; }
+.app-main :where(.planning-table,.manager-table-wrap) { overflow-x: auto; overscroll-behavior-inline: contain; }
+.app-main table { font-variant-numeric: tabular-nums; }
+.app-main th { color: var(--text-soft); font-size: .8rem; font-weight: 700; }
+.app-main :where(td,th) { border-color: var(--border); }
+.auth-steps { display: grid; gap: 1rem; padding-left: 1.3rem; color: var(--text-soft); line-height: 1.6; }
+@media (max-width: 760px) {
+ .workspace-columns { grid-template-columns: minmax(0,1fr); }
+ .itinerary-item { grid-template-columns: minmax(0,1fr); gap: .5rem; }
+ .app-main :where(.manager-heading,.page-heading) h1 { font-size: clamp(1.7rem,7vw,2.4rem); }
+ .app-main :where(.manager-actions,.manager-card-title) { align-items: flex-start; }
+ .app-main .manager-module-nav a { flex: 1 1 auto; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .app-main *, .app-main *::before, .app-main *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}

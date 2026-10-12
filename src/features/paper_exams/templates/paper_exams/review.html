@@ -8,7 +8,7 @@
 <p>Leitura original: {{ result.detected|join:', ' }}</p>
 {% if result.evidence %}<a href="{% url 'paper-exams:evidence' result.pk %}" target="_blank" rel="noopener">Abrir imagem em tamanho completo</a><img src="{% url 'paper-exams:evidence' result.pk %}" alt="Folha digitalizada do aluno para conferir as marcações" style="width:100%;max-width:720px;height:auto;display:block">{% endif %}
 {% if result.reviewed_at %}<p>Revisado em {{ result.reviewed_at|date:'d/m/Y H:i' }} por {{ result.reviewed_by }}.</p><p>{{ result.review_note }}</p><p>Respostas finais: {{ result.answers|join:', ' }}. Nota: {{ result.score }} / {{ result.maximum_score }}.</p>
-{% endif %}<p>Confira todas as respostas antes de confirmar. Cada revisão fica registrada no histórico.</p><form method="post">{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Confirmar respostas e recalcular nota</button></form>
+{% endif %}<p>Confira todas as respostas antes de confirmar. Cada revisão fica registrada no histórico.</p><form method="post">{% csrf_token %}{% include 'components/forms/fields.html' %}<button class="button primary" type="submit">Confirmar respostas e recalcular nota</button></form>
 <h2>Histórico de revisões</h2>
 {% for review in result.reviews.all %}<p>{{ review.created_at|date:"d/m/Y H:i" }} · {{ review.reviewer }} · {{ review.note }} · Respostas: {{ review.answers|join:", " }}</p>{% empty %}<p>Nenhuma revisão manual.</p>{% endfor %}
 </section>

@@ -23,8 +23,8 @@
 {% block content %}
 <section class="hero section-shell">
     <div class="hero-copy">
-        <h1>Cada resposta pode mostrar o <em>próximo passo.</em></h1>
-        <p class="hero-lead">Entenda o que cada aluno precisa e transforme evidências de aprendizagem em decisões claras.</p>
+        <h1>Sua instituição organizada.<br><em>Do planejamento à aprendizagem.</em></h1>
+        <p class="hero-lead">Organize turmas e professores, acompanhe o desempenho acadêmico e reúna a gestão escolar em um só lugar.</p>
         <div class="hero-actions">
             {% if user.is_authenticated %}
             <a class="button button-large" href="{% url 'accounts:dashboard' %}">Acessar meu painel</a>
@@ -47,19 +47,19 @@
     <div>
         <span>Aluno</span>
         <span>Professor</span>
-        <span>Gestão</span>
+        <span>Gestão</span><span>Operação</span><span>Administração</span>
     </div>
 </section>
 
 <section class="how-section" id="como-funciona">
     <div class="section-shell how-layout">
         <div class="how-copy">
-            <h2>Da atividade ao próximo passo.</h2>
-            <p>A Lumini organiza avaliações, contexto e acompanhamento para que cada decisão pedagógica tenha uma razão clara.</p>
+            <h2>Da lista de alunos à turma publicada.</h2>
+            <p>Um fluxo editável para organizar a oferta escolar e acompanhar a aprendizagem.</p>
             <div class="process-list">
-                <article><strong>Avaliar</strong><p>Crie atividades alinhadas ao que precisa ser observado.</p></article>
-                <article><strong>Entender</strong><p>Leia resultados individuais e coletivos no mesmo contexto.</p></article>
-                <article><strong>Agir</strong><p>Defina prioridades e acompanhe a evolução ao longo do tempo.</p></article>
+                <article><strong>Organizar</strong><p>Cadastre alunos, ofertas, disciplinas e disponibilidade dos professores.</p></article>
+                <article><strong>Distribuir e revisar</strong><p>Gere turmas priorizando colegas de períodos anteriores e ajuste os professores e horários.</p></article>
+                <article><strong>Publicar e acompanhar</strong><p>Publique os vínculos e horários. Consulte o desempenho dentro do módulo Acadêmico.</p></article>
             </div>
         </div>
         <figure class="how-visual"><img src="{% static 'images/lumini-educators.jpg' %}" width="1440" height="960" loading="lazy" alt="Educadoras analisando atividades e planejando os próximos passos da turma"></figure>
@@ -83,11 +83,11 @@
         <article class="solution-card institution-card">
             <span class="solution-tag">Para educadores e instituições</span>
             <h3>Visão ampla, atenção individual.</h3>
-            <p>Entre em contato com nossa equipe. Após o cadastro da instituição, criamos o acesso administrativo. A instituição então cadastra os e-mails de acesso dos estudantes e professores.</p>
+            <p>Entre em contato com nossa equipe. Após o cadastro da instituição, criamos o acesso administrativo. A instituição então cadastra os acessos de gestores, operadores, professores, alunos e responsáveis.</p>
             <ul>
-                <li>Organizações e turmas no mesmo espaço</li>
-                <li>Avaliações ligadas ao contexto</li>
-                <li>Análises individuais e coletivas</li>
+                <li>Acadêmico com turmas e desempenho</li>
+                <li>Análise, Administração e Institucional</li>
+                <li>Montagem de turmas com código único por oferta</li>
             </ul>
             <a href="{% url 'accounts:institutional-contact' %}">Entrar em contato para cadastrar instituição</a>
         </article>

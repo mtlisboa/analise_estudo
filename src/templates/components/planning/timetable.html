@@ -4,7 +4,7 @@
 <p>Gerar novamente substitui aulas não fixadas e pode trocar professores não fixados. Aulas fixadas preservam também seu professor.
 A proposta considera disponibilidade, carga semanal e conflitos de horários em períodos sobrepostos.</p>
 {% include 'components/planning/action.html' with action='schedule' label='Gerar professores e horários' secondary=True %}
-<form method="get" class="manager-actions">
+<form method="get" action="#timetable" class="manager-actions">
 <label for="teacher-filter">Professor</label><select name="teacher" id="teacher-filter"><option value="">Todos</option>
 {% for teacher in teachers %}<option value="{{ teacher.pk }}"{% if selected_teacher == teacher.pk|stringformat:'s' %} selected{% endif %}>{{ teacher }}</option>{% endfor %}
 </select><button class="button button-small button-secondary" type="submit">Filtrar</button></form>

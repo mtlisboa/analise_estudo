@@ -6,6 +6,7 @@
 {% if period.published_at %}{% if dirty %}Alterações ainda não publicadas{% else %}Publicado{% endif %}{% else %}Rascunho{% endif %}</p>
 <a href="{% url 'planning:edit' period.pk 'period' period.pk %}">Editar período</a>
 </header>
+<aside class="workspace-notice"><strong>Monte, revise e publique.</strong><p>A distribuição automática prioriza alunos que já estudaram juntos. Você pode ajustar turmas, professores e aulas manualmente; fixe as decisões que deseja preservar em uma nova geração.</p></aside>
 <nav class="planning-tabs" aria-label="Etapas do planejamento">
 <a href="#offers">1. Ofertas</a><a href="#students">2. Alunos</a>
 <a href="#teachers">3. Professores e horários</a><a href="#curriculum">4. Disciplinas</a>

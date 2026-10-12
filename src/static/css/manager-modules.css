@@ -1,0 +1,35 @@
+.manager-modules { display: grid; gap: 24px; }
+.manager-module-nav, .manager-submodule-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.manager-module-nav { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.manager-module-nav a, .manager-submodule-nav a { padding: 10px 14px; border-radius: var(--radius-small); color: var(--text-soft); font-weight: 650; text-decoration: none; }
+.manager-module-nav a[aria-current] { background: var(--primary-soft); color: var(--primary-strong); }
+.manager-submodule-nav { gap: 20px; margin-top: -10px; }
+.manager-submodule-nav a { border-radius: 0; padding: 8px 0; border-bottom: 2px solid transparent; }
+.manager-submodule-nav a[aria-current] { border-color: var(--primary); color: var(--text); }
+.manager-module-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.manager-module-heading h1 { margin: 6px 0 10px; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.04em; line-height: 1.15; }
+.manager-module-heading p { margin: 0; color: var(--text-soft); }
+.manager-module-heading .section-kicker { color: var(--primary); }
+.manager-module-heading .manager-breadcrumb { margin: 10px 0; font-size: 13px; }
+.manager-module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.manager-module-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; }
+.manager-module-number { font-size: 13px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.manager-module-card h2 { margin: 16px 0 8px; font-size: 25px; letter-spacing: -.025em; }
+.manager-module-card h2 a { color: var(--text); display: flex; align-items: center; justify-content: space-between; gap: 16px; text-decoration: none; }
+.manager-module-card p { color: var(--text-soft); margin: 0; }
+.manager-module-card .manager-child-link { display: inline-flex; gap: 22px; margin-top: 22px; padding: 7px 0; color: var(--primary-strong); font-weight: 650; }
+.manager-feature-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: var(--radius-small); padding: 18px 22px; color: var(--text); text-decoration: none; }
+.manager-feature-link small { display: block; color: var(--text-soft); margin-top: 4px; }
+.manager-data-list { margin: 16px 0 0; }
+.manager-data-list > div { display: flex; justify-content: space-between; align-items: baseline; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.manager-data-list dt { color: var(--text-soft); }
+.manager-data-list dd { margin: 0; text-align: right; font-weight: 650; overflow-wrap: anywhere; }
+.manager-module-note { color: var(--text-soft); font-size: 14px; }
+.manager-module-table { overflow-x: auto; }
+.manager-module-table table { width: 100%; border-collapse: collapse; }
+.manager-module-table th, .manager-module-table td { text-align: left; padding: 14px 10px; border-bottom: 1px solid var(--border); }
+.manager-module-table th { color: var(--text-soft); font-weight: 600; }
+.manager-module-table caption { text-align: left; padding: 12px 0; }
+.manager-modules > *, .manager-module-grid > * { min-width: 0; }
+@media (hover: hover) { .manager-module-nav a:hover, .manager-submodule-nav a:hover { color: var(--text); background: var(--bg-soft); } .manager-module-card h2 a:hover { color: var(--primary); } }
+@media (max-width: 700px) { .manager-module-grid { grid-template-columns: 1fr; } .manager-module-heading { align-items: flex-start; flex-direction: column; } .manager-module-nav a { padding: 10px; font-size: 14px; } .manager-module-card { padding: 20px; } .manager-data-list > div { flex-wrap: wrap; gap: 6px 16px; } }
