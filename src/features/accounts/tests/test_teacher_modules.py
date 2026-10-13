@@ -54,9 +54,10 @@ class TeacherModulesTests(TestCase):
     def test_administration_only_offers_own_pending_corrections(self):
         own = self.result(self.teacher.user,self.classroom,0,10,'review')
         other = self.result(self.admin,self.classroom,0,10,'review')
-        response = self.client.get(reverse('institutions:teacher-administration'))
+        response = self.client.get(reverse('institutions:teacher-administration-section',args=['correcoes']))
         self.assertContains(response,reverse('paper-exams:review',args=[own.pk]))
         self.assertNotContains(response,reverse('paper-exams:review',args=[other.pk]))
+        response = self.client.get(reverse('institutions:teacher-administration-section',args=['publicacoes']))
         self.assertContains(response,reverse('coursework:create',args=[self.offer.code,'MATEMÁTICA']))
         self.assertNotContains(response,reverse('users-manager:institutional-accounts',args=[self.organization.pk]))
 
@@ -80,3 +81,14 @@ class TeacherModulesTests(TestCase):
         self.client.logout()
         for url in urls:
             self.assertEqual(self.client.get(url).status_code,302)
+
+    def test_administration_opens_options_and_each_option_has_its_own_page(self):
+        response = self.client.get(reverse('institutions:teacher-administration'))
+        for section in ('acesso','turmas','publicacoes','correcoes'):
+            url = reverse('institutions:teacher-administration-section',args=[section])
+            self.assertContains(response,url)
+            self.assertEqual(self.client.get(url).status_code,200)
+        self.assertContains(response,'teacher-admin-nav')
+        self.assertNotContains(response,'<h2>Meu acesso institucional</h2>')
+        self.client.force_login(self.users['STUDENT'])
+        self.assertEqual(self.client.get(reverse('institutions:teacher-administration-section',args=['turmas'])).status_code,403)

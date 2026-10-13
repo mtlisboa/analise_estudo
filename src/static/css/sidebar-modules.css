@@ -34,3 +34,11 @@
 }
 
 @media(max-width:760px) { .teacher-sidebar .sidebar-nav { grid-template-columns: repeat(5,minmax(0,1fr)); } }
+
+.teacher-admin-nav summary { list-style: none; }
+.teacher-admin-nav summary::-webkit-details-marker { display: none; }
+.teacher-sidebar .sidebar-nav { min-height: 0; overflow-y: auto; }
+@media(max-width:760px) { .teacher-sidebar .sidebar-nav { overflow: visible; } .teacher-admin-nav .sidebar-children { position: absolute; bottom: calc(100% + 8px); left: 10px; right: 10px; margin: 0; padding: 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); } .teacher-admin-nav .sidebar-children .sidebar-link { flex-direction: row; justify-content: flex-start; padding: 10px; } }
+
+.teacher-admin-nav[open] .sidebar-chevron { transform: rotate(180deg); }
+@media(max-width:760px) { .teacher-admin-nav .sidebar-chevron { display: none; } }
