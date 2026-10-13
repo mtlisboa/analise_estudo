@@ -95,7 +95,7 @@ def room_data(request, classroom):
         'notices': list(notices[:3]), 'notice_count': notices.count(),
         'notice_page': Paginator(notices, 20).get_page(request.GET.get('notices_page')),
         'notice_form': NoticeForm(), 'cover_form': CoverForm(initial={'description': classroom.cover_description}),
-        'available_exams': available_exams, 'directories': directories, 'recent_activities': items[:5]}
+        'available_exams': available_exams, 'agenda_items': sorted([i for i in items if i['due_at']], key=lambda i: i['due_at']), 'directories': directories, 'recent_activities': items[:5]}
 
 
 def detail(request, pk, *, cover_form=None, notice_form=None, status=200):
