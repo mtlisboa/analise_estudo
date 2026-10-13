@@ -3,7 +3,7 @@ from django import forms
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q, F
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -12,7 +12,7 @@ from features.users_manager.models import InstitutionalAccount
 from features.notifications.services import notify_user
 from ..views import institutional_identity
 from .models import Conversation, Message, ReadState
-from .services import classrooms, contacts, authorized, inbox, payload, title
+from .services import classrooms, contacts, authorized, inbox, payload, title, room_teachers, room_conversations
 
 
 class MessageForm(forms.Form):
@@ -22,6 +22,16 @@ class MessageForm(forms.Form):
 
 def data(account, selected=None, contact_query=''):
     return {**inbox(account,selected,contact_query),'message_form':MessageForm()}
+
+
+def requested_room(request, account):
+    room = request.POST.get('return_classroom')
+    if not room:
+        return None
+    try:
+        return get_object_or_404(classrooms(account), pk=int(room))
+    except ValueError:
+        raise Http404('Turma inválida.')
 
 
 def destination(request, account, conversation):
@@ -54,6 +64,10 @@ def index(request, pk=None):
 @transaction.atomic
 def start(request, kind, pk):
     account = institutional_identity(request.user)
+    room = requested_room(request, account)
+    if room and ((kind == 'grupo' and pk != room.pk) or
+                 (kind == 'direta' and not room_teachers(account, room).filter(pk=pk).exists())):
+        raise Http404('Destino indisponível nesta turma.')
     if kind == 'grupo':
         classroom = get_object_or_404(classrooms(account),pk=pk)
         conversation,_ = Conversation.objects.get_or_create(classroom=classroom,
@@ -74,6 +88,9 @@ def start(request, kind, pk):
 def send(request, pk):
     account = institutional_identity(request.user)
     conversation = authorized(account,pk)
+    room = requested_room(request, account)
+    if room:
+        get_object_or_404(room_conversations(account, room), pk=conversation.pk)
     form = MessageForm(request.POST)
     if not form.is_valid():
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
