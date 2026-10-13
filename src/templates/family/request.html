@@ -1,0 +1,7 @@
+{% extends 'family/base.html' %}
+{% block family_content %}
+<a href="{% if staff %}{% url 'family:desk' %}{% else %}{% url 'family:module' 'contato' %}{% endif %}">← Solicitações</a>
+<article class="dash-card manager-card full-card"><h2>{{ ticket.title }}</h2><p>Protocolo {{ ticket.protocol }} · {{ ticket.get_status_display }}</p><p>{{ ticket.guardian.user.get_full_name|default:ticket.guardian.registration }} · {{ ticket.student.user.get_full_name|default:'Contato geral' }}</p>{{ ticket.description|linebreaks }}<small>{{ ticket.created_at|date:'d/m/Y H:i' }}</small></article>
+<article class="dash-card manager-card full-card"><h2>Histórico de atendimento</h2>{% for message in thread %}<div class="manager-list-item"><div class="list-copy"><strong>{{ message.author.get_full_name|default:message.author.username }}</strong><small>{{ message.created_at|date:'d/m/Y H:i' }}</small>{{ message.text|linebreaks }}{% if message.attachment %}<a href="{% url 'family:attachment' message.pk %}">Baixar documento PDF</a>{% endif %}</div></div>{% empty %}<p>Aguardando atendimento.</p>{% endfor %}</article>
+<article class="dash-card manager-card full-card"><h2>{% if staff %}Responder solicitação{% else %}Enviar nova mensagem{% endif %}</h2><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button type="submit" class="button button-primary">Enviar</button></form></article>
+{% endblock %}

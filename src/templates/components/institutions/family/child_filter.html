@@ -1,0 +1,5 @@
+{% if children %}
+<form method="get" class="manager-actions"><label for="family-child">Acompanhar</label><select name="child" id="family-child"><option value="">Todos os filhos</option>{% for child in children %}<option value="{{ child.pk }}"{% if selected_child.pk == child.pk %} selected{% endif %}>{{ child.user.get_full_name|default:child.registration }}</option>{% endfor %}</select>{% if past %}<input type="hidden" name="past" value="1">{% endif %}{% if module == 'desempenho' %}<input type="hidden" name="starts_on" value="{{ request.GET.starts_on }}"><input type="hidden" name="ends_on" value="{{ request.GET.ends_on }}"><input type="hidden" name="subject" value="{{ request.GET.subject }}">{% endif %}<button type="submit" class="button button-secondary">Filtrar</button></form>
+{% else %}
+<article class="dash-card manager-card full-card"><h2>Nenhum filho vinculado</h2><p>A instituição precisa confirmar seu vínculo com cada aluno. Entre em contato com a instituição para solicitar o cadastro.</p><a href="{% url 'family:module' 'contato' %}">Contatar instituição</a></article>
+{% endif %}

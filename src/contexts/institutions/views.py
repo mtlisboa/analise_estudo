@@ -26,6 +26,8 @@ def institutional_identity(user):
 @require_GET
 def index(request):
     account = institutional_identity(request.user)
+    if account.role == 'GUARDIAN':
+        return redirect('family:index')
     return redirect(f'institutions:{workspace_for(account).slug}')
 
 
@@ -37,6 +39,9 @@ def workspace(request, slug):
     context = workspace_for(account)
     if context.slug != slug:
         raise PermissionDenied('Seu perfil não tem acesso a este contexto.')
+
+    if account.role == 'GUARDIAN':
+        return redirect('family:index')
 
     if account.role in ('ADMIN', 'MANAGER'):
         from .manager import render_module

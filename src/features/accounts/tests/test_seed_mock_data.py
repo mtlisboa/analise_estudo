@@ -57,6 +57,10 @@ class SeedMockDataCommandTests(TestCase):
         teacher = User.objects.get(username="demo_professor")
         organization = Organization.objects.get(name="Colégio Lumini Demo", owner__username="demo_admin")
 
+        from contexts.institutions.family.models import GuardianLink
+        self.assertEqual(GuardianLink.objects.filter(guardian__user__username='demo_responsavel',
+            student__user__username='demo_aluno', is_active=True).count(), 1)
+
         self.assertTrue(teacher.check_password("senha-mock-segura"))
         self.assertEqual(User.objects.filter(username__startswith="demo_").count(), 27)
         self.assertEqual(Organization.objects.filter(owner__username="demo_admin").count(), 1)
@@ -185,7 +189,7 @@ class SeedMockDataCommandTests(TestCase):
             self.assertFalse(user.must_change_password)
             self.client.force_login(user)
             self.assertRedirects(self.client.get(reverse('institutions:index')),
-                                 reverse('institutions:' + routes[role]))
+                                 reverse('family:index') if role == 'GUARDIAN' else reverse('institutions:' + routes[role]))
         self.assertEqual(InstitutionalAccount.objects.count(), len(DEMO_ROLES))
         admin = User.objects.get(username='demo_admin')
         self.assertEqual(Organization.objects.get(name='Colégio Lumini Demo').owner, admin)

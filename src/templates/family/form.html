@@ -1,0 +1,2 @@
+{% extends 'family/base.html' %}
+{% block family_content %}<a href="{% url 'family:desk' %}">← Famílias e atendimento</a><article class="dash-card manager-card full-card"><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit" class="button button-primary">Salvar</button></form></article>{% endblock %}

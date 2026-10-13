@@ -23,3 +23,12 @@
  .management-sidebar .sidebar-children .sidebar-label { display: inline; }
  .management-sidebar .sidebar-children .mobile-nav-label { display: none; }
 }
+
+@media(min-width:761px) {
+ .family-sidebar .sidebar-nav { overflow-x: hidden; overflow-y: auto; min-height: 0; padding: 4px; }
+}
+@media(max-width:760px) {
+ .family-sidebar { height: calc(136px + env(safe-area-inset-bottom)); }
+ .family-sidebar .sidebar-nav { grid-template-columns: repeat(4,minmax(0,1fr)); }
+ .has-family-sidebar .app-main { padding-bottom: calc(146px + env(safe-area-inset-bottom)); }
+}
