@@ -1,10 +1,14 @@
 from django.urls import path
 
-from . import views, institutional_views
+from . import views, institutional_views, room
 
 app_name = "users-manager"
 
 urlpatterns = [
+    path("turmas/<int:pk>/capa/", room.cover, name="classroom-cover"),
+    path("turmas/<int:pk>/capa/editar/", room.update_cover, name="classroom-cover-update"),
+    path("turmas/<int:pk>/avisos/novo/", room.add_notice, name="classroom-notice-create"),
+    path("turmas/<int:pk>/avisos/<int:notice_pk>/retirar/", room.withdraw_notice, name="classroom-notice-withdraw"),
     path("organizacoes/<int:pk>/acessos/", institutional_views.accounts, name="institutional-accounts"),
     path("organizacoes/<int:pk>/acessos/<int:account_pk>/senha/", institutional_views.reset_password, name="institutional-password-reset"),
     path("", views.dashboard, name="dashboard"),

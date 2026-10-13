@@ -415,26 +415,8 @@ def create_classroom(
 
 @login_required
 def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    classroom = get_object_or_404(
-        Classroom.objects.select_related("organization", "group"),
-        pk=pk,
-        is_active=True,
-    )
-    can_manage = can_manage_classroom(request.user, classroom)
-    if not can_view_classroom(request.user, classroom):
-        return HttpResponseForbidden("Você não participa desta turma.")
-    return render(
-        request,
-        "users_manager/classroom_detail.html",
-        {
-            "classroom": classroom,
-            "memberships": classroom.memberships.select_related("user", "invited_by"),
-            "tests": classroom.tests.filter(is_published=True)
-            if not can_manage
-            else classroom.tests.all(),
-            "can_manage": can_manage,
-        },
-    )
+    from .room import detail
+    return detail(request, pk)
 
 
 @login_required
