@@ -1,4 +1,9 @@
-.management-sidebar .sidebar-nav { overflow-y: auto; min-height: 0; padding-bottom: 12px; }
+.management-sidebar .sidebar-nav { overflow-x: hidden; overflow-y: auto; min-width: 0; min-height: 0; padding-bottom: 12px; }
+@media(min-width:761px) {
+ .sidebar-nav { min-width: 0; grid-template-columns: minmax(0,1fr); }
+ .sidebar-nav .sidebar-link { min-width: 0; }
+ .sidebar-nav .sidebar-label { min-width: 0; overflow-wrap: anywhere; }
+}
 .sidebar-academic { min-width: 0; }
 .sidebar-academic summary { list-style: none; }
 .sidebar-academic summary::-webkit-details-marker { display: none; }
