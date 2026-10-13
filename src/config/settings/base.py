@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "contexts.ia_integrations.apps.IaIntegrationsConfig",
     "contexts.institutions.planning.apps.PlanningConfig",
     "contexts.institutions.family.apps.FamilyConfig",
+    "contexts.institutions.coursework.apps.CourseworkConfig",
 ]
 
 MIDDLEWARE = [

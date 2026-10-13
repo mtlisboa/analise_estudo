@@ -502,3 +502,16 @@ A área `/instituicao/familia/` permite acompanhar um ou vários filhos. O respo
 Administrativo, gestor e operador acessam `/instituicao/familia/atendimento/`, também disponível em Administração (gestão) e no painel do operador. Ali cadastram/desativam vínculos, publicam eventos e atendem solicitações. Podem enviar PDFs de até 10 MB; o download exige autorização e deixa de estar disponível ao responsável quando o vínculo com o aluno é revogado. Os arquivos ficam em MEDIA_ROOT e precisam acompanhar a persistência dos dados da aplicação.
 
 Aplique a migration `institution_family.0001_initial` com `python src/manage.py migrate`. A carga demonstrativa vincula `demo_responsavel` a `demo_aluno`, preservando a senha de `MOCK_PASSWORD`. Documentos são entregues pela instituição através do atendimento; não são gerados ou assinados automaticamente. Contatos e notificações são internos à plataforma.
+
+### Provas e atividades nas disciplinas
+
+O professor acessa **Provas e atividades** na barra lateral ou no painel institucional (`/instituicao/ensino/`). Só pode criar e publicar conteúdo nas disciplinas atribuídas a ele na grade publicada de uma turma com vínculo docente ativo.
+
+1. Escolher a disciplina/oferta e o tipo (prova ou atividade).
+2. Criar uma avaliação nova usando o editor existente (manual, algorítmico ou IA) ou reutilizar uma avaliação própria da mesma disciplina.
+3. Adicionar questões, reutilizar o banco no editor completo e ajustar instruções e prazo/data.
+4. Publicar: os alunos com matrícula ativa recebem uma notificação e veem o conteúdo na página da disciplina.
+
+Uma prova exige pelo menos uma questão; uma atividade pode conter somente instruções. Publicações mantêm uma cópia do conteúdo público sem gabarito nem explicações de correção. Alterações no rascunho não modificam a cópia recebida pelo aluno até a republicação. Republicar conteúdo idêntico não duplica notificações. O professor pode retirar a publicação. Acesso por URL também valida matrícula, instituição, disciplina e publicação.
+
+A funcionalidade disponibiliza o conteúdo para leitura; resposta e entrega online não fazem parte desta implementação. Inclui a migration `institution_coursework.0001_initial`, aplicada pelo comando `python src/manage.py migrate`.
