@@ -1,0 +1,5 @@
+{% extends 'institutions/base.html' %}
+{% block workspace_content %}
+<a href="{% url 'institutions:student-discipline' publication.offer.code publication.subject %}">← {{ publication.subject }}</a>
+<article class="dash-card manager-card full-card"><h2>{{ content.kind_label }} · {{ content.title }}</h2><p>{{ publication.subject }} · {{ publication.offer.name }}</p>{% if publication.visible_due_at %}<p>Prazo / data: {{ publication.visible_due_at|date:'d/m/Y H:i' }}</p>{% endif %}{{ content.instructions|linebreaks }}<ol>{% for question in content.questions %}<li><p>{{ question.statement }}</p><small>{{ question.question_type }} · {{ question.points }} pontos</small>{% if question.options %}<ul>{% for option in question.options %}<li>{{ option }}</li>{% endfor %}</ul>{% endif %}</li>{% endfor %}</ol></article>
+{% endblock %}

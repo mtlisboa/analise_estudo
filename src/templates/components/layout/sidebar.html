@@ -16,7 +16,9 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% if family_sidebar %}
+            {% if teacher_sidebar %}
+                {% include 'components/layout/teacher_navigation.html' %}
+            {% elif family_sidebar %}
                 {% include 'components/layout/family_navigation.html' %}
             {% elif student_sidebar %}
                 {% include 'components/layout/student_navigation.html' %}

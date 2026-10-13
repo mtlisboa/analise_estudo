@@ -1,0 +1,7 @@
+{% extends 'institutions/base.html' %}
+{% block workspace_content %}
+<a href="{% url 'coursework:index' %}">← Provas e atividades</a>
+<article class="dash-card manager-card full-card"><h2>Criar prova ou atividade · {{ subject }}</h2><p>{{ offer.name }} · {{ offer.period.name }}</p><p>O conteúdo será salvo como rascunho. Os alunos só recebem após a publicação.</p>
+<div class="manager-actions"><a href="?mode=new">Criar nova avaliação</a><a href="?mode=existing">Usar avaliação existente</a></div>
+<form method="post">{% csrf_token %}<input type="hidden" name="mode" value="{{ mode }}">{{ publication_form.as_p }}{% if mode == 'existing' %}{{ existing_form.as_p }}{% else %}{{ assessment_form.as_p }}{% endif %}<button type="submit" class="button button-primary">Salvar rascunho e montar conteúdo</button></form></article>
+{% endblock %}

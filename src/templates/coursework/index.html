@@ -1,0 +1,6 @@
+{% extends 'institutions/base.html' %}
+{% block workspace_content %}
+<article class="dash-card manager-card full-card"><h2>Disciplinas que leciono</h2><p>Crie uma prova ou atividade para uma disciplina da sua grade publicada.</p><div class="manager-list">{% for course in courses %}<a class="manager-list-item" href="{% url 'coursework:create' course.offer.code course.subject %}"><span class="list-copy"><strong>{{ course.subject }}</strong><small>{{ course.offer.name }} · {{ course.offer.period.name }}</small></span><span>Criar →</span></a>{% empty %}<p>Nenhuma disciplina atribuída na grade publicada. A instituição precisa publicar suas turmas e horários.</p>{% endfor %}</div></article>
+<article class="dash-card manager-card full-card"><h2>Minhas provas e atividades</h2>{% for item in publication_page %}<a class="manager-list-item" href="{% url 'coursework:edit' item.pk %}"><span class="list-copy"><strong>{{ item.title }}</strong><small>{{ item.get_kind_display }} · {{ item.subject }} · {{ item.offer.name }} · {% if item.is_published %}Publicada{% else %}Rascunho{% endif %}</small></span></a>{% empty %}<p>Nenhuma prova ou atividade criada para essas disciplinas.</p>{% endfor %}</article>
+{% include 'components/institutions/family/pagination.html' with page=publication_page %}
+{% endblock %}

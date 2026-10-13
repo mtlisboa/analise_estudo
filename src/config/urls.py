@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
+    path("instituicao/ensino/", include("contexts.institutions.coursework.urls")),
     path("instituicao/familia/", include("contexts.institutions.family.urls")),
     path("instituicao/montagem/", include("contexts.institutions.planning.urls")),
     path("instituicao/", include("contexts.institutions.urls")),
