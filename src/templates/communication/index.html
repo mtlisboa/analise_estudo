@@ -1,0 +1,4 @@
+{% extends 'base.html' %}
+{% block title %}Comunicação | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}<section class="manager-shell"><a href="{% url 'institutions:index' %}">← Página inicial</a>{% include 'communication/panel.html' %}</section>{% endblock %}

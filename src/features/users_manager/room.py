@@ -97,7 +97,22 @@ def room_data(request, classroom):
             folder['create_url'] = reverse('coursework:create', args=[selected.code, subject])
         directories.append(folder)
     notices = classroom.notices.filter(is_active=True).select_related('author')
-    return {'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
+    chat_data = {}
+    if identity:
+        from contexts.institutions.communication.services import classrooms as chat_classes, authorized, visible
+        from contexts.institutions.communication.views import data as chat_context
+        if chat_classes(identity).filter(pk=classroom.pk).exists():
+            selected_chat = visible(identity).filter(classroom=classroom).first()
+            try:
+                if request.GET.get('chat'):
+                    selected_chat = authorized(identity, int(request.GET['chat']))
+            except (ValueError, Http404):
+                selected_chat = None
+            chat_data = chat_context(identity, selected_chat, request.GET.get('contact_q',''))
+            chat_data['room_chat_available'] = True
+            chat_data['chat_room_id'] = classroom.pk
+            chat_data['room_teachers'] = classroom.memberships.filter(role='TEACHER',status='ACTIVE',user__is_active=True,user__institutional_account__role='TEACHER',user__institutional_account__organization=classroom.organization).select_related('user__institutional_account').exclude(user=request.user)
+    return {**chat_data, 'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
         'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
         'tests': classroom.tests.all() if manage else classroom.tests.filter(is_published=True),
         'notices': list(notices[:3]), 'notice_count': notices.count(),

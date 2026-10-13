@@ -6,5 +6,6 @@
     {% include 'components/institutions/heading.html' %}
     {% include 'components/institutions/metrics.html' %}
     {% block workspace_content %}{% endblock %}
+{% if communication_home %}<div id="communication">{% include 'communication/panel.html' %}</div>{% endif %}
 </section>
 {% endblock %}

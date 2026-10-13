@@ -1,0 +1,36 @@
+.communication { display: grid; grid-template-columns: minmax(220px,.32fr) minmax(0,1fr); min-height: 440px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-top: 24px; background: var(--surface); }
+.communication .chat-sidebar { display: block; min-width: 0; padding: 18px; background: var(--surface); border-right: 1px solid var(--border); }
+.communication header { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.communication h2,.communication h3 { margin: 0 0 6px; }
+.communication .chat-sidebar nav { display: grid; max-height: 360px; overflow-y: auto; overflow-x: hidden; margin-top: 16px; }
+.communication .chat-sidebar nav a { display: flex; gap: 12px; justify-content: space-between; padding: 14px 8px; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.communication .chat-sidebar nav a[aria-current] { background: var(--primary-soft); border-radius: 8px; }
+.communication .chat-sidebar nav strong { background: var(--primary); color: white; padding: 2px 7px; border-radius: 12px; height: fit-content; }
+.communication summary { cursor: pointer; padding: 12px 0; font-weight: 650; }
+.chat-start-list { max-height: 240px; overflow-y: auto; }
+.chat-start-list button { width: 100%; text-align: left; padding: 10px; background: transparent; border: 0; color: var(--text); font: inherit; cursor: pointer; }
+.chat-start-list button:hover { background: var(--bg-soft); }
+.communication small { display: block; color: var(--text-soft); }
+.communication .chat-window { display: flex; min-width: 0; flex-direction: column; background: var(--bg-soft); padding: 18px; }
+.chat-messages { display: flex; flex-direction: column; gap: 12px; height: 360px; overflow-y: auto; overflow-x: hidden; padding: 16px 4px; }
+.chat-bubble { max-width: 85%; align-self: flex-start; padding: 12px 16px; border: 1px solid var(--border); border-radius: 0 12px 12px; background: var(--surface); overflow-wrap: anywhere; }
+.chat-bubble.mine { align-self: flex-end; background: var(--primary-soft); border-radius: 12px 0 12px 12px; }
+.chat-bubble strong { font-size: 12px; }
+.chat-bubble p { white-space: pre-wrap; margin: 6px 0; }
+.chat-bubble time { display: block; font-size: 11px; color: var(--text-soft); text-align: right; }
+.chat-send { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.chat-send label,.chat-send .chat-status,.chat-send .errorlist { grid-column: 1 / -1; }
+.chat-send textarea { width: 100%; min-width: 0; max-height: 120px; padding: 10px; font: inherit; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 9px; resize: vertical; }
+.chat-send button { align-self: end; }
+.chat-status { font-size: 13px; margin: 0; min-height: 1em; color: var(--text-soft); }
+.chat-empty { margin: auto; padding: 24px; color: var(--text-soft); }
+.chat-load-older { align-self: flex-start; margin-top: 10px; }
+.communication :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media(max-width:760px) { .communication { grid-template-columns: minmax(0,1fr); } .communication .chat-sidebar { border-right: 0; border-bottom: 1px solid var(--border); } .communication .chat-sidebar nav { max-height: 160px; } .chat-bubble { max-width: 95%; } }
+
+.chat-search { display: grid; gap: 8px; padding-top: 12px; }
+.chat-search label { font-size: 12px; color: var(--text-soft); }
+.chat-search input { display: block; width: 100%; min-width: 0; padding: 8px; margin-top: 5px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
+.chat-search button { width: fit-content; padding: 7px 12px; color: var(--text); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
+
+.chat-keyboard-help { grid-column:1/-1; font-size:11px; }

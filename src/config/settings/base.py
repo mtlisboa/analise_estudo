@@ -26,6 +26,7 @@ if railway_public_origin := railway_origin(RAILWAY_PUBLIC_DOMAIN):
         CSRF_TRUSTED_ORIGINS.append(railway_public_origin)
 
 INSTALLED_APPS = [
+    "contexts.institutions.communication.apps.CommunicationConfig",
     "channels",
     "features.notifications.apps.NotificationsConfig",
     "django.contrib.admin",
@@ -71,6 +72,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "contexts.institutions.navigation.sidebar_navigation",
+                "contexts.institutions.communication.context_processors.home",
             ],
         },
     },

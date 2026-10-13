@@ -12,7 +12,7 @@
         {% if actions %}<div class="manager-actions">{% for action in actions %}<a class="button button-small" href="{{ action.url }}">{{ action.label }}</a>{% endfor %}</div>{% endif %}
     </header>
     {% include 'components/institutions/metrics.html' %}
-    {% if module == 'inicio' %}{% include 'components/institutions/manager/overview.html' %}
+    {% if module == 'inicio' %}{% include 'components/institutions/manager/overview.html' %}{% if communication_home %}<div id="communication">{% include 'communication/panel.html' %}</div>{% endif %}
     {% elif module == 'academico' %}{% include 'components/institutions/manager/academic.html' %}
     {% elif module == 'desempenho' %}{% include 'components/institutions/manager/performance.html' %}
     {% elif module == 'analise' %}{% include 'components/institutions/manager/analysis.html' %}

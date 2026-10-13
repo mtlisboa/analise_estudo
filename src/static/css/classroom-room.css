@@ -115,3 +115,6 @@
 .classroom-context .room-main .room-exams { margin-top: 0; }
 .classroom-context .room-overview { order: initial; }
 @media(max-width:640px) { .classroom-context .room-hub-nav { top: 0; } .classroom-context .room-layout { padding: 24px 16px; } .classroom-context .room-title-row { padding: 20px 16px; } .classroom-context .room-cover-empty { height: 90px; } }
+
+.room-messaging { padding: 28px clamp(16px,3vw,44px); }
+@media(max-width:640px) { .room-hub-nav { flex-wrap:wrap; } .room-hub-nav a { flex:1 1 auto; } }

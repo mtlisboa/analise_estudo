@@ -101,7 +101,7 @@ class InstitutionalContextTests(TestCase):
         url = reverse('institutions:operador')
         response = self.client.get(url, {'q': 'STUDENT', 'organization': self.other.pk})
         self.assertContains(response, 'Pessoa STUDENT')
-        self.assertNotContains(response, 'Pessoa TEACHER')
+        self.assertEqual([item.user.first_name for item in response.context['account_page']], ['Pessoa STUDENT'])
         self.assertNotContains(response, 'Pessoa externa')
         self.assertEqual(self.client.post(url, {}).status_code, 405)
 
