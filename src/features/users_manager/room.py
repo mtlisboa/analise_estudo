@@ -157,7 +157,7 @@ def add_notice(request, pk):
     for member in members:
         notify_user(recipient=member.user, title=f'Aviso na sala: {notice.title}', message=classroom.name)
     messages.success(request, 'Aviso publicado no hub da sala.')
-    return redirect(reverse('users-manager:classroom-detail', args=[pk]) + '#room-hub')
+    return redirect(reverse('users-manager:classroom-detail', args=[pk]) + '#room-notices')
 
 
 @login_required
@@ -168,4 +168,4 @@ def withdraw_notice(request, pk, notice_pk):
     notice.is_active = False
     notice.save(update_fields=['is_active'])
     messages.success(request, 'Aviso retirado do hub.')
-    return redirect(reverse('users-manager:classroom-detail', args=[pk]) + '#room-hub')
+    return redirect(reverse('users-manager:classroom-detail', args=[pk]) + '#room-notices')
