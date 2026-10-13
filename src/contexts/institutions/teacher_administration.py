@@ -32,4 +32,4 @@ def index(request, section='inicio'):
         'institution': account.organization.school, 'identity': account, 'admin_section': section, 'title': titles[section],
         'classrooms': classrooms, 'manageable_ids': [c.pk for c in manageable],
         'disciplines': teacher_disciplines(account), 'pending_reviews': pending[:10],
-        'metrics': [('Minhas turmas', classrooms.count()),('Correções em revisão',pending.count())]})
+        'metrics': [('Minhas turmas', classrooms.count())] + ([('Correções em revisão',pending.count())] if section in ('publicacoes', 'correcoes') else [])})
