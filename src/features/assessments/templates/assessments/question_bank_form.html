@@ -12,7 +12,8 @@
             <h1>{{ title }}</h1>
             <p>{{ description }}</p>
         </div>
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
+            {% for image in form.existing_images %}<figure class="question-image-preview"><img src="{% url 'assessments:question-image' image.pk %}" alt="{{ image.description }}"><figcaption>{{ image.description }}</figcaption></figure>{% endfor %}
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
             {% for field in form %}

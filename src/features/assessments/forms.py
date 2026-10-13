@@ -2,6 +2,7 @@ from django import forms
 from django.db import transaction
 from django.db.models import Max
 
+from .image_forms import QuestionImagesMixin
 from .models import (
     Assessment,
     AssessmentTechnique,
@@ -126,7 +127,7 @@ class AssessmentForm(forms.ModelForm):
         return assessment
 
 
-class QuestionForm(forms.ModelForm):
+class QuestionForm(QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,
@@ -143,6 +144,7 @@ class QuestionForm(forms.ModelForm):
         model = Question
         fields = (
             "question_type",
+            "support_text",
             "statement",
             "options",
             "correct_answer",
@@ -150,6 +152,7 @@ class QuestionForm(forms.ModelForm):
             "points",
         )
         widgets = {
+            "support_text": forms.Textarea(attrs={"rows": 4}),
             "statement": forms.Textarea(
                 attrs={"rows": 4, "placeholder": "Escreva o enunciado da questão"}
             ),
@@ -161,6 +164,10 @@ class QuestionForm(forms.ModelForm):
             ),
             "points": forms.NumberInput(attrs={"min": "0.01", "step": "0.25"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.configure_images()
 
     def clean_statement(self) -> str:
         return self.cleaned_data["statement"].strip()
@@ -192,7 +199,7 @@ class QuestionForm(forms.ModelForm):
                 )
         elif question_type == Question.Type.OPEN_ENDED:
             cleaned_data["options"] = []
-        return cleaned_data
+        return self.validate_images(cleaned_data)
 
     @transaction.atomic
     def save(self, assessment: Assessment) -> Question:
@@ -202,6 +209,7 @@ class QuestionForm(forms.ModelForm):
             owner=assessment.owner,
             subject=assessment.subject,
             topic=assessment.topic,
+            support_text=question.support_text,
             statement=question.statement,
             question_type=question.question_type,
             options=question.options,
@@ -210,17 +218,19 @@ class QuestionForm(forms.ModelForm):
             default_points=question.points,
             creation_method=QuestionBankItem.CreationMethod.MANUAL,
         )
+        self.save_images(bank_item, assessment.owner)
         question.bank_item = bank_item
         last_order = assessment.questions.aggregate(last=Max("order"))["last"] or 0
         question.order = last_order + 1
         question.save()
+        question.images.set(bank_item.images.all())
         assessment.assembly_status = Assessment.AssemblyStatus.READY
         assessment.assembly_notes = "Questão adicionada manualmente."
         assessment.save(update_fields=("assembly_status", "assembly_notes", "updated_at"))
         return question
 
 
-class QuestionBankItemForm(forms.ModelForm):
+class QuestionBankItemForm(QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,
@@ -233,6 +243,7 @@ class QuestionBankItemForm(forms.ModelForm):
             "subject",
             "topic",
             "question_type",
+            "support_text",
             "statement",
             "options",
             "correct_answer",
@@ -240,14 +251,16 @@ class QuestionBankItemForm(forms.ModelForm):
             "default_points",
         )
         widgets = {
+            "support_text": forms.Textarea(attrs={"rows": 4}),
             "statement": forms.Textarea(attrs={"rows": 4}),
             "correct_answer": forms.Textarea(attrs={"rows": 2}),
             "explanation": forms.Textarea(attrs={"rows": 3}),
             "default_points": forms.NumberInput(attrs={"min": "0.01", "step": "0.25"}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, source=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.configure_images(source)
         if self.instance.pk and not self.is_bound:
             self.initial["options"] = "\n".join(self.instance.options)
 
@@ -269,8 +282,9 @@ class QuestionBankItemForm(forms.ModelForm):
                 )
         else:
             cleaned_data["options"] = []
-        return cleaned_data
+        return self.validate_images(cleaned_data)
 
+    @transaction.atomic
     def save_for(self, owner, *, source=None, creation_method=None):
         item = super().save(commit=False)
         item.owner = owner
@@ -278,6 +292,9 @@ class QuestionBankItemForm(forms.ModelForm):
             item.source_question = source
             item.creation_method = creation_method or QuestionBankItem.CreationMethod.DERIVED
         item.save()
+        if source is not None:
+            item.images.set(source.images.all())
+        self.save_images(item, owner)
         return item
 
 

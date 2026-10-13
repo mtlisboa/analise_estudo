@@ -1,4 +1,5 @@
 """Layout v1: fixed A4 coordinates shared by printing and optical recognition."""
+import base64
 from io import BytesIO
 from xml.sax.saxutils import escape
 
@@ -8,7 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, KeepInFrame, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, KeepInFrame, KeepTogether, Image
 
 WIDTH, HEIGHT = A4
 LETTERS = 'ABCDE'
@@ -86,7 +87,16 @@ def exam_pdf(run):
                       paragraph(f'Aluno: {sheet.student_name} | ID: {sheet.student_id}'),
                       Spacer(1, 16)])
         for index, question in enumerate(run.questions):
-            block = [paragraph(f'{index + 1}. {question["statement"]}', 'Heading3')]
+            block = [paragraph(f'Questão {index + 1}', 'Heading3')]
+            if question.get('support_text'):
+                block.extend([paragraph(question['support_text']), Spacer(1, 8)])
+            for asset in question.get('images', []):
+                picture = Image(BytesIO(base64.b64decode(asset['data'])))
+                scale = min((WIDTH - 84) / picture.imageWidth, 260 / picture.imageHeight, 1)
+                picture.drawWidth = picture.imageWidth * scale
+                picture.drawHeight = picture.imageHeight * scale
+                block.extend([picture, paragraph(asset['description']), Spacer(1, 8)])
+            block.append(paragraph(question['statement']))
             for letter, option in zip(LETTERS, question['options']):
                 block.append(paragraph(f'{letter}) {option}'))
             block.append(Spacer(1, 12))

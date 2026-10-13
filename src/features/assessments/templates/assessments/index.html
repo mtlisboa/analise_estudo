@@ -92,7 +92,7 @@
                                 <span>{{ question.get_question_type_display }}</span>
                                 <span>{{ question.points|floatformat:"-2" }} {% if question.points == 1 %}ponto{% else %}pontos{% endif %}</span>
                             </div>
-                            <p>{{ question.statement }}</p>
+                            {% include 'components/question_content.html' %}
                             {% if question.question_type == "multiple_choice" %}
                             <ul>{% for option in question.options %}<li{% if option == question.correct_answer %} class="correct-option"{% endif %}>{{ option }}</li>{% endfor %}</ul>
                             {% elif question.correct_answer %}
@@ -203,6 +203,7 @@
         </div>
         <form
             id="question-form"
+            enctype="multipart/form-data"
             method="post"
             action="{% if question_assessment %}{% url 'assessments:question-create' question_assessment.pk %}{% endif %}"
         >
@@ -218,6 +219,9 @@
                     {{ question_form.points }}{{ question_form.points.errors }}
                 </div>
             </div>
+            {% for field in question_form %}{% if field.name == 'support_text' or field.name == 'new_images' or field.name == 'image_description' %}
+            <div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>
+            {% endif %}{% endfor %}
             <div class="form-field">
                 <label for="{{ question_form.statement.id_for_label }}">{{ question_form.statement.label }}</label>
                 {{ question_form.statement }}{{ question_form.statement.errors }}

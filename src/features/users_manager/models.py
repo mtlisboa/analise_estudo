@@ -360,6 +360,11 @@ class EducationalRelationship(models.Model):
         return f"{self.teacher} → {self.student}"
 
 
+def classroom_cover_path(instance, filename):
+    from uuid import uuid4
+    return f'classroom_covers/{instance.pk}/{uuid4().hex}.png'
+
+
 class Classroom(models.Model):
     class Shift(models.TextChoices):
         MORNING = "MORNING", "Manhã"
@@ -369,6 +374,8 @@ class Classroom(models.Model):
 
     name = models.CharField("nome", max_length=120)
     description = models.TextField("descrição", blank=True)
+    cover_image = models.ImageField("imagem da sala", upload_to=classroom_cover_path, blank=True)
+    cover_description = models.CharField("descrição da imagem", max_length=300, blank=True)
     organization = models.ForeignKey(
         Organization,
         on_delete=models.CASCADE,
@@ -570,3 +577,15 @@ class InstitutionalAccount(models.Model):
 
     def __str__(self):
         return f'{self.email} · {self.get_role_display()}'
+
+
+class ClassroomNotice(models.Model):
+    classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, related_name='notices')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    title = models.CharField('título', max_length=120)
+    body = models.TextField('aviso', max_length=3000)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-created_at', '-pk')
