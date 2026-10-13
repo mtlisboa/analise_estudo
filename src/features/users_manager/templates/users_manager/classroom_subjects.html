@@ -1,0 +1,4 @@
+{% extends 'base.html' %}
+{% block title %}Disciplinas · {{ classroom.name }} | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}<section class="manager-shell"><a class="back-link" href="{% url 'institutions:classrooms' %}">← Voltar para turmas</a><header class="manager-heading"><h1>{{ classroom.name }}</h1><p>Escolha a sala de uma disciplina.</p></header><div class="manager-list">{% for name in subject_choices %}<a class="dash-card manager-card" href="?subject={{ name|urlencode }}"><h2>{{ name }}</h2><span>Abrir módulos</span></a>{% endfor %}</div></section>{% endblock %}

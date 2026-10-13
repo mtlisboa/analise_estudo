@@ -1,0 +1,4 @@
+{% extends 'base.html' %}
+{% block title %}Adicionar PDF | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}<section class="manager-shell"><a class="back-link" href="{{ back_url }}">← Voltar à disciplina</a><header class="manager-heading"><p class="section-kicker">{{ subject }}</p><h1>Adicionar módulo PDF</h1></header><form method="post" enctype="multipart/form-data" class="dash-card manager-card">{% csrf_token %}{{ form.as_p }}<button class="button" type="submit">Publicar PDF</button></form></section>{% endblock %}

@@ -1,4 +1,6 @@
 """Classroom room: published coursework, cover and a shared notice hub."""
+from urllib.parse import urlencode
+
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -61,7 +63,10 @@ def authorized_classroom(request, pk, *, write=False):
 
 def room_url(request, pk):
     name = 'institutions:classroom' if getattr(request.user, 'institutional_account', None) else 'users-manager:classroom-detail'
-    return reverse(name, args=[pk])
+    target = reverse(name, args=[pk])
+    if request.GET.get('subject'):
+        target += '?' + urlencode({'subject': request.GET['subject']})
+    return target
 
 
 def room_data(request, classroom):
@@ -74,6 +79,15 @@ def room_data(request, classroom):
         if selected is None:
             raise Http404('Oferta não encontrada nesta sala.')
     subjects = sorted({lesson['subject'] for lesson in selected.published_schedule}) if selected else []
+    identity = getattr(request.user, 'institutional_account', None)
+    if identity and identity.role == 'TEACHER':
+        subjects = [s for s in subjects if any(l['subject'] == s and l.get('teacher_id') == identity.pk for l in selected.published_schedule)]
+    requested_subject = request.GET.get('subject')
+    if requested_subject and requested_subject not in subjects:
+        raise Http404('Disciplina não encontrada nesta turma.')
+    subject = requested_subject or (subjects[0] if len(subjects) == 1 else None)
+    subject_choices = subjects
+    subjects = [subject] if subject else []
     publications = list(Publication.objects.filter(offer=selected, is_published=True, subject__in=subjects)
         .select_related('teacher__user').order_by('-published_at', '-pk')) if selected else []
     items = [{'publication': p, 'title': p.visible_title, 'kind': p.public_snapshot.get('kind_label', ''),
@@ -96,6 +110,12 @@ def room_data(request, classroom):
                 for lesson in selected.published_schedule):
             folder['create_url'] = reverse('coursework:create', args=[selected.code, subject])
         directories.append(folder)
+    from contexts.institutions.coursework.models import PDFModule
+    modules = list(items)
+    if selected and subject:
+        for pdf in PDFModule.objects.filter(offer=selected, subject=subject).defer('document'):
+            modules.append({'title': pdf.title, 'kind': 'PDF', 'url': reverse('coursework:pdf-open', args=[pdf.pk]),
+                'pdf': pdf, 'can_remove': identity and identity.pk == pdf.teacher_id})
     notices = classroom.notices.filter(is_active=True).select_related('author')
     chat_data = {}
     if identity:
@@ -119,7 +139,7 @@ def room_data(request, classroom):
             chat_data['chat_room_id'] = classroom.pk
             chat_data['room_teachers'] = classroom.memberships.filter(role='TEACHER',status='ACTIVE',user__is_active=True,user__institutional_account__role='TEACHER',user__institutional_account__organization=classroom.organization).select_related('user__institutional_account').exclude(user=request.user)
     return {**chat_data, 'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
-        'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
+        'subject': subject, 'subject_choices': subject_choices, 'modules': modules, 'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
         'tests': classroom.tests.all() if manage else classroom.tests.filter(is_published=True),
         'notices': list(notices[:3]), 'notice_count': notices.count(),
         'notice_page': Paginator(notices, 20).get_page(request.GET.get('notices_page')),
@@ -130,6 +150,8 @@ def room_data(request, classroom):
 def detail(request, pk, *, cover_form=None, notice_form=None, status=200):
     classroom = authorized_classroom(request, pk)
     data = room_data(request, classroom)
+    if data['subject_choices'] and not data['subject']:
+        return render(request, 'users_manager/classroom_subjects.html', data, status=status)
     if cover_form is not None:
         data['cover_form'] = cover_form
     if notice_form is not None:
