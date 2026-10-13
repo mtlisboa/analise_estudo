@@ -16,6 +16,8 @@ def sidebar_navigation(request):
     name = match.view_name if match else ''
     namespace = match.namespace if match else ''
     module = match.kwargs.get('module', '') if match else ''
+    if name in ('institutions:classrooms', 'institutions:classroom'):
+        module = 'academico'
     if account.role == 'TEACHER':
         return {'teacher_sidebar': True}
     if account.role == 'GUARDIAN':

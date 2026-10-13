@@ -50,10 +50,18 @@ def authorized_classroom(request, pk, *, write=False):
     identity = getattr(request.user, 'institutional_account', None)
     if identity and identity.organization_id != classroom.organization_id:
         raise PermissionDenied('Esta sala pertence a outra instituição.')
-    allowed = can_manage_classroom(request.user, classroom) if write else can_view_classroom(request.user, classroom)
+    institutional_read = identity and identity.role in ('ADMIN', 'MANAGER', 'OPERATOR')
+    allowed = can_manage_classroom(request.user, classroom) if write else (institutional_read or can_view_classroom(request.user, classroom))
+    if write and identity and identity.role not in ('ADMIN', 'TEACHER'):
+        allowed = False
     if not allowed:
         raise PermissionDenied('Você não possui acesso a esta sala.')
     return classroom
+
+
+def room_url(request, pk):
+    name = 'institutions:classroom' if getattr(request.user, 'institutional_account', None) else 'users-manager:classroom-detail'
+    return reverse(name, args=[pk])
 
 
 def room_data(request, classroom):
@@ -80,7 +88,7 @@ def room_data(request, classroom):
     available_exams = [item for item in items if item['kind'] == 'Prova'
                        and (item['due_at'] is None or item['due_at'] >= now)]
     available_exams.sort(key=lambda item: (item['due_at'] is None, item['due_at'] or now))
-    manage = can_manage_classroom(request.user, classroom)
+    manage = can_manage_classroom(request.user, classroom) and (not identity or identity.role in ('ADMIN', 'TEACHER'))
     directories = []
     for subject in subjects:
         folder = {'name': subject, 'items': [item for item in items if item['publication'].subject == subject]}
@@ -89,7 +97,7 @@ def room_data(request, classroom):
             folder['create_url'] = reverse('coursework:create', args=[selected.code, subject])
         directories.append(folder)
     notices = classroom.notices.filter(is_active=True).select_related('author')
-    return {'is_classroom_environment': True, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
+    return {'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
         'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
         'tests': classroom.tests.all() if manage else classroom.tests.filter(is_published=True),
         'notices': list(notices[:3]), 'notice_count': notices.count(),
@@ -137,7 +145,7 @@ def update_cover(request, pk):
     classroom.cover_description = form.cleaned_data['description']
     classroom.save(update_fields=['cover_image', 'cover_description'])
     messages.success(request, 'Imagem da sala atualizada.')
-    return redirect('users-manager:classroom-detail', pk=pk)
+    return redirect(room_url(request, pk))
 
 
 @login_required
@@ -157,7 +165,7 @@ def add_notice(request, pk):
     for member in members:
         notify_user(recipient=member.user, title=f'Aviso na sala: {notice.title}', message=classroom.name)
     messages.success(request, 'Aviso publicado no hub da sala.')
-    return redirect(reverse('users-manager:classroom-detail', args=[pk]) + '#room-notices')
+    return redirect(room_url(request, pk) + '#room-notices')
 
 
 @login_required
@@ -168,4 +176,4 @@ def withdraw_notice(request, pk, notice_pk):
     notice.is_active = False
     notice.save(update_fields=['is_active'])
     messages.success(request, 'Aviso retirado do hub.')
-    return redirect(reverse('users-manager:classroom-detail', args=[pk]) + '#room-notices')
+    return redirect(room_url(request, pk) + '#room-notices')

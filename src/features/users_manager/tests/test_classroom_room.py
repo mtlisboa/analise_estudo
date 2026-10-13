@@ -26,7 +26,7 @@ class ClassroomRoomTests(TestCase):
         setting = override_settings(MEDIA_ROOT=media.name)
         setting.enable()
         self.addCleanup(setting.disable)
-        self.url = reverse('users-manager:classroom-detail', args=[self.classroom.pk])
+        self.url = reverse('institutions:classroom', args=[self.classroom.pk])
         self.client.force_login(self.teacher.user)
 
     def image(self):
@@ -108,7 +108,7 @@ class ClassroomRoomTests(TestCase):
         self.assertNotContains(self.client.get(self.url), 'Título do rascunho')
 
     def test_unrelated_or_removed_users_cannot_read_or_write_room(self):
-        for role in ('MANAGER', 'OPERATOR', 'GUARDIAN'):
+        for role in ('GUARDIAN',):
             self.client.force_login(self.users[role])
             self.assertEqual(self.client.get(self.url).status_code, 403)
             self.assertEqual(self.client.get(reverse('users-manager:classroom-cover', args=[self.classroom.pk])).status_code, 403)
@@ -118,9 +118,9 @@ class ClassroomRoomTests(TestCase):
 
     def test_offer_filter_cannot_cross_classrooms_and_legacy_room_keeps_tests(self):
         self.assertEqual(self.client.get(self.url, {'offer':'not-an-offer'}).status_code, 404)
-        response = self.client.get(reverse('users-manager:classroom-detail', args=[self.other_classroom.pk]))
+        response = self.client.get(reverse('institutions:classroom', args=[self.other_classroom.pk]))
         self.assertEqual(response.status_code, 403)
         self.client.force_login(self.admin)
-        response = self.client.get(reverse('users-manager:classroom-detail', args=[self.other_classroom.pk]))
+        response = self.client.get(reverse('institutions:classroom', args=[self.other_classroom.pk]))
         self.assertContains(response, 'Oferta ainda não publicada')
         self.assertContains(response, 'Registros de avaliação da turma')
