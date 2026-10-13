@@ -97,3 +97,21 @@
 
 .room-hub-nav { position: sticky; top: 0; z-index: 20; }
 @media(max-width:760px) { .room-hub-nav { top: 64px; } }
+
+/* The document is the classroom environment, rather than an admin card. */
+.classroom-room-page { width: 100%; min-height: 100vh; margin: 0; padding: 0 0 72px; background: var(--bg-soft); }
+.classroom-context .classroom-room { width: 100%; max-width: none; margin: 0; padding: 0; }
+.classroom-context .room-toolbar { min-height: 66px; padding: 16px clamp(20px,3vw,44px); padding-right: 100px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.room-account-link { color: var(--text-soft); font-size: 14px; }
+.classroom-context .room-hub-nav { border-radius: 0; padding-inline: clamp(12px,2vw,28px); top: 0; }
+.classroom-context .room-cover { border-radius: 0; border: 0; }
+.classroom-context .room-cover-empty { height: 120px; }
+.classroom-context .room-identity { padding-bottom: 0; background: var(--surface); }
+.classroom-context .room-title-row { padding: 24px clamp(20px,3vw,44px); border-bottom: 1px solid var(--border); }
+.classroom-context .room-offer-selector { margin: 0; padding: 0 clamp(20px,3vw,44px) 24px; }
+.classroom-context .room-layout { padding: 32px clamp(20px,3vw,44px); }
+.room-content-directory { padding: 0; border: 0; background: transparent; }
+.classroom-context .room-agenda,.classroom-context .room-notices,.classroom-context .classroom-room > .room-members { margin: 32px clamp(20px,3vw,44px); }
+.classroom-context .room-main .room-exams { margin-top: 0; }
+.classroom-context .room-overview { order: initial; }
+@media(max-width:640px) { .classroom-context .room-hub-nav { top: 0; } .classroom-context .room-layout { padding: 24px 16px; } .classroom-context .room-title-row { padding: 20px 16px; } .classroom-context .room-cover-empty { height: 90px; } }
