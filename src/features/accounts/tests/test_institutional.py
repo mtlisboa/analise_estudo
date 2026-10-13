@@ -188,3 +188,29 @@ class InstitutionalAccessTests(TestCase):
         self.assertEqual(self.client.get(reverse('admin:users_manager_school_add')).status_code, 403)
         with self.assertRaises(PermissionDenied):
             provision_administrator(self.organization, self.admin, domain='escola.edu.br', registration='newadmin', password=TEMP)
+
+    def test_dedicated_student_form_creates_only_students(self):
+        self.client.force_login(self.admin)
+        url = reverse('users-manager:institutional-students', args=[self.organization.pk])
+        self.assertContains(self.client.get(url), 'Adicionar novo aluno')
+        response = self.client.post(url, {'registration': 'aluno-novo', 'first_name': 'Novo',
+            'last_name': 'Aluno', 'role': 'TEACHER', 'password': TEMP, 'password_confirm': TEMP})
+        self.assertRedirects(response, url)
+        account = InstitutionalAccount.objects.get(organization=self.organization, registration='aluno-novo')
+        self.assertEqual(account.role, 'STUDENT')
+        self.assertTrue(account.user.must_change_password)
+        self.assertTrue(account.user.check_password(TEMP))
+        self.assertContains(self.client.get(url), account.email)
+        self.assertEqual(self.client.post(url, {'registration': 'aluno-novo', 'first_name': 'Novo',
+            'password': TEMP, 'password_confirm': TEMP}).status_code, 200)
+        self.assertEqual(InstitutionalAccount.objects.filter(registration='aluno-novo').count(), 1)
+
+    def test_dedicated_student_registration_denies_non_admin(self):
+        member = self.member('operator-test', 'OPERATOR')
+        member.user.must_change_password = False
+        member.user.onboarding_completed_at = timezone.now()
+        member.user.save()
+        self.client.force_login(member.user)
+        url = reverse('users-manager:institutional-students', args=[self.organization.pk])
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url, {}).status_code, 403)

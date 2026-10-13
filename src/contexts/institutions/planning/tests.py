@@ -264,6 +264,10 @@ class PlanningTests(TestCase):
 
     def test_operator_can_create_student_without_provisioning_identity(self):
         self.client.force_login(self.accounts["OPERATOR"].user)
+        page = self.client.get(reverse('planning:detail', args=[self.period.pk]))
+        self.assertContains(page, 'Adicionar novo aluno')
+        self.assertContains(page, 'name="registration"')
+        self.assertContains(page, 'Cadastrar aluno na lista')
         response = self.client.post(reverse("planning:create", args=[self.period.pk, "student"]),
             {"revision": 0, "registration": "new", "name": "Novo aluno", "grade": "7", "shift": "MORNING"})
         self.assertEqual(response.status_code, 302)

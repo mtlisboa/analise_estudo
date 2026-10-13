@@ -63,6 +63,15 @@ class InstitutionalUserForm(TemporaryPasswordForm):
         return registration
 
 
+class InstitutionalStudentForm(InstitutionalUserForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['role'].initial = 'STUDENT'
+        self.fields['role'].disabled = True
+        self.fields['role'].widget = forms.HiddenInput()
+
+
+
 class InstitutionAdministratorForm(TemporaryPasswordForm):
     domain = forms.CharField(label='Domínio institucional', max_length=100, help_text='Ex.: escola.edu.br. Define os identificadores de login, sem criar caixas postais.')
     registration = forms.CharField(label='Identificação do administrativo', max_length=40, initial='administrativo')

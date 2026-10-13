@@ -1,7 +1,13 @@
 <article id="students" class="dash-card manager-card">
 <div class="manager-card-title"><h2>Lista de alunos</h2>
 <a class="button button-small button-secondary" href="{% url 'planning:create' period.pk 'student' %}">Adicionar aluno</a></div>
-<details><summary>Cadastrar lista de alunos</summary>
+<form method="post" action="{% url 'planning:create' period.pk 'student' %}">
+{% csrf_token %}
+<h3>Adicionar novo aluno</h3>
+{% include 'components/planning/fields.html' with form=student_form %}
+<button class="button button-small" type="submit">Cadastrar aluno na lista</button>
+</form>
+<details><summary>Cadastrar vários alunos de uma vez</summary>
 <form method="post" action="{% url 'planning:action' period.pk 'import' %}">{% csrf_token %}
 {% include 'components/planning/fields.html' with form=batch_form %}
 <button class="button button-small" type="submit">Cadastrar lista</button></form></details>
