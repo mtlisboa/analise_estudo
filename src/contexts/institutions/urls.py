@@ -1,10 +1,12 @@
 from django.urls import path
 
-from . import manager, views
+from . import manager, student, views
 from .roles import WORKSPACES
 
 app_name = 'institutions'
 urlpatterns = [
+    path('aluno/disciplinas/', student.disciplines, name='student-disciplines'),
+    path('aluno/disciplinas/<uuid:code>/<str:subject>/', student.disciplines, name='student-discipline'),
     path('', views.index, name='index'),
     path('gestor/academico/desempenho/', manager.module_view,
          {'module': 'desempenho'}, name='manager-performance'),

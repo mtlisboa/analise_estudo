@@ -26,6 +26,8 @@ def institutional_identity(user):
 @require_GET
 def index(request):
     account = institutional_identity(request.user)
+    if account.role == 'GUARDIAN':
+        return redirect('family:index')
     return redirect(f'institutions:{workspace_for(account).slug}')
 
 
@@ -37,6 +39,9 @@ def workspace(request, slug):
     context = workspace_for(account)
     if context.slug != slug:
         raise PermissionDenied('Seu perfil não tem acesso a este contexto.')
+
+    if account.role == 'GUARDIAN':
+        return redirect('family:index')
 
     if account.role in ('ADMIN', 'MANAGER'):
         from .manager import render_module
@@ -68,6 +73,10 @@ def workspace(request, slug):
                     'ends_on': date.fromisoformat(lesson['period_end'])})
         data['itinerary'] = sorted(itinerary, key=lambda row: (row['starts_on'], row['day'], row['start'], row['classroom']))
         data['metrics'] = [('Minhas turmas', classrooms.count()), ('Atividades', tests.count())]
+        if account.role == 'STUDENT':
+            from .student import enrolled_subjects
+            data['subjects'] = enrolled_subjects(account)
+            data['metrics'].append(('Disciplinas', len(data['subjects'])))
     elif account.role == 'OPERATOR':
         query = request.GET.get('q', '').strip()[:100]
         accounts = organization.institutional_accounts.select_related('user')

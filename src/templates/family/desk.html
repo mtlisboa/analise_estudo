@@ -1,0 +1,8 @@
+{% extends 'family/base.html' %}
+{% block family_content %}
+<div class="manager-actions"><a class="button button-secondary" href="{% url 'family:link-create' %}">Vincular responsável e aluno</a><a class="button button-secondary" href="{% url 'family:event-create' %}">Cadastrar evento</a></div>
+<article class="dash-card manager-card full-card"><h2>Solicitações das famílias</h2>{% for ticket in request_page %}<a class="manager-list-item" href="{% url 'family:request' ticket.pk %}"><span class="list-copy"><strong>{{ ticket.title }}</strong><small>{{ ticket.guardian.user.get_full_name|default:ticket.guardian.registration }} · {{ ticket.get_kind_display }} · {{ ticket.get_status_display }}</small><small>{{ ticket.protocol }}</small></span></a>{% empty %}<p>Nenhuma solicitação.</p>{% endfor %}</article>
+{% include 'components/institutions/family/pagination.html' with page=request_page %}
+<article class="dash-card manager-card full-card"><h2>Vínculos de responsabilidade</h2>{% for link in links %}<p>{{ link.guardian.user.get_full_name|default:link.guardian.registration }} → {{ link.student.user.get_full_name|default:link.student.registration }} · {{ link.relationship }} · {% if link.is_active %}Ativo{% else %}Inativo{% endif %} <a href="{% url 'family:link-edit' link.pk %}">Editar / desativar</a></p>{% empty %}<p>Nenhum vínculo cadastrado.</p>{% endfor %}</article>
+<article class="dash-card manager-card full-card"><h2>Eventos institucionais</h2>{% for event in events %}<p>{{ event.title }} · {{ event.starts_at|date:'d/m/Y H:i' }} · {% if event.is_published %}Publicado{% else %}Rascunho{% endif %} <a href="{% url 'family:event-edit' event.pk %}">Editar</a></p>{% empty %}<p>Nenhum evento cadastrado.</p>{% endfor %}</article>
+{% endblock %}

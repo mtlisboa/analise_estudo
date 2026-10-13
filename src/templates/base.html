@@ -19,9 +19,9 @@
     <link rel="stylesheet" href="{% static 'css/notifications.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/account.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/refined.css' %}?v=6">
-    <link rel="stylesheet" href="{% static 'css/sidebar-modules.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'css/sidebar-modules.css' %}?v=3">
 </head>
-<body{% if user.is_authenticated and not onboarding_mode and not public_page %} class="has-sidebar"{% endif %}>
+<body{% if user.is_authenticated and not onboarding_mode and not public_page %} class="has-sidebar{% if family_sidebar %} has-family-sidebar{% endif %}"{% endif %}>
     <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
     {% if user.is_authenticated and not onboarding_mode and not public_page %}
     {% include "components/layout/sidebar.html" %}

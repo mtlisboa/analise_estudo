@@ -58,7 +58,7 @@ class InstitutionalContextTests(TestCase):
         for role, slug in routes.items():
             with self.subTest(role=role):
                 self.client.force_login(self.users[role])
-                url = reverse(f'institutions:{slug}')
+                url = reverse('family:index') if role == 'GUARDIAN' else reverse(f'institutions:{slug}')
                 self.assertRedirects(self.client.get(reverse('institutions:index')), url)
                 self.assertRedirects(self.client.get(reverse('accounts:dashboard')),
                     reverse('institutions:index'), fetch_redirect_response=False)
@@ -107,10 +107,10 @@ class InstitutionalContextTests(TestCase):
 
     def test_guardian_does_not_receive_unlinked_students(self):
         self.client.force_login(self.users['GUARDIAN'])
-        response = self.client.get(reverse('institutions:responsavel'))
+        response = self.client.get(reverse('institutions:responsavel'), follow=True)
         self.assertNotContains(response, 'Pessoa STUDENT')
         self.assertNotContains(response, 'Prova publicada')
-        self.assertContains(response, 'ainda não está disponível')
+        self.assertContains(response, 'Nenhum filho vinculado')
 
     def test_anonymous_personal_and_onboarding_roles_cannot_enter(self):
         self.assertEqual(self.client.get(reverse('institutions:index')).status_code, 302)
@@ -124,4 +124,4 @@ class InstitutionalContextTests(TestCase):
         self.client.force_login(self.users['OPERATOR'])
         InstitutionalAccount.objects.filter(user=self.users['OPERATOR']).update(role='GUARDIAN')
         self.assertEqual(self.client.get(reverse('institutions:operador')).status_code, 403)
-        self.assertRedirects(self.client.get(reverse('institutions:index')), reverse('institutions:responsavel'))
+        self.assertRedirects(self.client.get(reverse('institutions:index')), reverse('family:index'))

@@ -418,6 +418,11 @@ class Command(BaseCommand):
                                     [administrator, manager, operator, teacher,
                                      assistant_teacher, demo_student, guardian], classrooms[0])
 
+        from contexts.institutions.family.models import GuardianLink
+        GuardianLink.objects.update_or_create(guardian=guardian.institutional_account,
+            student=demo_student.institutional_account, defaults={'relationship': 'Responsável demonstrativo',
+                'is_active': True, 'created_by': administrator})
+
         self._upsert_saved_analysis(
             teacher,
             "Panorama geral demonstrativo",

@@ -1,0 +1,10 @@
+{% extends 'family/base.html' %}
+{% block family_content %}
+{% if module != 'notificacoes' %}{% include 'components/institutions/family/child_filter.html' %}{% endif %}
+{% if module == 'inicio' %}{% include 'components/institutions/family/children.html' %}
+{% elif module == 'desempenho' %}{% include 'components/institutions/family/performance.html' %}
+{% elif module == 'grade' %}{% include 'components/institutions/family/timetable.html' %}
+{% elif module == 'eventos' %}{% include 'components/institutions/family/events.html' %}
+{% elif module == 'contato' or module == 'documentos' %}{% include 'components/institutions/family/requests.html' %}
+{% elif module == 'notificacoes' %}{% include 'components/institutions/family/notifications.html' %}{% endif %}
+{% endblock %}

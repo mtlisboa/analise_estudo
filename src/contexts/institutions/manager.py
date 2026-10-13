@@ -67,6 +67,7 @@ def render_module(request, account, module='inicio'):
         data['shift_rows'] = [(label, shift_counts.get(value, 0)) for value, label in Classroom.Shift.choices]
         data['role_rows'] = [(label, counts.get(value, 0)) for value, label in InstitutionalAccount.Role.choices]
     elif module == 'administracao':
+        data['actions'].append({'url': reverse('family:desk'), 'label': 'Famílias e atendimento'})
         query = request.GET.get('q', '').strip()[:100]
         if query:
             accounts = accounts.filter(Q(registration__icontains=query) | Q(user__first_name__icontains=query)

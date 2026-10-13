@@ -1,0 +1,5 @@
+{% extends 'institutions/base.html' %}
+{% block workspace_content %}
+<form method="get" class="manager-actions"><label for="subject-search">Buscar disciplina</label><input type="search" id="subject-search" name="q" value="{{ query }}" maxlength="100"><button type="submit" class="button button-secondary">Buscar</button></form>
+{% if query and not subjects %}<p role="status">Nenhuma disciplina encontrada para “{{ query }}”. <a href="{% url 'institutions:student-disciplines' %}">Limpar busca</a></p>{% else %}{% include 'components/institutions/student_subjects.html' %}{% endif %}
+{% endblock %}

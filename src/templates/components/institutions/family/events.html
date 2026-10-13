@@ -1,0 +1,3 @@
+<div class="manager-actions"><a href="?{% if selected_child %}child={{ selected_child.pk }}{% endif %}">Próximos eventos</a><a href="?past=1{% if selected_child %}&amp;child={{ selected_child.pk }}{% endif %}">Eventos anteriores</a></div>
+{% for event in event_page %}<article class="dash-card manager-card full-card"><h2>{{ event.title }}</h2><p>{{ event.starts_at|date:'d/m/Y H:i' }} a {{ event.ends_at|date:'d/m/Y H:i' }} · {{ event.location|default:'Local a confirmar' }}</p><p>{{ event.classroom.name|default:'Toda a instituição' }}</p>{{ event.description|linebreaks }}</article>{% empty %}<p>Nenhum evento publicado para os filhos selecionados neste período.</p>{% endfor %}
+{% include 'components/institutions/family/pagination.html' with page=event_page %}

@@ -1,4 +1,9 @@
-.management-sidebar .sidebar-nav { overflow-y: auto; min-height: 0; padding-bottom: 12px; }
+.management-sidebar .sidebar-nav { overflow-x: hidden; overflow-y: auto; min-width: 0; min-height: 0; padding-bottom: 12px; }
+@media(min-width:761px) {
+ .sidebar-nav { min-width: 0; grid-template-columns: minmax(0,1fr); }
+ .sidebar-nav .sidebar-link { min-width: 0; }
+ .sidebar-nav .sidebar-label { min-width: 0; overflow-wrap: anywhere; }
+}
 .sidebar-academic { min-width: 0; }
 .sidebar-academic summary { list-style: none; }
 .sidebar-academic summary::-webkit-details-marker { display: none; }
@@ -17,4 +22,13 @@
  .management-sidebar .sidebar-children .sidebar-link { flex-direction: row; justify-content: flex-start; padding: 10px; gap: 12px; }
  .management-sidebar .sidebar-children .sidebar-label { display: inline; }
  .management-sidebar .sidebar-children .mobile-nav-label { display: none; }
+}
+
+@media(min-width:761px) {
+ .family-sidebar .sidebar-nav { overflow-x: hidden; overflow-y: auto; min-height: 0; padding: 4px; }
+}
+@media(max-width:760px) {
+ .family-sidebar { height: calc(136px + env(safe-area-inset-bottom)); }
+ .family-sidebar .sidebar-nav { grid-template-columns: repeat(4,minmax(0,1fr)); }
+ .has-family-sidebar .app-main { padding-bottom: calc(146px + env(safe-area-inset-bottom)); }
 }

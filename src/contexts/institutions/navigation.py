@@ -7,7 +7,7 @@ def sidebar_navigation(request):
     if not request.user.is_authenticated:
         return {}
     account = InstitutionalAccount.objects.filter(
-        user=request.user, role__in=('ADMIN', 'MANAGER'),
+        user=request.user, role__in=('ADMIN', 'MANAGER', 'STUDENT', 'GUARDIAN'),
         organization__is_active=True, organization__school__isnull=False,
     ).first()
     if not account:
@@ -16,6 +16,14 @@ def sidebar_navigation(request):
     name = match.view_name if match else ''
     namespace = match.namespace if match else ''
     module = match.kwargs.get('module', '') if match else ''
+    if account.role == 'GUARDIAN':
+        from .family.views import MODULES
+        return {'family_sidebar': True, 'family_modules': MODULES,
+                'family_active_module': module or ('inicio' if name == 'family:index' else '')}
+    if account.role == 'STUDENT':
+        return {'student_sidebar': True,
+                'sidebar_student_home': name == 'institutions:aluno',
+                'sidebar_student_disciplines': name in ('institutions:student-disciplines', 'institutions:student-discipline')}
     performance = name == 'institutions:manager-performance'
     if performance or namespace in ('planning', 'assessments', 'paper-exams'):
         module = 'academico'

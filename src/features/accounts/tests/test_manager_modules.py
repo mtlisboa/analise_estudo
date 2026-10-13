@@ -104,6 +104,6 @@ class ManagerModulesTests(TestCase):
                                 'components/layout/management_navigation.html')
         from features.users_manager.models import InstitutionalAccount
         InstitutionalAccount.objects.filter(user=self.users['MANAGER']).update(role='GUARDIAN')
-        response = self.client.get(reverse('institutions:responsavel'))
+        response = self.client.get(reverse('institutions:responsavel'), follow=True)
         self.assertTemplateNotUsed(response, 'components/layout/management_navigation.html')
         self.assertNotContains(response, 'management-sidebar')

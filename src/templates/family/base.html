@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} · {{ institution.display_name }} | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}
+<section class="manager-shell">
+<div class="manager-topbar"><div class="manager-heading"><p class="section-kicker">{{ institution.display_name }} · {{ identity.get_role_display }}</p><h1>{{ page_title }}</h1><p>Famílias e acompanhamento escolar</p></div></div>
+{% block family_content %}{% endblock %}
+</section>
+{% endblock %}

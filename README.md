@@ -478,3 +478,27 @@ institucionais continuam exigindo e-mail. Nenhuma caixa postal é criada.
 O papel persistido na instituição define o contexto e as permissões; esses
 usuários não recebem privilégios globais de administração. Responsável continua
 sem dados de alunos até existir vínculo explícito.
+
+### Área institucional do aluno
+
+- `/instituicao/aluno/`: identificação, matrícula, turmas, atividades e horários publicados.
+- `/instituicao/aluno/disciplinas/`: busca e lista de disciplinas por oferta/período, com professores e aulas semanais.
+- Cada disciplina abre uma página própria com os horários e o código da oferta.
+- A barra lateral do aluno oferece Área do aluno e Minhas disciplinas; os componentes de layout e notificações são preservados.
+- As disciplinas são derivadas da grade publicada das turmas com vínculo STUDENT ativo. Grades em edição não aparecem até a publicação. O modelo atual matricula o aluno na turma inteira; não há matrícula avulsa por disciplina.
+- Sem matrícula/grade publicada, a interface mostra estado vazio. Acesso por URL também valida perfil, instituição e matrícula.
+
+### Responsáveis, famílias e atendimento
+
+A área `/instituicao/familia/` permite acompanhar um ou vários filhos. O responsável só acessa alunos institucionalmente vinculados a ele; não pode criar o próprio vínculo.
+
+- **Meus filhos:** matrícula e turmas ativas dos alunos vinculados.
+- **Desempenho:** notas de provas corrigidas, aproveitamento médio e análise por filho/disciplina, com filtros por filho, datas e disciplina. A média usa o percentual de cada prova com peso igual. Não inclui provas em revisão nem resultados de outras instituições.
+- **Grade:** disciplinas, professores e horários das ofertas publicadas. Alterações em rascunho permanecem ocultas.
+- **Eventos:** agenda e histórico de eventos publicados para a instituição inteira ou para as turmas dos filhos.
+- **Contato e documentos:** solicitação com protocolo, situação e histórico de mensagens; documentos exigem selecionar um filho. O contato geral funciona mesmo antes do cadastro de vínculos.
+- **Notificações:** caixa pessoal e sino existente, com avisos de respostas, eventos publicados/alterados e provas corrigidas/revisadas.
+
+Administrativo, gestor e operador acessam `/instituicao/familia/atendimento/`, também disponível em Administração (gestão) e no painel do operador. Ali cadastram/desativam vínculos, publicam eventos e atendem solicitações. Podem enviar PDFs de até 10 MB; o download exige autorização e deixa de estar disponível ao responsável quando o vínculo com o aluno é revogado. Os arquivos ficam em MEDIA_ROOT e precisam acompanhar a persistência dos dados da aplicação.
+
+Aplique a migration `institution_family.0001_initial` com `python src/manage.py migrate`. A carga demonstrativa vincula `demo_responsavel` a `demo_aluno`, preservando a senha de `MOCK_PASSWORD`. Documentos são entregues pela instituição através do atendimento; não são gerados ou assinados automaticamente. Contatos e notificações são internos à plataforma.

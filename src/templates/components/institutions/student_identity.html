@@ -1,0 +1,5 @@
+<article class="dash-card manager-card full-card">
+<h2>Área do aluno</h2>
+<p>{{ user.get_full_name|default:user.username }} · Matrícula {{ identity.registration }}</p>
+<p>{{ identity.email }} · {{ institution.display_name }}</p>
+</article>
