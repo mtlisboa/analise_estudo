@@ -149,3 +149,39 @@ class CommunicationTests(TestCase):
         self.assertEqual(client.post(reverse('communication:send',args=[conversation.pk]),
             {'body':'Sem token','nonce':uuid.uuid4()}).status_code,403)
         self.assertEqual(Message.objects.count(),0)
+
+    def test_room_excludes_general_contacts_and_rejects_outside_conversations(self):
+        admin = self.admin.institutional_account
+        self.client.post(reverse('communication:start', args=['direta', admin.pk]))
+        outside = Conversation.objects.get(classroom__isnull=True)
+        self.send(outside, 'Mensagem fora da turma')
+        self.client.post(reverse('communication:start', args=['direta', self.teacher.pk]))
+        room = reverse('institutions:classroom', args=[self.classroom.pk])
+        response = self.client.get(room, {'chat': outside.pk})
+        self.assertNotContains(response, 'Mensagem fora da turma')
+        self.assertNotContains(response, 'Abrir central')
+        self.assertNotContains(response, 'Nova conversa')
+        self.assertNotContains(response, 'Buscar contato ou turma')
+        self.assertNotIn(outside.pk, [row.pk for row in response.context['chat_conversations']])
+        self.assertContains(self.client.get(reverse('institutions:aluno')), 'Abrir central')
+        self.assertEqual(self.client.post(reverse('communication:start', args=['direta', admin.pk]),
+            {'return_classroom': self.classroom.pk}).status_code, 404)
+        self.assertEqual(self.client.post(reverse('communication:send', args=[outside.pk]),
+            {'return_classroom': self.classroom.pk, 'body': 'Bloqueada', 'nonce': uuid.uuid4()},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest').status_code, 404)
+        self.assertEqual(outside.messages.count(), 1)
+
+    def test_room_keeps_teacher_student_replies_and_rejects_other_groups(self):
+        conversation = self.direct()
+        room = reverse('institutions:classroom', args=[self.classroom.pk])
+        self.send(conversation, 'Pergunta ao professor')
+        self.assertContains(self.client.get(room, {'chat': conversation.pk}), 'Pergunta ao professor')
+        self.client.force_login(self.teacher.user)
+        self.assertContains(self.client.get(room, {'chat': conversation.pk}), 'Pergunta ao professor')
+        self.assertEqual(self.client.post(reverse('communication:send', args=[conversation.pk]),
+            {'return_classroom': self.classroom.pk, 'body': 'Resposta', 'nonce': uuid.uuid4()},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest').status_code, 201)
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.post(reverse('communication:start', args=['grupo', self.other_classroom.pk]),
+            {'return_classroom': self.classroom.pk}).status_code, 404)
+        self.assertFalse(Conversation.objects.filter(classroom=self.other_classroom).exists())

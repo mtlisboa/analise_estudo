@@ -53,6 +53,26 @@ def authorized(account, pk):
     return get_object_or_404(visible(account),pk=pk)
 
 
+def room_teachers(account, classroom):
+    return contacts(account).filter(role='TEACHER',
+        user__classroom_memberships__classroom=classroom,
+        user__classroom_memberships__role='TEACHER',
+        user__classroom_memberships__status='ACTIVE').distinct()
+
+
+def room_conversations(account, classroom):
+    teachers = room_teachers(account, classroom).values_list('pk', flat=True)
+    private = Q(first=account, second_id__in=teachers) | Q(second=account, first_id__in=teachers)
+    # A professor can also reply to private messages from this classroom's students.
+    if classroom.memberships.filter(user=account.user, role='TEACHER', status='ACTIVE').exists() and account.role == 'TEACHER':
+        students = contacts(account).filter(role='STUDENT',
+            user__classroom_memberships__classroom=classroom,
+            user__classroom_memberships__role='STUDENT',
+            user__classroom_memberships__status='ACTIVE').values_list('pk', flat=True)
+        private |= Q(first=account, second_id__in=students) | Q(second=account, first_id__in=students)
+    return visible(account).filter(Q(classroom=classroom) | private)
+
+
 def title(conversation, account):
     if conversation.classroom_id:
         return conversation.classroom.name + ' · Grupo da turma'
