@@ -10,6 +10,8 @@ services:
     command: >-
       sh -c "exec uvicorn config.asgi:application
       --host 0.0.0.0 --port 8000 --workers 2"
+    env_file:
+      - .env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.development
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:-unsafe-compose-development-key}"
@@ -21,6 +23,8 @@ services:
       IA_MCP_SERVER_URL: "${IA_MCP_SERVER_URL:-}"
       IA_MCP_CHAT_TOOL: "${IA_MCP_CHAT_TOOL:-answer_from_documentation}"
       IA_MCP_TIMEOUT_SECONDS: "${IA_MCP_TIMEOUT_SECONDS:-30}"
+      DEPLOY_MODE: "${DEPLOY_MODE:-}"
+      MOCK_PASSWORD: "${MOCK_PASSWORD:-}"
     depends_on:
       redis:
         condition: service_healthy
