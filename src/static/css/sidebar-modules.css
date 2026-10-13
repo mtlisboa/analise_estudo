@@ -32,3 +32,5 @@
  .family-sidebar .sidebar-nav { grid-template-columns: repeat(4,minmax(0,1fr)); }
  .has-family-sidebar .app-main { padding-bottom: calc(146px + env(safe-area-inset-bottom)); }
 }
+
+@media(max-width:760px) { .teacher-sidebar .sidebar-nav { grid-template-columns: repeat(5,minmax(0,1fr)); } }
