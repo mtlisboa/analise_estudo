@@ -5,7 +5,7 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/classroom-room.css' %}?v=4">
 <section class="classroom-room">
-    <div class="room-toolbar"><a class="back-link" href="{% url 'users-manager:classroom-group-detail' classroom.group.pk %}">← Voltar para {{ classroom.group.name }}</a><a class="room-account-link" href="{% url 'accounts:account' %}">Minha conta</a></div>
+    <div class="room-toolbar"><a class="back-link" href="{% if institutional_room %}{% url 'institutions:classrooms' %}{% else %}{% url 'users-manager:classroom-group-detail' classroom.group.pk %}{% endif %}">← {% if institutional_room %}Voltar para turmas{% else %}Voltar para {{ classroom.group.name }}{% endif %}</a><a class="room-account-link" href="{% url 'accounts:account' %}">Minha conta</a></div>
     <nav id="room-hub" class="room-hub-nav" aria-label="Hub da sala">
         <a href="#room-content" aria-current="location">Conteúdo</a>
         <a href="#room-agenda">Agenda</a>

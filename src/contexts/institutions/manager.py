@@ -47,7 +47,8 @@ def render_module(request, account, module='inicio'):
             data.update(title=title, description=description)
     if module == 'academico':
         data['classroom_page'] = Paginator(classrooms, 20).get_page(request.GET.get('page'))
-        data['link_classrooms'] = account.role == 'ADMIN'
+        data['link_classrooms'] = True
+        data['actions'].append({'url': reverse('institutions:classrooms'), 'label': 'Área de turmas'})
         if account.role == 'ADMIN':
             data['actions'].append({'url': reverse('planning:index'), 'label': 'Montagem de turmas'})
     elif module == 'desempenho':

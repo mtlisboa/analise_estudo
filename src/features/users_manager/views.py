@@ -40,7 +40,7 @@ from .permissions import (
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
     if hasattr(request.user, 'institutional_account'):
-        return redirect('institutions:index')
+        return redirect('institutions:index' if request.user.institutional_account.role == 'GUARDIAN' else 'institutions:classrooms')
     organizations = list(
         Organization.objects.filter(
             Q(owner=request.user) | Q(memberships__user=request.user),
@@ -169,6 +169,11 @@ def create_organization(request: HttpRequest) -> HttpResponse:
 @login_required
 def organization_detail(request: HttpRequest, pk: int) -> HttpResponse:
     organization = get_object_or_404(Organization, pk=pk, is_active=True)
+    identity = getattr(request.user, 'institutional_account', None)
+    if identity:
+        if identity.organization_id != organization.pk:
+            return HttpResponseForbidden('Esta instituição não pertence ao seu acesso.')
+        return redirect('institutions:classrooms')
     membership = OrganizationMembership.objects.filter(
         organization=organization,
         user=request.user,
@@ -213,6 +218,11 @@ def classroom_group_detail(request: HttpRequest, pk: int) -> HttpResponse:
         organization__is_active=True,
     )
     organization = group.organization
+    identity = getattr(request.user, 'institutional_account', None)
+    if identity:
+        if identity.organization_id != organization.pk:
+            return HttpResponseForbidden('Esta instituição não pertence ao seu acesso.')
+        return redirect('institutions:classrooms')
     membership = OrganizationMembership.objects.filter(
         organization=organization,
         user=request.user,
@@ -415,7 +425,13 @@ def create_classroom(
 
 @login_required
 def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    from .room import detail
+    from .room import detail, authorized_classroom, room_url
+    if getattr(request.user, 'institutional_account', None):
+        authorized_classroom(request, pk)
+        url = room_url(request, pk)
+        if request.GET:
+            url += '?' + request.GET.urlencode()
+        return redirect(url)
     return detail(request, pk)
 
 
