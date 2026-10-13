@@ -10,7 +10,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
 from features.users_manager.models import Organization
-from .forms import BatchForm, FORMS, LABELS, PeriodForm, RevisionForm
+from .forms import BatchForm, FORMS, LABELS, PeriodForm, RevisionForm, StudentForm
 from .models import Lesson, Offer, Period, Requirement, Slot, Student, Teacher
 from .services import authorize, distribute, generate_timetable, import_students, mutate, pending_issues, publish, validate_existing
 
@@ -89,6 +89,7 @@ def detail(request, pk):
         "slots": period.slots.all(), "requirements": Requirement.objects.filter(offer__period=period).select_related(
             "offer", "teacher__account__user").prefetch_related("lessons"),
         "lessons": lessons, "selected_teacher": selected_teacher,
+        "student_form": StudentForm(period=period),
         "issues": pending_issues(period), "batch_form": BatchForm(initial={"revision": period.revision}),
         "dirty": period.published_revision != period.revision,
     })

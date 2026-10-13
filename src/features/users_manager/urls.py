@@ -9,6 +9,7 @@ urlpatterns = [
     path("turmas/<int:pk>/capa/editar/", room.update_cover, name="classroom-cover-update"),
     path("turmas/<int:pk>/avisos/novo/", room.add_notice, name="classroom-notice-create"),
     path("turmas/<int:pk>/avisos/<int:notice_pk>/retirar/", room.withdraw_notice, name="classroom-notice-withdraw"),
+    path("organizacoes/<int:pk>/alunos/", institutional_views.accounts, {"students_only": True}, name="institutional-students"),
     path("organizacoes/<int:pk>/acessos/", institutional_views.accounts, name="institutional-accounts"),
     path("organizacoes/<int:pk>/acessos/<int:account_pk>/senha/", institutional_views.reset_password, name="institutional-password-reset"),
     path("", views.dashboard, name="dashboard"),

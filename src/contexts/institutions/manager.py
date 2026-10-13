@@ -52,6 +52,8 @@ def render_module(request, account, module='inicio'):
         data['classroom_page'] = Paginator(classrooms, 20).get_page(request.GET.get('page'))
         data['link_classrooms'] = True
         data['actions'].append({'url': reverse('institutions:classrooms'), 'label': 'Área de turmas'})
+        if can_provision(request.user, organization):
+            data['actions'].append({'url': reverse('users-manager:institutional-students', args=[organization.pk]), 'label': 'Cadastrar aluno'})
         if account.role == 'ADMIN':
             data['actions'].append({'url': reverse('planning:index'), 'label': 'Montagem de turmas'})
     elif module == 'desempenho':
@@ -80,6 +82,7 @@ def render_module(request, account, module='inicio'):
         if can_provision(request.user, organization):
             data['actions'].append({'url': reverse('users-manager:institutional-accounts', args=[organization.pk]),
                                     'label': 'Gerenciar acessos'})
+            data['actions'].append({'url': reverse('users-manager:institutional-students', args=[organization.pk]), 'label': 'Cadastrar aluno'})
     elif module == 'institucional' and can_provision(request.user, organization):
         data['actions'].append({'url': reverse('organization-settings:detail', args=[organization.pk]),
                                 'label': 'Configurar organização'})

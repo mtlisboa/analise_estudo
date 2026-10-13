@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 
 from features.accounts.institutional import can_provision, provision_administrator, provision_member, reset_institutional_password
 from .models import Organization, InstitutionalAccount
-from .institutional_forms import InstitutionAdministratorForm, InstitutionalUserForm, TemporaryPasswordForm
+from .institutional_forms import InstitutionAdministratorForm, InstitutionalUserForm, InstitutionalStudentForm, TemporaryPasswordForm
 
 
 def managed_organization(user, pk):
@@ -25,16 +25,19 @@ def managed_organization(user, pk):
 @never_cache
 @sensitive_post_parameters('password', 'password_confirm')
 @require_http_methods(['GET', 'POST'])
-def accounts(request, pk):
+def accounts(request, pk, students_only=False):
     organization = managed_organization(request.user, pk)
     has_admin = organization.institutional_accounts.filter(role='ADMIN').exists()
+    if students_only and not has_admin:
+        raise PermissionDenied
     if not has_admin:
         if not request.user.is_system_admin:
             raise PermissionDenied
         form = InstitutionAdministratorForm(request.POST if request.method == 'POST' else None,
             initial={'domain': organization.school.email_domain or ''})
     else:
-        form = InstitutionalUserForm(request.POST if request.method == 'POST' else None, organization=organization)
+        form_class = InstitutionalStudentForm if students_only else InstitutionalUserForm
+        form = form_class(request.POST if request.method == 'POST' else None, organization=organization)
     if request.method == 'POST' and form.is_valid():
         data = {key: value for key, value in form.cleaned_data.items() if key != 'password_confirm'}
         try:
@@ -44,10 +47,10 @@ def accounts(request, pk):
             form.add_error(None, exc if isinstance(exc, ValidationError) else 'E-mail, registro ou domínio já está em uso. Atualize a página e confira os dados.')
         else:
             messages.success(request, f'Acesso criado: {account.email}. Entregue a senha provisória à pessoa; ela deverá alterá-la no primeiro acesso.')
-            return redirect('users-manager:institutional-accounts', pk=organization.pk)
+            return redirect('users-manager:institutional-students' if students_only else 'users-manager:institutional-accounts', pk=organization.pk)
     return render(request, 'users_manager/institutional_accounts.html', {
-        'organization': organization, 'form': form, 'has_admin': has_admin,
-        'accounts': organization.institutional_accounts.select_related('user')})
+        'organization': organization, 'form': form, 'has_admin': has_admin, 'students_only': students_only,
+        'accounts': organization.institutional_accounts.select_related('user').filter(role='STUDENT') if students_only else organization.institutional_accounts.select_related('user')})
 
 
 @login_required

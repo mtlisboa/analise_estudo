@@ -138,7 +138,8 @@ def room_data(request, classroom):
             chat_data['room_chat_available'] = True
             chat_data['chat_room_id'] = classroom.pk
             chat_data['room_teachers'] = classroom.memberships.filter(role='TEACHER',status='ACTIVE',user__is_active=True,user__institutional_account__role='TEACHER',user__institutional_account__organization=classroom.organization).select_related('user__institutional_account').exclude(user=request.user)
-    return {**chat_data, 'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
+    from features.accounts.institutional import can_provision
+    return {**chat_data, 'can_register_student': bool(identity and can_provision(request.user, classroom.organization)), 'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
         'subject': subject, 'subject_choices': subject_choices, 'modules': modules, 'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
         'tests': classroom.tests.all() if manage else classroom.tests.filter(is_published=True),
         'notices': list(notices[:3]), 'notice_count': notices.count(),
