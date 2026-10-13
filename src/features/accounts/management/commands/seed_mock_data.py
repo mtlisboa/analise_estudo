@@ -425,6 +425,8 @@ class Command(BaseCommand):
 
         from features.accounts.mock_content import populate
         populate(organization, administrator, teacher, assistant_teacher, demo_student, guardian)
+        from contexts.institutions.analysis.mock import populate as populate_analysis
+        populate_analysis(organization, administrator)
 
         self._upsert_saved_analysis(
             teacher,

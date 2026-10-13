@@ -1,3 +1,4 @@
+from .diagnostics import validate_metadata
 from decimal import Decimal
 
 from django.conf import settings
@@ -115,6 +116,7 @@ class Assessment(models.Model):
 
 
 class QuestionBankItem(models.Model):
+    diagnostic_metadata = models.JSONField("metadados pedagógicos", default=dict, blank=True, validators=[validate_metadata])
     class Visibility(models.TextChoices):
         INSTITUTION = "institution", "Somente a instituição"
         INSTITUTIONS = "institutions", "Professores e gestores de outras instituições"
@@ -226,6 +228,7 @@ class QuestionBankItem(models.Model):
 
 
 class Question(models.Model):
+    diagnostic_metadata = models.JSONField("metadados pedagógicos", default=dict, blank=True, validators=[validate_metadata])
     class Type(models.TextChoices):
         MULTIPLE_CHOICE = "multiple_choice", "Múltipla escolha"
         OPEN_ENDED = "open_ended", "Discursiva"

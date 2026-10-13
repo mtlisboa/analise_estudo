@@ -132,6 +132,7 @@ def add_bank_item_to_assessment(assessment, item):
         statement=item.statement,
         question_type=item.question_type,
         options=item.options,
+        diagnostic_metadata=item.diagnostic_metadata,
         correct_answer=item.correct_answer,
         explanation=item.explanation,
         points=item.default_points,

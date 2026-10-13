@@ -1,10 +1,11 @@
-from django.urls import path
+from django.urls import path, include
 
 from . import manager, student, views, classrooms, teacher_analysis, teacher_administration
 from .roles import WORKSPACES
 
 app_name = 'institutions'
 urlpatterns = [
+    path('analise/', include('contexts.institutions.analysis.urls')),
     path('professor/administracao/<slug:section>/', teacher_administration.index, name='teacher-administration-section'),
     path('professor/administracao/', teacher_administration.index, name='teacher-administration'),
     path('professor/analise/', teacher_analysis.index, name='teacher-analysis'),

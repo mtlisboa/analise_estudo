@@ -132,7 +132,8 @@ def review(request, result_pk):
             ResultReview.objects.create(result=locked, reviewer=request.user,
                 previous_answers=locked.answers, answers=answers, note=form.cleaned_data['note'])
             locked.answers = answers
-            locked.score, locked.maximum_score = grade(run.questions, locked.answers)
+            from contexts.institutions.analysis.services import effective_questions
+            locked.score, locked.maximum_score = grade(effective_questions(run), locked.answers)
             locked.status = 'graded'
             locked.reviewed_by = request.user
             locked.reviewed_at = timezone.now()

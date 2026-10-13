@@ -26,6 +26,7 @@ if railway_public_origin := railway_origin(RAILWAY_PUBLIC_DOMAIN):
         CSRF_TRUSTED_ORIGINS.append(railway_public_origin)
 
 INSTALLED_APPS = [
+    "contexts.institutions.analysis.apps.AnalysisConfig",
     "contexts.institutions.communication.apps.CommunicationConfig",
     "channels",
     "features.notifications.apps.NotificationsConfig",

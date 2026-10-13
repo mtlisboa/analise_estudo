@@ -242,6 +242,7 @@
                 <label for="{{ question_form.explanation.id_for_label }}">{{ question_form.explanation.label }}</label>
                 {{ question_form.explanation }}{{ question_form.explanation.errors }}
             </div>
+            <details><summary>Habilidades e distratores (opcional)</summary>{% for field in question_form %}{% if field.name == 'skill_codes' or 'diagnostic_' in field.name %}<p>{{ field.label_tag }}{{ field }}{{ field.errors }}</p>{% endif %}{% endfor %}</details>
             {% for field in question_form %}{% if field.name == 'share_with_institution' or field.name == 'sharing_organization' %}
             <div class="form-field">{% if not field.is_hidden %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% endif %}{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>
             {% endif %}{% endfor %}

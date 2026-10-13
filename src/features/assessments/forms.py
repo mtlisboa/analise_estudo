@@ -1,3 +1,4 @@
+from .diagnostics import DiagnosticFields
 from .sharing_forms import TeacherSharingMixin
 from .bank_access import available_questions
 from django import forms
@@ -129,7 +130,7 @@ class AssessmentForm(forms.ModelForm):
         return assessment
 
 
-class QuestionForm(TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
+class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,
@@ -212,6 +213,7 @@ class QuestionForm(TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
             subject=assessment.subject,
             topic=assessment.topic,
             support_text=question.support_text,
+            diagnostic_metadata=question.diagnostic_metadata,
             statement=question.statement,
             question_type=question.question_type,
             options=question.options,
@@ -234,7 +236,7 @@ class QuestionForm(TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
         return question
 
 
-class QuestionBankItemForm(TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
+class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,

@@ -50,7 +50,7 @@ def issue_run(assessment, classroom, user):
             if len(content) > 2 * 1024 * 1024 or image_bytes > 30 * 1024 * 1024:
                 raise ValidationError('As imagens da prova excedem o limite de 30 MB. Reduza as imagens antes de emitir.')
             images.append({'data': base64.b64encode(content).decode('ascii'), 'description': image.description})
-        snapshot.append({'id': question.pk, 'support_text': question.support_text, 'images': images,
+        snapshot.append({'id': question.pk, 'version': question.updated_at.isoformat(), 'diagnostic_metadata': question.diagnostic_metadata, 'support_text': question.support_text, 'images': images,
                          'statement': question.statement, 'options': options,
                          'correct': LETTERS[options.index(question.correct_answer)], 'points': str(question.points)})
     members = list(classroom.memberships.filter(role=ClassroomMembership.Role.STUDENT,
@@ -60,15 +60,15 @@ def issue_run(assessment, classroom, user):
     if len(members) > 100:
         raise ValidationError('A emissão está limitada a 100 alunos por turma.')
     run = ExamRun.objects.create(assessment=assessment, classroom=classroom, created_by=user,
-            title=str(assessment), classroom_name=str(classroom), questions=snapshot)
+            title=str(assessment), classroom_name=str(classroom), questions=snapshot, subject=assessment.subject.strip().upper())
     AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user,
             student_name=m.user.get_full_name() or m.user.username, student_registration=m.user.username) for m in members])
     return run
 
 
 def grade(questions, answers):
-    maximum = sum((Decimal(q['points']) for q in questions), Decimal('0'))
-    score = sum((Decimal(q['points']) for q, answer in zip(questions, answers) if q['correct'] == answer), Decimal('0'))
+    maximum = sum((Decimal(q['points']) for q in questions if not q.get('annulled')), Decimal('0'))
+    score = sum((Decimal(q['points']) for q, answer in zip(questions, answers) if not q.get('annulled') and q['correct'] == answer), Decimal('0'))
     return score, maximum
 
 
@@ -81,7 +81,8 @@ def save_result(batch, identity, answers, issues, source, evidence=None):
         raise ReadError('Aluno ou folha não corresponde à emissão selecionada.')
     if len(answers) != len(batch.run.questions):
         raise ReadError('Quantidade de respostas diferente da prova.')
-    score, maximum = grade(batch.run.questions, answers)
+    from contexts.institutions.analysis.services import effective_questions
+    score, maximum = grade(effective_questions(batch.run), answers)
     result, created = SheetResult.objects.get_or_create(sheet=sheet, defaults={
         'batch': batch, 'source_name': source[:255], 'detected': answers, 'answers': answers,
         'issues': issues, 'status': 'review' if issues else 'graded',

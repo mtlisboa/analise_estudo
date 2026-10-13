@@ -59,7 +59,8 @@ class SeedMockDataCommandTests(TestCase):
         from features.users_manager.models import ClassroomNotice
         from features.assessments.models import QuestionImage
         from features.notifications.models import Notification
-        mock_models = (Period, Offer, Student, Slot, Teacher, Requirement, Lesson, Publication,
+        from contexts.institutions.analysis.models import Curriculum, Evidence, Attendance, Intervention, Trajectory, OfficialResult, OfferContext
+        mock_models = (Curriculum, Evidence, Attendance, Intervention, Trajectory, OfficialResult, OfferContext, Period, Offer, Student, Slot, Teacher, Requirement, Lesson, Publication,
             Conversation, Message, FamilyRequest, RequestMessage, SchoolEvent, ExamRun,
             AnswerSheet, ImportBatch, SheetResult, ClassroomNotice, QuestionImage, Notification)
         call_command("seed_mock_data", verbosity=0)

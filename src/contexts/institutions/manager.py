@@ -27,6 +27,9 @@ def render_module(request, account, module='inicio'):
         raise PermissionDenied('Este contexto é exclusivo da gestão institucional.')
     if module not in {'inicio', 'desempenho', *(slug for slug, _, _ in MODULES)}:
         raise Http404
+    if module in ('analise', 'desempenho'):
+        from .analysis.views import index
+        return index(request)
     organization = account.organization
     classrooms = Classroom.objects.filter(organization=organization, is_active=True)
     accounts = organization.institutional_accounts.select_related('user')
