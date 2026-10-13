@@ -29,9 +29,19 @@ def index(request):
     offers = Offer.objects.filter(period__published_at__isnull=False,
         period__organization=account.organization).select_related('period').order_by('-period__starts_on', '-pk')
     rows = rows.prefetch_related(Prefetch('planning_offer', queryset=offers, to_attr='room_offer'))
+    entries = []
+    from copy import copy
+    for classroom in rows.order_by('name', 'pk'):
+        offer = classroom.room_offer
+        subjects = sorted({lesson['subject'] for lesson in offer.published_schedule
+            if account.role != 'TEACHER' or lesson.get('teacher_id') == account.pk}) if offer else []
+        for subject in subjects or ['']:
+            entry = copy(classroom)
+            entry.subject = subject
+            entries.append(entry)
     return render(request, 'institutions/classrooms.html', {
         'institution': account.organization.school, 'identity': account, 'query': query,
-        'classroom_page': Paginator(rows.order_by('name', 'pk'), 20).get_page(request.GET.get('page')),
+        'classroom_page': Paginator(entries, 20).get_page(request.GET.get('page')),
         'can_plan': account.role in ('ADMIN', 'OPERATOR')})
 
 

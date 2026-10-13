@@ -6,6 +6,7 @@
 <p>{{ discipline.offer.name }} · {{ discipline.offer.period.name }} · {{ discipline.offer.get_shift_display }}</p>
 <p>Professores: {{ discipline.teachers|join:', ' }}</p>
 <p>Oferta: {{ discipline.offer.code }}</p>
+<a class="button" href="{% url 'institutions:classroom' discipline.offer.classroom_id %}?subject={{ discipline.name|urlencode }}">Abrir sala e módulos</a>
 </article>
 {% include 'components/institutions/itinerary.html' %}
 {% include 'components/institutions/coursework_list.html' %}

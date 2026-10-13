@@ -33,3 +33,15 @@ class Publication(models.Model):
     def visible_due_at(self):
         value = self.public_snapshot.get('due_at')
         return datetime.fromisoformat(value) if value else None
+
+
+class PDFModule(models.Model):
+    offer = models.ForeignKey('institution_planning.Offer', on_delete=models.CASCADE, related_name='pdf_modules')
+    subject = models.CharField('disciplina', max_length=80)
+    teacher = models.ForeignKey('users_manager.InstitutionalAccount', on_delete=models.PROTECT)
+    title = models.CharField('título', max_length=160)
+    document = models.BinaryField(editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
