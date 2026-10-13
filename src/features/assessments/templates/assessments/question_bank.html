@@ -55,7 +55,7 @@
                 <div class="question-bank-copy">
                     <div class="question-bank-meta">
                         <span>{{ question.subject }}</span>
-                        {% if question.organization %}<span>{{ question.organization.name }} · Compartilhada</span>{% endif %}
+                        {% if question.organization %}<span>{{ question.organization.name }} · {{ question.get_external_visibility_display }}</span>{% else %}<span>Banco pessoal</span>{% endif %}
                         {% if question.source_url %}<a href="{{ question.source_url }}" target="_blank" rel="noopener noreferrer">Fonte: MATH-PT</a>{% endif %}
                         <span>{{ question.topic }}</span>
                         <span>{{ question.get_question_type_display }}</span>

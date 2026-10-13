@@ -115,6 +115,21 @@ class Assessment(models.Model):
 
 
 class QuestionBankItem(models.Model):
+    class Visibility(models.TextChoices):
+        INSTITUTION = "institution", "Somente a instituição"
+        INSTITUTIONS = "institutions", "Professores e gestores de outras instituições"
+        EVERYONE = "everyone", "Todos os usuários cadastrados"
+
+    external_visibility = models.CharField(
+        "Disponibilidade externa", max_length=16, choices=Visibility.choices,
+        default=Visibility.INSTITUTION,
+    )
+    sharing_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="approved_question_shares", verbose_name="liberado por",
+    )
+    sharing_approved_at = models.DateTimeField(null=True, blank=True)
+
     organization = models.ForeignKey(
         "users_manager.Organization", on_delete=models.CASCADE,
         related_name="shared_questions", null=True, blank=True,
@@ -184,7 +199,10 @@ class QuestionBankItem(models.Model):
         ordering = ("-updated_at",)
         verbose_name = "questão do banco"
         verbose_name_plural = "banco de questões"
-        constraints = [models.UniqueConstraint(
+        constraints = [models.CheckConstraint(
+            condition=models.Q(external_visibility="institution") | models.Q(organization__isnull=False),
+            name="external_questions_require_institution",
+        ), models.UniqueConstraint(
             fields=("organization", "source_key"),
             condition=~models.Q(source_key=""), name="unique_institution_source_question",
         )]

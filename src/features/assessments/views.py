@@ -60,7 +60,7 @@ def _render_index(
             "assessments": _assessment_queryset(request.user, query),
             "assessment_form": form or AssessmentForm(),
             "editing_assessment": editing,
-            "question_form": question_form or QuestionForm(),
+            "question_form": question_form or QuestionForm(owner=request.user),
             "question_assessment": question_assessment,
             "query": query,
             "default_techniques": {
@@ -117,7 +117,7 @@ def create_question(request: HttpRequest, assessment_pk: int) -> HttpResponse:
     )
     if request.method != "POST":
         return redirect("assessments:index")
-    form = QuestionForm(request.POST, request.FILES)
+    form = QuestionForm(request.POST, request.FILES, owner=request.user)
     if form.is_valid():
         form.save(assessment=assessment)
         messages.success(request, "Questão adicionada à avaliação.")
@@ -172,7 +172,7 @@ def create_bank_question(request: HttpRequest, source_pk: int | None = None) -> 
     if source_pk is not None:
         source = get_object_or_404(available_questions(request.user), pk=source_pk)
     form = QuestionBankItemForm(
-        request.POST if request.method == "POST" else None, request.FILES or None, source=source,
+        request.POST if request.method == "POST" else None, request.FILES or None, source=source, owner=request.user,
         initial=_question_initial(source) if source and request.method == "GET" else None,
     )
     if request.method == "POST" and form.is_valid():
@@ -200,7 +200,7 @@ def create_bank_question(request: HttpRequest, source_pk: int | None = None) -> 
 @login_required
 def update_bank_question(request: HttpRequest, pk: int) -> HttpResponse:
     item = get_object_or_404(QuestionBankItem, pk=pk, owner=request.user)
-    form = QuestionBankItemForm(request.POST if request.method == "POST" else None, request.FILES or None, instance=item)
+    form = QuestionBankItemForm(request.POST if request.method == "POST" else None, request.FILES or None, instance=item, owner=request.user)
     if request.method == "POST" and form.is_valid():
         form.save_for(request.user)
         messages.success(request, "Questão atualizada no banco.")
@@ -218,15 +218,16 @@ def update_bank_question(request: HttpRequest, pk: int) -> HttpResponse:
 
 @login_required
 def generate_bank_question_with_ai(request: HttpRequest) -> HttpResponse:
-    form = AIGenerateQuestionForm(request.POST or None)
+    form = AIGenerateQuestionForm(request.POST or None, owner=request.user)
     if request.method == "POST" and form.is_valid():
         try:
-            generate_question_with_ai(
+            item = generate_question_with_ai(
                 request.user,
                 form.cleaned_data["subject"],
                 form.cleaned_data["topic"],
                 form.cleaned_data["instructions"],
             )
+            form.apply_sharing(item, request.user).save()
         except Exception as exc:
             form.add_error(None, f"Não foi possível gerar a questão: {exc}")
         else:
@@ -242,10 +243,11 @@ def generate_bank_question_with_ai(request: HttpRequest) -> HttpResponse:
 @login_required
 def edit_bank_question_with_ai(request: HttpRequest, pk: int) -> HttpResponse:
     source = get_object_or_404(QuestionBankItem, pk=pk, owner=request.user)
-    form = AIEditQuestionForm(request.POST or None)
+    form = AIEditQuestionForm(request.POST or None, owner=request.user)
     if request.method == "POST" and form.is_valid():
         try:
-            edit_question_with_ai(source, form.cleaned_data["instructions"])
+            item = edit_question_with_ai(source, form.cleaned_data["instructions"])
+            form.apply_sharing(item, request.user).save()
         except Exception as exc:
             form.add_error(None, f"Não foi possível editar a questão: {exc}")
         else:

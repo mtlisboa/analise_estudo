@@ -1,3 +1,4 @@
+from .sharing_forms import TeacherSharingMixin
 from .bank_access import available_questions
 from django import forms
 from django.db import transaction
@@ -128,7 +129,7 @@ class AssessmentForm(forms.ModelForm):
         return assessment
 
 
-class QuestionForm(QuestionImagesMixin, forms.ModelForm):
+class QuestionForm(TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,
@@ -206,7 +207,7 @@ class QuestionForm(QuestionImagesMixin, forms.ModelForm):
     def save(self, assessment: Assessment) -> Question:
         question = super().save(commit=False)
         question.assessment = assessment
-        bank_item = QuestionBankItem.objects.create(
+        bank_item = QuestionBankItem(
             owner=assessment.owner,
             subject=assessment.subject,
             topic=assessment.topic,
@@ -219,6 +220,8 @@ class QuestionForm(QuestionImagesMixin, forms.ModelForm):
             default_points=question.points,
             creation_method=QuestionBankItem.CreationMethod.MANUAL,
         )
+        self.apply_sharing(bank_item, assessment.owner)
+        bank_item.save()
         self.save_images(bank_item, assessment.owner)
         question.bank_item = bank_item
         last_order = assessment.questions.aggregate(last=Max("order"))["last"] or 0
@@ -231,7 +234,7 @@ class QuestionForm(QuestionImagesMixin, forms.ModelForm):
         return question
 
 
-class QuestionBankItemForm(QuestionImagesMixin, forms.ModelForm):
+class QuestionBankItemForm(TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,
@@ -289,6 +292,7 @@ class QuestionBankItemForm(QuestionImagesMixin, forms.ModelForm):
     def save_for(self, owner, *, source=None, creation_method=None):
         item = super().save(commit=False)
         item.owner = owner
+        self.apply_sharing(item, owner)
         if source is not None:
             item.source_question = source
             item.creation_method = creation_method or QuestionBankItem.CreationMethod.DERIVED
@@ -316,7 +320,7 @@ class AddBankQuestionsForm(forms.Form):
         self.fields["questions"].queryset = available_questions(owner)
 
 
-class AIGenerateQuestionForm(forms.Form):
+class AIGenerateQuestionForm(TeacherSharingMixin, forms.Form):
     subject = forms.CharField(label="Matéria", max_length=120)
     topic = forms.CharField(label="Assunto", max_length=160)
     instructions = forms.CharField(
@@ -326,7 +330,7 @@ class AIGenerateQuestionForm(forms.Form):
     )
 
 
-class AIEditQuestionForm(forms.Form):
+class AIEditQuestionForm(TeacherSharingMixin, forms.Form):
     instructions = forms.CharField(
         label="Como a IA deve editar esta questão?",
         widget=forms.Textarea(attrs={"rows": 4}),

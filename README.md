@@ -580,3 +580,21 @@ duplicam nem sobrescrevem alterações. Não há download durante a inicializaç
 Professores acessam `/avaliacoes/questoes/` e podem selecionar as questões nas
 avaliações, inclusive na montagem automática, ou criar uma versão pessoal.
 Alunos e professores de outras instituições não recebem acesso ao banco compartilhado.
+
+
+### Compartilhamento decidido pelo autor e pela gestão
+
+Ao criar uma questão (no banco, em uma avaliação ou com IA), o professor pode marcar
+**Compartilhar no banco de questões da instituição**. A opção começa desmarcada;
+a questão permanece no banco pessoal quando não há autorização do autor.
+Professores vinculados a mais de uma organização escolhem a instituição de destino.
+
+Em **Acadêmico → Compartilhar questões**, gestores e administrativos decidem,
+por questão, entre somente a instituição, professores/gestores de outras instituições
+e todos os usuários cadastrados (incluindo estudantes e usuários sem instituição).
+A liberação inclui o gabarito. Usuários anônimos continuam sem acesso.
+
+A gestão não pode publicar questões pessoais nem questões de outra instituição.
+Qualquer edição do autor revoga a liberação externa e exige nova decisão da gestão.
+Desmarcar o compartilhamento retira o original do banco institucional, sem apagar
+as cópias que já foram utilizadas em avaliações. Imagens seguem essas permissões.

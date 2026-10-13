@@ -46,6 +46,7 @@ def render_module(request, account, module='inicio'):
         if module == slug:
             data.update(title=title, description=description)
     if module == 'academico':
+        data['actions'].append({'url': reverse('assessments:institutional-sharing'), 'label': 'Compartilhamento de questões'})
         data['classroom_page'] = Paginator(classrooms, 20).get_page(request.GET.get('page'))
         data['link_classrooms'] = True
         data['actions'].append({'url': reverse('institutions:classrooms'), 'label': 'Área de turmas'})
