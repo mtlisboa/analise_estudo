@@ -68,6 +68,10 @@ def workspace(request, slug):
                     'ends_on': date.fromisoformat(lesson['period_end'])})
         data['itinerary'] = sorted(itinerary, key=lambda row: (row['starts_on'], row['day'], row['start'], row['classroom']))
         data['metrics'] = [('Minhas turmas', classrooms.count()), ('Atividades', tests.count())]
+        if account.role == 'STUDENT':
+            from .student import enrolled_subjects
+            data['subjects'] = enrolled_subjects(account)
+            data['metrics'].append(('Disciplinas', len(data['subjects'])))
     elif account.role == 'OPERATOR':
         query = request.GET.get('q', '').strip()[:100]
         accounts = organization.institutional_accounts.select_related('user')

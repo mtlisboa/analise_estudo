@@ -478,3 +478,12 @@ institucionais continuam exigindo e-mail. Nenhuma caixa postal é criada.
 O papel persistido na instituição define o contexto e as permissões; esses
 usuários não recebem privilégios globais de administração. Responsável continua
 sem dados de alunos até existir vínculo explícito.
+
+### Área institucional do aluno
+
+- `/instituicao/aluno/`: identificação, matrícula, turmas, atividades e horários publicados.
+- `/instituicao/aluno/disciplinas/`: busca e lista de disciplinas por oferta/período, com professores e aulas semanais.
+- Cada disciplina abre uma página própria com os horários e o código da oferta.
+- A barra lateral do aluno oferece Área do aluno e Minhas disciplinas; os componentes de layout e notificações são preservados.
+- As disciplinas são derivadas da grade publicada das turmas com vínculo STUDENT ativo. Grades em edição não aparecem até a publicação. O modelo atual matricula o aluno na turma inteira; não há matrícula avulsa por disciplina.
+- Sem matrícula/grade publicada, a interface mostra estado vazio. Acesso por URL também valida perfil, instituição e matrícula.

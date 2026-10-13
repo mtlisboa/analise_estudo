@@ -1,0 +1,10 @@
+<article class="dash-card manager-card full-card">
+<div class="manager-card-title"><h2>Minhas disciplinas</h2></div>
+<p>Disciplinas da grade publicada das turmas em que sua matrícula está ativa.</p>
+<div class="manager-list">
+{% for item in subjects %}
+<a class="manager-list-item" href="{% url 'institutions:student-discipline' item.offer.code item.name %}"><span class="list-copy"><strong>{{ item.name }}</strong><small>{{ item.offer.name }} · {{ item.offer.period.name }} · {{ item.offer.get_shift_display }}</small><small>{{ item.teachers|join:', ' }} · {{ item.itinerary|length }} aulas por semana</small></span><span aria-hidden="true">→</span></a>
+{% empty %}
+{% include 'components/institutions/empty.html' with text='Nenhuma disciplina disponível. A instituição precisa confirmar sua matrícula e publicar a grade de horários.' %}
+{% endfor %}
+</div></article>

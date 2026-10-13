@@ -16,7 +16,9 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% if management_sidebar %}
+            {% if student_sidebar %}
+                {% include 'components/layout/student_navigation.html' %}
+            {% elif management_sidebar %}
                 {% include 'components/layout/management_navigation.html' %}
             {% else %}
             <span class="sidebar-section-label">Navegação</span>
