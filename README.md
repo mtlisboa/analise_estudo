@@ -163,6 +163,34 @@ docker compose down
 Para também remover os dados persistidos, execute conscientemente
 `docker compose down --volumes`.
 
+### E-mail local com Mailpit
+
+O Compose inicia o Mailpit e configura o Django para enviar e-mails para
+`mailpit:1025`, sem autenticação ou TLS. As mensagens ficam na caixa de testes;
+não são entregues aos destinatários externos.
+
+- Caixa de entrada: http://localhost:8025
+- SMTP para aplicações fora do Docker: `127.0.0.1:1025`
+- Os e-mails persistem no volume `mailpit_data` (limite de 5.000 mensagens).
+
+Para iniciar e enviar uma mensagem de teste:
+
+```bash
+docker compose up -d --build
+docker compose exec web python manage.py sendtestemail aluno@example.test
+```
+
+Abra a caixa de entrada para consultar a mensagem. As portas são publicadas
+apenas na interface local. Para trocar as portas do host, configure
+`MAILPIT_HTTP_PORT` e `MAILPIT_SMTP_PORT` no `.env`; o Django no Compose continua
+usando a porta interna 1025. Se executar o Django fora do Docker, ajuste
+`EMAIL_PORT` para a porta SMTP escolhida. Veja as variáveis em `.env.example`.
+
+`docker compose down` preserva a caixa de entrada; `docker compose down --volumes`
+remove **tanto os e-mails quanto o banco SQLite**. A configuração do Mailpit é
+exclusiva do Compose local. Em outros ambientes, configure as variáveis `EMAIL_*`
+e `DEFAULT_FROM_EMAIL` para seu provedor SMTP.
+
 ## Deploy no Railway
 
 O processo ASGI usa `config.settings.production` por padrão. Nesse modo, a
