@@ -89,7 +89,7 @@ def room_data(request, classroom):
             folder['create_url'] = reverse('coursework:create', args=[selected.code, subject])
         directories.append(folder)
     notices = classroom.notices.filter(is_active=True).select_related('author')
-    return {'classroom': classroom, 'offers': offers, 'selected_offer': selected,
+    return {'is_classroom_environment': True, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
         'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
         'tests': classroom.tests.all() if manage else classroom.tests.filter(is_published=True),
         'notices': list(notices[:3]), 'notice_count': notices.count(),
