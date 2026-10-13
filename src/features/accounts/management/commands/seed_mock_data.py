@@ -203,7 +203,7 @@ class Command(BaseCommand):
                 )
                 document.file.save(
                     f"comprovante-{application.pk}.pdf",
-                    ContentFile("Documento comprobatório demonstrativo da Lumini.".encode()),
+                    ContentFile(self._verification_pdf()),
                     save=True,
                 )
         OrganizationMembership.objects.update_or_create(
@@ -395,7 +395,7 @@ class Command(BaseCommand):
         )
 
         anchor = timezone.now().replace(microsecond=0)
-        for student_index, student in enumerate(students):
+        for student_index, student in enumerate([*students, demo_student]):
             for cycle in range(6):
                 focus = 2 + ((student_index + cycle) % 4)
                 organization_score = 2 + ((student_index * 2 + cycle) % 4)
@@ -416,12 +416,15 @@ class Command(BaseCommand):
         self._upsert_assessments(teacher)
         self._institutional_accesses(organization, school, administrator,
                                     [administrator, manager, operator, teacher,
-                                     assistant_teacher, demo_student, guardian], classrooms[0])
+                                     assistant_teacher, demo_student, guardian, *students], classrooms[0])
 
         from contexts.institutions.family.models import GuardianLink
         GuardianLink.objects.update_or_create(guardian=guardian.institutional_account,
             student=demo_student.institutional_account, defaults={'relationship': 'Responsável demonstrativo',
                 'is_active': True, 'created_by': administrator})
+
+        from features.accounts.mock_content import populate
+        populate(organization, administrator, teacher, assistant_teacher, demo_student, guardian)
 
         self._upsert_saved_analysis(
             teacher,
@@ -478,9 +481,14 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 "Dados mock atualizados: perfis demonstrativos, duas instituições, "
                 "credenciamento escolar, grupos, turmas, convites, vínculos, "
-                "avaliações e análises salvas."
+                "ofertas, grade, atividades, provas, resultados, avisos, mensagens, "
+                "eventos, solicitações familiares e análises salvas."
             )
         )
+
+    def _verification_pdf(self):
+        from features.accounts.mock_content import demo_pdf
+        return demo_pdf('Comprovante institucional demonstrativo')
 
     def _upsert_user(
         self,
@@ -533,7 +541,7 @@ class Command(BaseCommand):
         school.email_domain = DEMO_DOMAIN
         school.save(update_fields=['email_domain'])
         for user in users:
-            role = DEMO_ROLES[user.username]
+            role = DEMO_ROLES.get(user.username, 'STUDENT')
             identity = InstitutionalAccount.objects.filter(user=user).first()
             if identity and identity.organization_id != organization.pk:
                 raise CommandError(f'{user.username} já pertence a outra instituição.')
@@ -556,7 +564,7 @@ class Command(BaseCommand):
                               'added_by': administrator})
             else:
                 OrganizationMembership.objects.filter(organization=organization, user=user).delete()
-            if role == 'STUDENT':
+            if role == 'STUDENT' and user.username == 'demo_aluno':
                 ClassroomMembership.objects.update_or_create(classroom=classroom, user=user,
                     defaults={'role': 'STUDENT', 'status': MembershipStatus.ACTIVE, 'invited_by': administrator})
 

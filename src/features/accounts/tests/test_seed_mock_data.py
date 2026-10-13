@@ -51,8 +51,40 @@ class SeedMockDataCommandTests(TestCase):
 
     @patch.dict("os.environ", {"MOCK_PASSWORD": "senha-mock-segura"}, clear=True)
     def test_creates_complete_idempotent_demo_dataset(self) -> None:
+        from contexts.institutions.planning.models import Period, Offer, Student, Slot, Teacher, Requirement, Lesson
+        from contexts.institutions.coursework.models import Publication
+        from contexts.institutions.communication.models import Conversation, Message
+        from contexts.institutions.family.models import FamilyRequest, RequestMessage, SchoolEvent
+        from features.paper_exams.models import ExamRun, AnswerSheet, ImportBatch, SheetResult
+        from features.users_manager.models import ClassroomNotice
+        from features.assessments.models import QuestionImage
+        from features.notifications.models import Notification
+        mock_models = (Period, Offer, Student, Slot, Teacher, Requirement, Lesson, Publication,
+            Conversation, Message, FamilyRequest, RequestMessage, SchoolEvent, ExamRun,
+            AnswerSheet, ImportBatch, SheetResult, ClassroomNotice, QuestionImage, Notification)
         call_command("seed_mock_data", verbosity=0)
+        identities = {model: set(model.objects.values_list('pk', flat=True)) for model in mock_models}
         call_command("seed_mock_data", verbosity=0)
+        for model in mock_models:
+            self.assertTrue(identities[model], model.__name__)
+            self.assertEqual(identities[model], set(model.objects.values_list('pk', flat=True)), model.__name__)
+        from contexts.institutions.planning.services import pending_issues, validate_existing
+        period = Period.objects.get()
+        validate_existing(period)
+        self.assertEqual(pending_issues(period), [])
+        self.assertEqual(Offer.objects.count(), 6)
+        self.assertEqual(Publication.objects.filter(is_published=True).count(), 24)
+        self.assertEqual(Publication.objects.filter(is_published=False).count(), 12)
+        self.assertTrue(SheetResult.objects.filter(status='graded').exists())
+        self.assertTrue(SheetResult.objects.filter(status='review').exists())
+        self.assertFalse(Classroom.objects.filter(organization__name='Colégio Lumini Demo', cover_image='').exists())
+        from django.urls import reverse
+        for username, path in (('demo_aluno', 'institutions:aluno'), ('demo_professor', 'institutions:professor'),
+                ('demo_responsavel', 'family:index'), ('demo_gestor', 'institutions:gestor'),
+                ('demo_admin', 'institutions:gestor'), ('demo_operador', 'institutions:operador')):
+            self.client.force_login(User.objects.get(username=username))
+            self.assertEqual(self.client.get(reverse(path)).status_code, 200)
+
 
         teacher = User.objects.get(username="demo_professor")
         organization = Organization.objects.get(name="Colégio Lumini Demo", owner__username="demo_admin")
@@ -89,10 +121,10 @@ class SeedMockDataCommandTests(TestCase):
                 user__username__startswith="demo_",
                 notes__startswith="[MOCK]",
             ).count(),
-            120,
+            126,
         )
-        self.assertEqual(Assessment.objects.filter(owner=teacher).count(), 7)
-        self.assertEqual(Question.objects.filter(assessment__owner=teacher).count(), 14)
+        self.assertEqual(Assessment.objects.filter(owner=teacher).count(), 8)
+        self.assertEqual(Question.objects.filter(assessment__owner=teacher).count(), 19)
         self.assertEqual(QuestionBankItem.objects.filter(owner=teacher).count(), 14)
         self.assertEqual(SavedAnalysis.objects.filter(created_by=teacher).count(), 6)
         self.assertEqual(EducationalRelationship.objects.count(), 4)
@@ -190,7 +222,7 @@ class SeedMockDataCommandTests(TestCase):
             self.client.force_login(user)
             self.assertRedirects(self.client.get(reverse('institutions:index')),
                                  reverse('family:index') if role == 'GUARDIAN' else reverse('institutions:' + routes[role]))
-        self.assertEqual(InstitutionalAccount.objects.count(), len(DEMO_ROLES))
+        self.assertEqual(InstitutionalAccount.objects.count(), 27)
         admin = User.objects.get(username='demo_admin')
         self.assertEqual(Organization.objects.get(name='Colégio Lumini Demo').owner, admin)
         from features.accounts.institutional import can_provision

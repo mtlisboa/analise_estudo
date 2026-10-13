@@ -505,7 +505,7 @@ modo MOCK. Também têm e-mail `login@demo.lumini.local`. As demais contas
 institucionais continuam exigindo e-mail. Nenhuma caixa postal é criada.
 O papel persistido na instituição define o contexto e as permissões; esses
 usuários não recebem privilégios globais de administração. Responsável continua
-sem dados de alunos até existir vínculo explícito.
+com dois alunos explicitamente vinculados na carga demonstrativa.
 
 ### Área institucional do aluno
 
@@ -543,3 +543,18 @@ O professor acessa **Provas e atividades** na barra lateral ou no painel institu
 Uma prova exige pelo menos uma questão; uma atividade pode conter somente instruções. Publicações mantêm uma cópia do conteúdo público sem gabarito nem explicações de correção. Alterações no rascunho não modificam a cópia recebida pelo aluno até a republicação. Republicar conteúdo idêntico não duplica notificações. O professor pode retirar a publicação. Acesso por URL também valida matrícula, instituição, disciplina e publicação.
 
 A funcionalidade disponibiliza o conteúdo para leitura; resposta e entrega online não fazem parte desta implementação. Inclui a migration `institution_coursework.0001_initial`, aplicada pelo comando `python src/manage.py migrate`.
+
+### Conteúdo demonstrativo dos módulos
+
+A carga `seed_mock_data` também preenche seis ofertas com códigos únicos, alunos
+com histórico de turma anterior, professores, disponibilidade e grade publicada.
+Cada turma tem imagem, avisos, disciplinas de Matemática e Ciências, provas e
+atividades publicadas, rascunhos, folhas de resposta e resultados variados
+(incluindo um caso que exige revisão). Há grupos de mensagens, conversas privadas
+com professores, eventos, solicitações familiares abertas, em atendimento e
+concluídas, além de notificações. Os registros adicionais usam identificadores
+estáveis: repetir a carga preserva suas identidades e não duplica mensagens.
+
+Para carregar em um ambiente já configurado, execute `python manage.py seed_mock_data`
+com `MOCK_PASSWORD` definido. No Docker, o carregamento ocorre automaticamente
+na inicialização quando `DEPLOY_MODE=MOCK`. A senha não é gravada no código.
