@@ -46,3 +46,19 @@
 
 .teacher-admin-nav[open] .sidebar-chevron { transform: rotate(180deg); }
 @media(max-width:760px) { .teacher-admin-nav .sidebar-chevron { display: none; } }
+
+/* Activities, assessment editing and question catalogs share one module. */
+.sidebar-evaluations { min-width: 0; }
+.sidebar-evaluations summary { list-style: none; cursor: pointer; }
+.sidebar-evaluations summary::-webkit-details-marker { display: none; }
+.sidebar-evaluations[open] .sidebar-chevron { transform: rotate(180deg); }
+.sidebar-evaluations .sidebar-children { min-width: 0; grid-template-columns: minmax(0,1fr); }
+.sidebar-evaluations .sidebar-children .sidebar-link { white-space: normal; overflow-wrap: anywhere; }
+@media(max-width:760px) {
+ .teacher-sidebar .sidebar-nav { grid-template-columns: repeat(4,minmax(0,1fr)); }
+ .management-sidebar .sidebar-nav { grid-template-columns: repeat(6,minmax(0,1fr)); }
+ .sidebar-evaluations .sidebar-chevron { display: none; }
+ .sidebar-evaluations .sidebar-children { position: absolute; bottom: calc(100% + 8px); left: 10px; right: 10px; margin: 0; padding: 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); box-shadow: 0 4px 20px #0002; max-height: 65vh; overflow-y: auto; overflow-x: hidden; }
+ .sidebar-evaluations .sidebar-children .sidebar-link { flex-direction: row; justify-content: flex-start; padding: 10px; }
+ .management-sidebar .mobile-nav-label { white-space: normal; overflow-wrap: anywhere; }
+}
