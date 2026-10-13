@@ -31,7 +31,7 @@ def sidebar_navigation(request):
     performance = name == 'institutions:manager-performance'
     if performance or namespace in ('planning', 'assessments', 'paper-exams'):
         module = 'academico'
-    elif namespace == 'analytics-dashboard':
+    elif namespace in ('analytics-dashboard', 'institutions:institution-analysis'):
         module = 'analise'
     elif namespace == 'users-manager':
         module = 'administracao'

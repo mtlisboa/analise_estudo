@@ -12,7 +12,10 @@ from .models import QuestionImage
 @require_GET
 def question_image(request, pk):
     image = get_object_or_404(QuestionImage, pk=pk)
-    allowed = image.owner_id == request.user.pk
+    from .bank_access import available_questions
+    allowed = (image.owner_id == request.user.pk
+               or available_questions(request.user).filter(images=image).exists()
+               or image.questions.filter(assessment__owner=request.user).exists())
     if not allowed:
         from contexts.institutions.coursework.models import Publication
         from contexts.institutions.coursework.services import student_publications
@@ -21,7 +24,7 @@ def question_image(request, pk):
             organization__is_active=True).first()
         if account:
             publications = Publication.objects.filter(is_published=True,
-                offer__period__organization=account.organization, assessment__owner_id=image.owner_id
+                offer__period__organization=account.organization
                 ).select_related('offer__period', 'offer__classroom')
             for publication in publications:
                 ids = {item['id'] for question in publication.public_snapshot.get('questions', [])

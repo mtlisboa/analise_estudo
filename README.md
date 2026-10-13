@@ -505,7 +505,7 @@ modo MOCK. Também têm e-mail `login@demo.lumini.local`. As demais contas
 institucionais continuam exigindo e-mail. Nenhuma caixa postal é criada.
 O papel persistido na instituição define o contexto e as permissões; esses
 usuários não recebem privilégios globais de administração. Responsável continua
-sem dados de alunos até existir vínculo explícito.
+com dois alunos explicitamente vinculados na carga demonstrativa.
 
 ### Área institucional do aluno
 
@@ -543,3 +543,58 @@ O professor acessa **Provas e atividades** na barra lateral ou no painel institu
 Uma prova exige pelo menos uma questão; uma atividade pode conter somente instruções. Publicações mantêm uma cópia do conteúdo público sem gabarito nem explicações de correção. Alterações no rascunho não modificam a cópia recebida pelo aluno até a republicação. Republicar conteúdo idêntico não duplica notificações. O professor pode retirar a publicação. Acesso por URL também valida matrícula, instituição, disciplina e publicação.
 
 A funcionalidade disponibiliza o conteúdo para leitura; resposta e entrega online não fazem parte desta implementação. Inclui a migration `institution_coursework.0001_initial`, aplicada pelo comando `python src/manage.py migrate`.
+
+### Conteúdo demonstrativo dos módulos
+
+A carga `seed_mock_data` também preenche seis ofertas com códigos únicos, alunos
+com histórico de turma anterior, professores, disponibilidade e grade publicada.
+Cada turma tem imagem, avisos, disciplinas de Matemática e Ciências, provas e
+atividades publicadas, rascunhos, folhas de resposta e resultados variados
+(incluindo um caso que exige revisão). Há grupos de mensagens, conversas privadas
+com professores, eventos, solicitações familiares abertas, em atendimento e
+concluídas, além de notificações. Os registros adicionais usam identificadores
+estáveis: repetir a carga preserva suas identidades e não duplica mensagens.
+
+Para carregar em um ambiente já configurado, execute `python manage.py seed_mock_data`
+com `MOCK_PASSWORD` definido. No Docker, o carregamento ocorre automaticamente
+na inicialização quando `DEPLOY_MODE=MOCK`. A senha não é gravada no código.
+
+
+## Banco institucional de matemática
+
+A base MATH-PT (638 questões objetivas em português brasileiro) está versionada em
+`src/features/assessments/data/`, com atribuição e documentação original.
+Enunciados e gabaritos são preservados; não representam conteúdo revisado:
+foram observadas inconsistências no gabarito da fonte. O nível original fica nos
+metadados e não é interpretado como série escolar ou classificação BNCC.
+
+O Docker importa a base para cada organização ativa depois das migrations e dos
+mocks. Em execução local, ou depois de cadastrar uma nova instituição, execute:
+
+```bash
+python src/manage.py import_math_catalog --organization ID
+```
+
+Sem `--organization`, importa em todas as organizações ativas. Reexecuções não
+duplicam nem sobrescrevem alterações. Não há download durante a inicialização.
+Professores acessam `/avaliacoes/questoes/` e podem selecionar as questões nas
+avaliações, inclusive na montagem automática, ou criar uma versão pessoal.
+Alunos e professores de outras instituições não recebem acesso ao banco compartilhado.
+
+
+### Compartilhamento decidido pelo autor e pela gestão
+
+Ao criar uma questão (no banco, em uma avaliação ou com IA), o professor pode marcar
+**Compartilhar no banco de questões da instituição**. A opção começa desmarcada;
+a questão permanece no banco pessoal quando não há autorização do autor.
+Professores vinculados a mais de uma organização escolhem a instituição de destino.
+
+Em **Acadêmico → Compartilhar questões**, gestores e administrativos decidem,
+por questão, entre somente a instituição, professores/gestores de outras instituições
+e todos os usuários cadastrados (incluindo estudantes e usuários sem instituição).
+A liberação inclui o gabarito. Usuários anônimos continuam sem acesso.
+
+A gestão não pode publicar questões pessoais nem questões de outra instituição.
+Qualquer edição do autor revoga a liberação externa e exige nova decisão da gestão.
+Desmarcar o compartilhamento retira o original do banco institucional, sem apagar
+as cópias que já foram utilizadas em avaliações. Imagens seguem essas permissões.

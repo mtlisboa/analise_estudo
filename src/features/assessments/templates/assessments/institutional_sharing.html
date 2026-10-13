@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Compartilhamento de questões | Lumini{% endblock %}
+{% block main_class %}manager-page assessment-page{% endblock %}
+{% block content %}
+<section class="manager-shell assessment-shell">
+    <div class="manager-heading"><p class="section-kicker">GESTÃO INSTITUCIONAL</p><h1>Compartilhamento de questões</h1>
+        <p>Gerencie as questões disponibilizadas no banco da instituição. O conteúdo e o gabarito ficam acessíveis ao público escolhido. Questões pessoais dos professores não aparecem aqui.</p>
+        <p>Uma edição pelo autor exige nova liberação. Revogar impede novos acessos; cópias já utilizadas em avaliações permanecem preservadas.</p>
+    </div>
+    <form method="get" class="assessment-search"><label for="sharing-search">Buscar questões</label><input id="sharing-search" type="search" name="q" value="{{ query }}"><button type="submit">Buscar</button></form>
+    <div class="question-bank-list">
+    {% for question in questions %}
+        <article class="dash-card question-bank-item"><div class="question-bank-copy">
+            <div class="question-bank-meta"><span>{{ question.organization.name }}</span><span>{{ question.subject }}</span><span>Autor: {{ question.owner.get_full_name|default:question.owner.username }}</span></div>
+            {% include 'components/question_content.html' %}
+            {% if question.options %}<ul>{% for option in question.options %}<li>{{ option }}</li>{% endfor %}</ul>{% endif %}
+            <p><strong>Gabarito:</strong> {{ question.correct_answer }}</p>
+            {% if question.source_key %}<p>Base externa não revisada: confira o conteúdo antes de liberar.</p>{% endif %}
+            <form method="post">{% csrf_token %}<input type="hidden" name="question_id" value="{{ question.pk }}">
+                <div class="form-field"><label for="scope-{{ question.pk }}">Disponibilidade</label><select id="scope-{{ question.pk }}" name="external_visibility">
+                    {% for value, label in visibility_choices %}<option value="{{ value }}"{% if question.external_visibility == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select></div><button class="button button-small" type="submit">Salvar disponibilidade</button>
+            </form>
+            {% if question.sharing_approved_by %}<small>Liberada por {{ question.sharing_approved_by.get_full_name|default:question.sharing_approved_by.username }} em {{ question.sharing_approved_at|date:'d/m/Y H:i' }}.</small>{% endif %}
+        </div></article>
+    {% empty %}<p>Nenhuma questão compartilhada com sua instituição.</p>{% endfor %}
+    </div>
+    <nav aria-label="Paginação">{% if questions.has_previous %}<a href="?q={{ query|urlencode }}&page={{ questions.previous_page_number }}">Anterior</a>{% endif %}
+        <span>Página {{ questions.number }} de {{ questions.paginator.num_pages }}</span>
+        {% if questions.has_next %}<a href="?q={{ query|urlencode }}&page={{ questions.next_page_number }}">Próxima</a>{% endif %}</nav>
+</section>
+{% endblock %}

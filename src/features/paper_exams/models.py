@@ -5,6 +5,7 @@ from django.db import models
 
 
 class ExamRun(models.Model):
+    subject = models.CharField(max_length=120, blank=True)
     """An immutable copy of the exam at issue time (including the answer key)."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assessment = models.ForeignKey('assessments.Assessment', on_delete=models.PROTECT)

@@ -1,11 +1,13 @@
 from django.urls import path
 
 from . import views
+from .sharing_views import institutional_sharing
 from .image_views import question_image
 
 app_name = "assessments"
 
 urlpatterns = [
+    path("questoes/compartilhamento/", institutional_sharing, name="institutional-sharing"),
     path("questoes/imagens/<int:pk>/", question_image, name="question-image"),
     path("", views.index, name="index"),
     path("questoes/", views.question_bank, name="question-bank"),

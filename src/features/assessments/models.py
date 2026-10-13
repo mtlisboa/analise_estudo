@@ -1,3 +1,4 @@
+from .diagnostics import validate_metadata
 from decimal import Decimal
 
 from django.conf import settings
@@ -115,11 +116,37 @@ class Assessment(models.Model):
 
 
 class QuestionBankItem(models.Model):
+    diagnostic_metadata = models.JSONField("metadados pedagógicos", default=dict, blank=True, validators=[validate_metadata])
+    class Visibility(models.TextChoices):
+        INSTITUTION = "institution", "Somente a instituição"
+        INSTITUTIONS = "institutions", "Professores e gestores de outras instituições"
+        EVERYONE = "everyone", "Todos os usuários cadastrados"
+
+    external_visibility = models.CharField(
+        "Disponibilidade externa", max_length=16, choices=Visibility.choices,
+        default=Visibility.INSTITUTION,
+    )
+    sharing_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="approved_question_shares", verbose_name="liberado por",
+    )
+    sharing_approved_at = models.DateTimeField(null=True, blank=True)
+
+    organization = models.ForeignKey(
+        "users_manager.Organization", on_delete=models.CASCADE,
+        related_name="shared_questions", null=True, blank=True,
+        verbose_name="instituição",
+    )
+    source_key = models.CharField(max_length=100, blank=True)
+    source_url = models.URLField(blank=True, max_length=500)
+    source_metadata = models.JSONField(default=dict, blank=True)
+
     class CreationMethod(models.TextChoices):
         MANUAL = "manual", "Criação manual"
         DERIVED = "derived", "Edição de questão existente"
         AI_EDITED = "ai_edited", "Questão existente editada por IA"
         AI_GENERATED = "ai_generated", "Questão nova gerada por IA"
+        IMPORTED = "imported", "Base externa"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -174,6 +201,13 @@ class QuestionBankItem(models.Model):
         ordering = ("-updated_at",)
         verbose_name = "questão do banco"
         verbose_name_plural = "banco de questões"
+        constraints = [models.CheckConstraint(
+            condition=models.Q(external_visibility="institution") | models.Q(organization__isnull=False),
+            name="external_questions_require_institution",
+        ), models.UniqueConstraint(
+            fields=("organization", "source_key"),
+            condition=~models.Q(source_key=""), name="unique_institution_source_question",
+        )]
 
     def clean(self) -> None:
         super().clean()
@@ -194,6 +228,7 @@ class QuestionBankItem(models.Model):
 
 
 class Question(models.Model):
+    diagnostic_metadata = models.JSONField("metadados pedagógicos", default=dict, blank=True, validators=[validate_metadata])
     class Type(models.TextChoices):
         MULTIPLE_CHOICE = "multiple_choice", "Múltipla escolha"
         OPEN_ENDED = "open_ended", "Discursiva"
