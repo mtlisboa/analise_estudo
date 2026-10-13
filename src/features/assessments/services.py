@@ -48,6 +48,7 @@ def _question_from_payload(owner, subject, topic, payload, *, method, source=Non
         owner=owner,
         subject=subject,
         topic=topic,
+        support_text=str(payload.get("support_text", source.support_text if source else "")).strip(),
         statement=str(payload.get("statement", "")).strip(),
         question_type=payload.get("question_type", Question.Type.MULTIPLE_CHOICE),
         options=payload.get("options") or [],
@@ -60,6 +61,8 @@ def _question_from_payload(owner, subject, topic, payload, *, method, source=Non
     )
     item.full_clean()
     item.save()
+    if source:
+        item.images.set(source.images.all())
     return item
 
 
@@ -90,6 +93,7 @@ Edite a questão abaixo sem perder sua finalidade pedagógica.
 Matéria: {source.subject}. Assunto: {source.topic}.
 Pedido de edição: {instructions}
 Questão atual: {json.dumps({
+    "support_text": source.support_text,
     "statement": source.statement,
     "question_type": source.question_type,
     "options": source.options,
@@ -120,9 +124,10 @@ def add_bank_item_to_assessment(assessment, item):
     if existing:
         return existing
     order = (assessment.questions.aggregate(last=Max("order"))["last"] or 0) + 1
-    return Question.objects.create(
+    question = Question.objects.create(
         assessment=assessment,
         bank_item=item,
+        support_text=item.support_text,
         statement=item.statement,
         question_type=item.question_type,
         options=item.options,
@@ -131,6 +136,8 @@ def add_bank_item_to_assessment(assessment, item):
         points=item.default_points,
         order=order,
     )
+    question.images.set(item.images.all())
+    return question
 
 
 def assemble_assessment(assessment):

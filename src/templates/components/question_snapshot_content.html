@@ -1,0 +1,5 @@
+{% if question.support_text %}<div class="question-support">{{ question.support_text|linebreaks }}</div>{% endif %}
+<div class="question-images">
+{% for image in question.images %}<figure><img src="{% url 'assessments:question-image' image.id %}" alt="{{ image.description }}" loading="lazy"><figcaption>{{ image.description }}</figcaption></figure>{% endfor %}
+</div>
+<div class="question-command">{{ question.statement|linebreaks }}</div>

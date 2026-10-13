@@ -129,7 +129,9 @@ class QuestionBankItem(models.Model):
     )
     subject = models.CharField("matéria", max_length=120)
     topic = models.CharField("assunto", max_length=160)
-    statement = models.TextField("enunciado")
+    support_text = models.TextField("texto de apoio", blank=True)
+    images = models.ManyToManyField("QuestionImage", blank=True, related_name="bank_items")
+    statement = models.TextField("comando / enunciado")
     question_type = models.CharField(
         "formato da questão",
         max_length=24,
@@ -210,7 +212,9 @@ class Question(models.Model):
         null=True,
         blank=True,
     )
-    statement = models.TextField("enunciado")
+    support_text = models.TextField("texto de apoio", blank=True)
+    images = models.ManyToManyField("QuestionImage", blank=True, related_name="questions")
+    statement = models.TextField("comando / enunciado")
     question_type = models.CharField(
         "formato da questão",
         max_length=24,
@@ -258,3 +262,21 @@ class Question(models.Model):
 
     def __str__(self) -> str:
         return f"{self.assessment} · Questão {self.order}"
+
+
+def question_image_path(instance, filename):
+    from uuid import uuid4
+    return f'question_images/{instance.owner_id}/{uuid4().hex}.png'
+
+
+class QuestionImage(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    file = models.ImageField(upload_to=question_image_path)
+    description = models.CharField('descrição da imagem', max_length=300)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('pk',)
+
+    def __str__(self):
+        return self.description

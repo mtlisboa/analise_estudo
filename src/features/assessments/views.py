@@ -24,7 +24,7 @@ from .services import (
 
 def _assessment_queryset(user, query=""):
     assessments = Assessment.objects.filter(owner=user).prefetch_related(
-        "assessment_types", "questions"
+        "assessment_types", "questions__images"
     ).select_related("technique")
     if query:
         assessments = assessments.annotate(
@@ -115,7 +115,7 @@ def create_question(request: HttpRequest, assessment_pk: int) -> HttpResponse:
     )
     if request.method != "POST":
         return redirect("assessments:index")
-    form = QuestionForm(request.POST)
+    form = QuestionForm(request.POST, request.FILES)
     if form.is_valid():
         form.save(assessment=assessment)
         messages.success(request, "Questão adicionada à avaliação.")
@@ -131,7 +131,7 @@ def create_question(request: HttpRequest, assessment_pk: int) -> HttpResponse:
 @login_required
 def question_bank(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q", "").strip()
-    questions = QuestionBankItem.objects.filter(owner=request.user, is_active=True)
+    questions = QuestionBankItem.objects.filter(owner=request.user, is_active=True).prefetch_related("images")
     if query:
         questions = questions.filter(
             Q(subject__icontains=query)
@@ -155,6 +155,7 @@ def _question_initial(source):
         "subject": source.subject,
         "topic": source.topic,
         "question_type": source.question_type,
+        "support_text": source.support_text,
         "statement": source.statement,
         "options": "\n".join(source.options),
         "correct_answer": source.correct_answer,
@@ -169,7 +170,7 @@ def create_bank_question(request: HttpRequest, source_pk: int | None = None) -> 
     if source_pk is not None:
         source = get_object_or_404(QuestionBankItem, pk=source_pk, owner=request.user)
     form = QuestionBankItemForm(
-        request.POST or None,
+        request.POST if request.method == "POST" else None, request.FILES or None, source=source,
         initial=_question_initial(source) if source and request.method == "GET" else None,
     )
     if request.method == "POST" and form.is_valid():
@@ -197,7 +198,7 @@ def create_bank_question(request: HttpRequest, source_pk: int | None = None) -> 
 @login_required
 def update_bank_question(request: HttpRequest, pk: int) -> HttpResponse:
     item = get_object_or_404(QuestionBankItem, pk=pk, owner=request.user)
-    form = QuestionBankItemForm(request.POST or None, instance=item)
+    form = QuestionBankItemForm(request.POST if request.method == "POST" else None, request.FILES or None, instance=item)
     if request.method == "POST" and form.is_valid():
         form.save_for(request.user)
         messages.success(request, "Questão atualizada no banco.")

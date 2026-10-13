@@ -41,7 +41,7 @@ def publish(account, publication):
     authorize_teacher(account, publication.offer, publication.subject)
     if publication.teacher_id != account.pk or publication.assessment.owner_id != account.user_id:
         raise PermissionDenied
-    questions = list(publication.assessment.questions.all())
+    questions = list(publication.assessment.questions.prefetch_related('images'))
     if not questions and (publication.kind == 'EXAM' or not publication.instructions.strip()):
         raise ValidationError('Uma prova precisa de questões. Uma atividade precisa de questões ou instruções.')
     for question in questions:
@@ -49,7 +49,7 @@ def publish(account, publication):
     # Only these public fields cross into the student-facing snapshot.
     snapshot = {'title': publication.title, 'kind_label': publication.get_kind_display(),
         'instructions': publication.instructions, 'due_at': publication.due_at.isoformat() if publication.due_at else None,
-        'questions': [{'statement': q.statement, 'question_type': q.get_question_type_display(),
+        'questions': [{'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(),
                        'options': q.options, 'points': str(q.points)} for q in questions]}
     if publication.is_published and publication.public_snapshot == snapshot:
         return publication

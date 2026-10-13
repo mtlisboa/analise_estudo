@@ -1,3 +1,4 @@
+import base64
 import csv
 import io
 import zipfile
@@ -25,10 +26,11 @@ MAX_PAGES = 100
 def issue_run(assessment, classroom, user):
     if assessment.owner_id != user.pk or not can_manage_classroom(user, classroom):
         raise ValidationError('Você não pode emitir provas para esta avaliação ou turma.')
-    questions = list(assessment.questions.all())
+    questions = list(assessment.questions.prefetch_related('images'))
     if not 1 <= len(questions) <= 50:
         raise ValidationError('A emissão aceita de 1 a 50 questões objetivas por prova.')
     snapshot = []
+    image_bytes = 0
     for question in questions:
         options = question.options
         if (question.question_type != 'multiple_choice' or not isinstance(options, list)
@@ -37,7 +39,19 @@ def issue_run(assessment, classroom, user):
             raise ValidationError(f'Questão {question.order}: use 2 a 5 alternativas distintas e um gabarito válido. Questões discursivas não são corrigidas por este módulo.')
         if question.points <= 0:
             raise ValidationError('A pontuação de cada questão deve ser positiva.')
-        snapshot.append({'id': question.pk, 'statement': question.statement, 'options': options,
+        images = []
+        for image in question.images.all():
+            try:
+                with image.file.open('rb') as source:
+                    content = source.read(2 * 1024 * 1024 + 1)
+            except OSError as exc:
+                raise ValidationError('Uma imagem da questão não está disponível. Revise a questão antes de emitir.') from exc
+            image_bytes += len(content)
+            if len(content) > 2 * 1024 * 1024 or image_bytes > 30 * 1024 * 1024:
+                raise ValidationError('As imagens da prova excedem o limite de 30 MB. Reduza as imagens antes de emitir.')
+            images.append({'data': base64.b64encode(content).decode('ascii'), 'description': image.description})
+        snapshot.append({'id': question.pk, 'support_text': question.support_text, 'images': images,
+                         'statement': question.statement, 'options': options,
                          'correct': LETTERS[options.index(question.correct_answer)], 'points': str(question.points)})
     members = list(classroom.memberships.filter(role=ClassroomMembership.Role.STUDENT,
                    status=MembershipStatus.ACTIVE, user__is_active=True).select_related('user'))

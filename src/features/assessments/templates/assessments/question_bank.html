@@ -59,7 +59,7 @@
                         <span>{{ question.get_question_type_display }}</span>
                         <span>{{ question.get_creation_method_display }}</span>
                     </div>
-                    <h2>{{ question.statement }}</h2>
+                    {% include 'components/question_content.html' %}
                     {% if question.question_type == "multiple_choice" %}
                     <ul>{% for option in question.options %}<li{% if option == question.correct_answer %} class="correct-option"{% endif %}>{{ option }}</li>{% endfor %}</ul>
                     {% elif question.correct_answer %}<p><b>Resposta esperada:</b> {{ question.correct_answer }}</p>{% endif %}

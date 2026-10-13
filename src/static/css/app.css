@@ -1104,3 +1104,11 @@ body.analytics-chart-expanded { overflow: hidden; }
 @media (max-width: 480px) {
     .diagnostic-choice { grid-template-columns: 1fr; }
 }
+
+/* Question content: supporting text, illustrations, then command. */
+.question-images { display: grid; gap: 1rem; margin-block: 1rem; }
+.question-images:empty { display: none; }
+.question-images figure,.question-image-preview { margin: 0; }
+.question-images img,.question-image-preview img { display: block; max-width: 100%; max-height: 360px; height: auto; object-fit: contain; }
+.question-images figcaption,.question-image-preview figcaption { font-size: .85rem; color: var(--text-soft); margin-top: .4rem; }
+.question-command { font-weight: 600; }

@@ -1,10 +1,12 @@
 from django.urls import path
 
 from . import views
+from .image_views import question_image
 
 app_name = "assessments"
 
 urlpatterns = [
+    path("questoes/imagens/<int:pk>/", question_image, name="question-image"),
     path("", views.index, name="index"),
     path("questoes/", views.question_bank, name="question-bank"),
     path("questoes/nova/", views.create_bank_question, name="bank-question-create"),
