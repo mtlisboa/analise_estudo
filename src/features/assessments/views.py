@@ -1,3 +1,5 @@
+from django.core.paginator import Paginator
+from .bank_access import available_questions
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, TextField
@@ -131,7 +133,7 @@ def create_question(request: HttpRequest, assessment_pk: int) -> HttpResponse:
 @login_required
 def question_bank(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q", "").strip()
-    questions = QuestionBankItem.objects.filter(owner=request.user, is_active=True).prefetch_related("images")
+    questions = available_questions(request.user).prefetch_related("images")
     if query:
         questions = questions.filter(
             Q(subject__icontains=query)
@@ -142,7 +144,7 @@ def question_bank(request: HttpRequest) -> HttpResponse:
         request,
         "assessments/question_bank.html",
         {
-            "questions": questions,
+            "questions": Paginator(questions.select_related("organization"), 25).get_page(request.GET.get("page")),
             "assessments": Assessment.objects.filter(owner=request.user),
             "selection_form": AddBankQuestionsForm(owner=request.user),
             "query": query,
@@ -168,7 +170,7 @@ def _question_initial(source):
 def create_bank_question(request: HttpRequest, source_pk: int | None = None) -> HttpResponse:
     source = None
     if source_pk is not None:
-        source = get_object_or_404(QuestionBankItem, pk=source_pk, owner=request.user)
+        source = get_object_or_404(available_questions(request.user), pk=source_pk)
     form = QuestionBankItemForm(
         request.POST if request.method == "POST" else None, request.FILES or None, source=source,
         initial=_question_initial(source) if source and request.method == "GET" else None,

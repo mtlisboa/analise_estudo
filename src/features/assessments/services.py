@@ -1,3 +1,4 @@
+from .bank_access import available_questions
 import json
 from decimal import Decimal
 from uuid import uuid4
@@ -118,8 +119,8 @@ explanation e points.
 
 @transaction.atomic
 def add_bank_item_to_assessment(assessment, item):
-    if item.owner_id != assessment.owner_id:
-        raise ValidationError("A questão não pertence ao responsável pela avaliação.")
+    if not available_questions(assessment.owner).filter(pk=item.pk).exists():
+        raise ValidationError("A questão não está disponível para o responsável pela avaliação.")
     existing = assessment.questions.filter(bank_item=item).first()
     if existing:
         return existing
@@ -148,7 +149,7 @@ def assemble_assessment(assessment):
         assessment.save(update_fields=("assembly_status", "assembly_notes", "updated_at"))
         return assessment
 
-    candidates = QuestionBankItem.objects.filter(owner=assessment.owner, is_active=True).filter(
+    candidates = available_questions(assessment.owner).filter(
         Q(subject__iexact=assessment.subject) | Q(topic__icontains=assessment.topic)
     )
     count = assessment.desired_question_count

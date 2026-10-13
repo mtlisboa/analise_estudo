@@ -1,3 +1,4 @@
+from .bank_access import available_questions
 from django import forms
 from django.db import transaction
 from django.db.models import Max
@@ -312,9 +313,7 @@ class AddBankQuestionsForm(forms.Form):
     def __init__(self, *args, owner, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["assessment"].queryset = Assessment.objects.filter(owner=owner)
-        self.fields["questions"].queryset = QuestionBankItem.objects.filter(
-            owner=owner, is_active=True
-        )
+        self.fields["questions"].queryset = available_questions(owner)
 
 
 class AIGenerateQuestionForm(forms.Form):

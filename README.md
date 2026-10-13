@@ -558,3 +558,25 @@ estáveis: repetir a carga preserva suas identidades e não duplica mensagens.
 Para carregar em um ambiente já configurado, execute `python manage.py seed_mock_data`
 com `MOCK_PASSWORD` definido. No Docker, o carregamento ocorre automaticamente
 na inicialização quando `DEPLOY_MODE=MOCK`. A senha não é gravada no código.
+
+
+## Banco institucional de matemática
+
+A base MATH-PT (638 questões objetivas em português brasileiro) está versionada em
+`src/features/assessments/data/`, com atribuição e documentação original.
+Enunciados e gabaritos são preservados; não representam conteúdo revisado:
+foram observadas inconsistências no gabarito da fonte. O nível original fica nos
+metadados e não é interpretado como série escolar ou classificação BNCC.
+
+O Docker importa a base para cada organização ativa depois das migrations e dos
+mocks. Em execução local, ou depois de cadastrar uma nova instituição, execute:
+
+```bash
+python src/manage.py import_math_catalog --organization ID
+```
+
+Sem `--organization`, importa em todas as organizações ativas. Reexecuções não
+duplicam nem sobrescrevem alterações. Não há download durante a inicialização.
+Professores acessam `/avaliacoes/questoes/` e podem selecionar as questões nas
+avaliações, inclusive na montagem automática, ou criar uma versão pessoal.
+Alunos e professores de outras instituições não recebem acesso ao banco compartilhado.

@@ -55,9 +55,12 @@
                 <div class="question-bank-copy">
                     <div class="question-bank-meta">
                         <span>{{ question.subject }}</span>
+                        {% if question.organization %}<span>{{ question.organization.name }} · Compartilhada</span>{% endif %}
+                        {% if question.source_url %}<a href="{{ question.source_url }}" target="_blank" rel="noopener noreferrer">Fonte: MATH-PT</a>{% endif %}
                         <span>{{ question.topic }}</span>
                         <span>{{ question.get_question_type_display }}</span>
                         <span>{{ question.get_creation_method_display }}</span>
+                        {% if question.source_key %}<span>Não revisada · confira o gabarito antes de aplicar</span>{% endif %}
                     </div>
                     {% include 'components/question_content.html' %}
                     {% if question.question_type == "multiple_choice" %}
@@ -65,9 +68,9 @@
                     {% elif question.correct_answer %}<p><b>Resposta esperada:</b> {{ question.correct_answer }}</p>{% endif %}
                 </div>
                 <div class="question-bank-actions">
-                    <a href="{% url 'assessments:bank-question-update' question.pk %}">Editar</a>
+                    {% if question.owner_id == request.user.pk %}<a href="{% url 'assessments:bank-question-update' question.pk %}">Editar</a>{% endif %}
                     <a href="{% url 'assessments:bank-question-derive' question.pk %}">Criar versão</a>
-                    <a class="ai-link" href="{% url 'assessments:bank-question-ai-edit' question.pk %}">Editar com IA</a>
+                    {% if question.owner_id == request.user.pk %}<a class="ai-link" href="{% url 'assessments:bank-question-ai-edit' question.pk %}">Editar com IA</a>{% endif %}
                 </div>
             </article>
             {% empty %}
@@ -78,5 +81,10 @@
             {% endfor %}
         </div>
     </form>
+    <nav aria-label="Paginação">
+        {% if questions.has_previous %}<a href="?q={{ query|urlencode }}&page={{ questions.previous_page_number }}">Anterior</a>{% endif %}
+        <span>Página {{ questions.number }} de {{ questions.paginator.num_pages }} · {{ questions.paginator.count }} questões</span>
+        {% if questions.has_next %}<a href="?q={{ query|urlencode }}&page={{ questions.next_page_number }}">Próxima</a>{% endif %}
+    </nav>
 </section>
 {% endblock %}

@@ -115,11 +115,21 @@ class Assessment(models.Model):
 
 
 class QuestionBankItem(models.Model):
+    organization = models.ForeignKey(
+        "users_manager.Organization", on_delete=models.CASCADE,
+        related_name="shared_questions", null=True, blank=True,
+        verbose_name="instituição",
+    )
+    source_key = models.CharField(max_length=100, blank=True)
+    source_url = models.URLField(blank=True, max_length=500)
+    source_metadata = models.JSONField(default=dict, blank=True)
+
     class CreationMethod(models.TextChoices):
         MANUAL = "manual", "Criação manual"
         DERIVED = "derived", "Edição de questão existente"
         AI_EDITED = "ai_edited", "Questão existente editada por IA"
         AI_GENERATED = "ai_generated", "Questão nova gerada por IA"
+        IMPORTED = "imported", "Base externa"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -174,6 +184,10 @@ class QuestionBankItem(models.Model):
         ordering = ("-updated_at",)
         verbose_name = "questão do banco"
         verbose_name_plural = "banco de questões"
+        constraints = [models.UniqueConstraint(
+            fields=("organization", "source_key"),
+            condition=~models.Q(source_key=""), name="unique_institution_source_question",
+        )]
 
     def clean(self) -> None:
         super().clean()

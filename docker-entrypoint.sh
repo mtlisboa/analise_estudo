@@ -12,4 +12,7 @@ if [ "${DEPLOY_MODE:-}" = "MOCK" ]; then
     python manage.py seed_mock_data
 fi
 
+echo "Loading institutional mathematics catalog..."
+python manage.py import_math_catalog
+
 exec "$@"
