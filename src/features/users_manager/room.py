@@ -115,7 +115,7 @@ def room_data(request, classroom):
     modules = list(items)
     if selected and subject:
         for pdf in PDFModule.objects.filter(offer=selected, subject=subject).defer('document'):
-            modules.append({'title': pdf.title, 'kind': 'PDF', 'url': reverse('coursework:pdf-open', args=[pdf.pk]),
+            modules.append({'title': pdf.title, 'kind': 'PDF', 'url': reverse('coursework:pdf-reader', args=[pdf.pk]),
                 'pdf': pdf, 'can_remove': identity and identity.pk == pdf.teacher_id})
     notices = classroom.notices.filter(is_active=True).select_related('author')
     chat_data = {}

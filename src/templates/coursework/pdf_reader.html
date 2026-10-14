@@ -1,0 +1,10 @@
+{% extends 'institutions/base.html' %}
+{% block workspace_content %}
+<a href="{{ back_url }}">← Voltar à turma</a>
+<article class="dash-card manager-card full-card">
+<h1>{{ module.title }}</h1><p>{{ module.subject }} · {{ module.offer.name }}</p>
+<p><a class="button button-secondary" href="{% url 'coursework:pdf-open' module.pk %}" target="_blank" rel="noopener">Abrir PDF em outra guia</a></p>
+<iframe title="Leitura de {{ module.title }}" src="{% url 'coursework:pdf-open' module.pk %}" width="100%" height="800" style="border:0; min-height:65vh; max-width:100%;"></iframe>
+<p>Se o PDF não aparecer, use “Abrir PDF em outra guia”.</p>
+</article>
+{% endblock %}

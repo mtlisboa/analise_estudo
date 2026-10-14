@@ -9,6 +9,7 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from ..planning.models import Offer
@@ -58,10 +59,7 @@ def create(request, code, subject):
     return render(request, 'coursework/pdf_module_form.html', {'form': form, 'subject': subject, 'back_url': room_link(offer, subject)})
 
 
-@login_required
-@never_cache
-@require_GET
-def open_pdf(request, pk):
+def accessible_pdf(request, pk):
     account = institutional_identity(request.user)
     module = get_object_or_404(PDFModule.objects.select_related('offer__period'), pk=pk,
         offer__period__organization=account.organization, offer__period__published_at__isnull=False,
@@ -72,9 +70,28 @@ def open_pdf(request, pk):
         raise PermissionDenied
     if account.role == 'TEACHER':
         authorize_teacher(account, module.offer, module.subject)
+    return module
+
+
+@login_required
+@never_cache
+@require_GET
+def reader(request, pk):
+    module = accessible_pdf(request, pk)
+    from .views import base_data
+    return render(request, 'coursework/pdf_reader.html', {**base_data(institutional_identity(request.user)), 'module': module,
+        'back_url': room_link(module.offer, module.subject) + '#room-activities'})
+
+
+@login_required
+@never_cache
+@require_GET
+@xframe_options_sameorigin
+def open_pdf(request, pk):
+    module = accessible_pdf(request, pk)
     response = FileResponse(BytesIO(bytes(module.document)), content_type='application/pdf', filename=f'modulo-{module.pk}.pdf')
     response['X-Content-Type-Options'] = 'nosniff'
-    response['Content-Security-Policy'] = "sandbox"
+    response['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'self'; base-uri 'none'"
     return response
 
 

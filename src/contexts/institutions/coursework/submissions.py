@@ -87,6 +87,8 @@ def student_detail(request, pk):
     rows = [(q, form[f'q{i+1}']) for i, q in enumerate(obj.public_snapshot.get('questions', []))]
     return render(request, 'coursework/student.html', {**base_data(account), 'publication': obj,
         'content': obj.public_snapshot, 'form': form, 'answer_rows': rows, 'submission': submission,
+        'activity_started': request.GET.get('iniciar') == '1' or request.method == 'POST',
+        'deadline_passed': bool(obj.visible_due_at and timezone.now() > obj.visible_due_at),
         'ready_for_submission': len(obj.grading_snapshot) == len(obj.public_snapshot.get('questions', []))})
 
 
