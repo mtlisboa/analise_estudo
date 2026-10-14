@@ -4,6 +4,7 @@ from . import views, pdf_modules, submissions, application
 app_name = 'coursework'
 urlpatterns = [
     path('oferta/<uuid:code>/<str:subject>/pdf/', pdf_modules.create, name='pdf-create'),
+    path('pdf/<int:pk>/', pdf_modules.reader, name='pdf-reader'),
     path('pdf/<int:pk>/abrir/', pdf_modules.open_pdf, name='pdf-open'),
     path('pdf/<int:pk>/remover/', pdf_modules.remove, name='pdf-remove'),
     path('aplicar/<int:assessment_pk>/', application.apply, name='apply'),
