@@ -224,9 +224,10 @@ class AssessmentManagerTests(TestCase):
 
         response = self.client.get(reverse("assessments:index"))
 
-        self.assertContains(response, "Adicionar questão")
-        self.assertContains(response, "Explique a função do discriminante.")
-        self.assertContains(response, "1 questão criada")
+        self.assertContains(response, "Questionários")
+        self.assertContains(response, assessment.topic)
+        self.assertNotContains(response, "Explique a função do discriminante.")
+        self.assertContains(response, "1 questões")
 
     def bank_question_data(self, **overrides):
         data = {

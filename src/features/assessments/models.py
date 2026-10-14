@@ -42,6 +42,15 @@ class AssessmentType(models.Model):
 
 
 class Assessment(models.Model):
+    class Delivery(models.TextChoices):
+        ONLINE = 'online', 'Área do aluno'
+        PRINTED = 'printed', 'Impressa'
+
+    delivery_mode = models.CharField('aplicação', max_length=10, choices=Delivery.choices, default=Delivery.ONLINE)
+    due_at = models.DateTimeField('data de entrega', null=True, blank=True)
+    is_visible = models.BooleanField('visível aos alunos', default=False)
+    is_finalized = models.BooleanField('aplicação física finalizada', default=False)
+
     class AssemblyMethod(models.TextChoices):
         MANUAL = "manual", "Montagem manual"
         ALGORITHMIC = "algorithmic", "Montagem algorítmica"
@@ -116,6 +125,12 @@ class Assessment(models.Model):
 
 
 class QuestionBankItem(models.Model):
+    title = models.CharField("título", max_length=160, blank=True)
+
+    @property
+    def display_title(self):
+        return self.title or f"{self.topic} · {self.statement[:75]}"
+
     diagnostic_metadata = models.JSONField("metadados pedagógicos", default=dict, blank=True, validators=[validate_metadata])
     class Visibility(models.TextChoices):
         INSTITUTION = "institution", "Somente a instituição"

@@ -1,0 +1,6 @@
+<h2>{{ question.display_title }}</h2><p>{{ question.subject }} · {{ question.topic }} · {{ question.get_question_type_display }} · {{ question.default_points }} pontos</p>
+{% include 'components/question_content.html' %}
+{% if question.options %}<ol type="A">{% for option in question.options %}<li>{{ option }}</li>{% endfor %}</ol>{% endif %}
+<details><summary>Gabarito e referência</summary><p>{{ question.correct_answer }}</p>{{ question.explanation|linebreaks }}</details>
+{% if question.source_url %}<p><a href="{{ question.source_url }}" target="_blank" rel="noopener">Fonte da questão</a></p>{% endif %}
+<a href="{% url 'assessments:bank-question-derive' question.pk %}">Criar uma versão</a>

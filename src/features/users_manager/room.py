@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 from django import forms
 from django.contrib import messages
+from urllib.parse import urlencode
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -97,7 +98,7 @@ def room_data(request, classroom):
     for item in items:
         p = item['publication']
         if not identity or identity.role != 'STUDENT':
-            item['url'] = reverse('coursework:edit', args=[p.pk]) if identity and identity.pk == p.teacher_id else ''
+            item['url'] = reverse('assessments:questionnaire-edit', args=[p.assessment_id]) if identity and identity.pk == p.teacher_id else ''
     now = timezone.now()
     available_exams = [item for item in items if item['kind'] == 'Prova'
                        and (item['due_at'] is None or item['due_at'] >= now)]
@@ -108,7 +109,7 @@ def room_data(request, classroom):
         folder = {'name': subject, 'items': [item for item in items if item['publication'].subject == subject]}
         if identity and identity.role == 'TEACHER' and any(lesson['subject'] == subject and lesson['teacher_id'] == identity.pk
                 for lesson in selected.published_schedule):
-            folder['create_url'] = reverse('coursework:create', args=[selected.code, subject])
+            folder['create_url'] = reverse('assessments:questionnaire-create') + '?' + urlencode({'offer': selected.pk, 'subject': subject})
         directories.append(folder)
     from contexts.institutions.coursework.models import PDFModule
     modules = list(items)

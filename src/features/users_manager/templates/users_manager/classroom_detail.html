@@ -9,6 +9,7 @@
     <nav id="room-hub" class="room-hub-nav" aria-label="Hub da sala">
         <a href="#room-content" aria-current="location">Conteúdo</a>
         <a href="#room-agenda">Agenda</a>
+        {% if identity.role == 'TEACHER' or request.user.institutional_account.role == 'TEACHER' %}<a href="#room-corrections">Correções</a>{% endif %}
         <a href="#room-notices">Avisos <span>{{ notice_count }}</span></a>
         <a href="#room-members">Participantes</a>
         <a href="#room-messages">Mensagens</a>
@@ -31,7 +32,7 @@
             <section id="room-activities" class="dash-card manager-card" aria-labelledby="room-modules-title">
                 <p class="section-kicker">{{ subject }}</p><h2 id="room-modules-title">Módulos</h2>
                 {% if subject %}<p>Abra um PDF, uma atividade ou uma prova desta disciplina.</p>
-                {% for folder in directories %}{% if folder.create_url %}<div class="manager-actions"><a class="button button-small" href="{{ folder.create_url }}">Criar atividade ou prova</a><a class="button button-small button-secondary" href="{% url 'coursework:pdf-create' selected_offer.code subject %}">Adicionar PDF</a></div>{% endif %}{% endfor %}
+                {% for folder in directories %}{% if folder.create_url %}<div class="manager-actions"><a class="button button-small" href="{{ folder.create_url }}">Criar questionário</a><a class="button button-small button-secondary" href="{% url 'coursework:pdf-create' selected_offer.code subject %}">Adicionar PDF</a></div>{% endif %}{% endfor %}
                 {% for item in modules %}<article class="room-file"><span class="room-file-kind">{{ item.kind }}</span><div>{% if item.url %}<a href="{{ item.url }}"{% if item.pdf %} target="_blank" rel="noopener"{% endif %}>{{ item.title }}{% if item.pdf %} — Abrir PDF{% endif %}</a>{% else %}<strong>{{ item.title }}</strong>{% endif %}{% if item.due_at %}<small>Prazo {{ item.due_at|date:'d/m/Y H:i' }}</small>{% endif %}</div>{% if item.can_remove %}<form method="post" action="{% url 'coursework:pdf-remove' item.pdf.pk %}">{% csrf_token %}<button class="button button-small button-secondary">Remover</button></form>{% endif %}</article>{% empty %}<p class="empty-state">Nenhum módulo publicado nesta disciplina.</p>{% endfor %}
                 {% elif subject_choices %}<p>Escolha a sala de uma disciplina para abrir seus módulos.</p><div class="manager-actions">{% for name in subject_choices %}<a class="button button-secondary" href="?subject={{ name|urlencode }}">{{ name }}</a>{% endfor %}</div>
                 {% else %}<p class="empty-state">Os módulos estarão disponíveis após a publicação da disciplina.</p>{% endif %}
@@ -39,6 +40,7 @@
             {% if not selected_offer %}<details class="dash-card manager-card room-legacy-tests"><summary>Registros de avaliação da turma · {{ tests|length }}</summary>{% for test in tests %}<div class="room-file"><div><strong>{{ test.title }}</strong><small>Valor: {{ test.max_score }} pontos · {% if test.is_published %}Publicado{% else %}Rascunho{% endif %}</small></div></div>{% empty %}<p>Nenhum teste registrado.</p>{% endfor %}{% if can_manage %}<div class="manager-actions"><a class="button button-small button-secondary" href="{% url 'users-manager:classroom-test-create' classroom.pk %}">Novo teste</a><a class="button button-small button-secondary" href="{% url 'analytics-dashboard:generate' %}?organization={{ classroom.organization.pk }}&amp;classroom={{ classroom.pk }}">Gerar análise</a></div>{% endif %}</details>{% endif %}
         </div>
     </div>
+<section id="room-corrections" data-room-panel class="dash-card"><h2>Correções da turma</h2><p>Acompanhe entregas online e gabaritos de questionários impressos.</p><a class="button" href="{% url 'assessments:corrections' %}?classroom={{ classroom.pk }}">Abrir correções desta turma</a></section>
 <section id="room-agenda" data-room-panel class="dash-card manager-card room-agenda"><h2>Agenda da sala</h2><p>Datas e prazos das provas e atividades publicadas nesta disciplina.</p>{% for item in agenda_items %}<article class="room-file"><time class="room-agenda-date" datetime="{{ item.due_at|date:'c' }}"><strong>{{ item.due_at|date:'d' }}</strong>{{ item.due_at|date:'M' }}</time><div>{% if item.url %}<a href="{{ item.url }}">{{ item.title }}</a>{% else %}<strong>{{ item.title }}</strong>{% endif %}<small>{{ item.publication.subject }} · {{ item.kind }} · {{ item.due_at|date:'d/m/Y H:i' }}</small></div></article>{% empty %}<p class="empty-state">Nenhum prazo informado nas publicações desta oferta.</p>{% endfor %}</section>
                 <section id="room-notices" class="room-notices dash-card manager-card" aria-labelledby="room-notices-title" data-room-panel>
         <h2 id="room-notices-title">Avisos e comunicados</h2>

@@ -59,7 +59,7 @@ class InstitutionalCatalogTests(TestCase):
         self.client.force_login(self.teacher)
         response = self.client.get(reverse('assessments:question-bank'))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context['questions']), 25)
+        self.assertEqual(len(response.context['questions']), 30)
         self.assertContains(response, 'Não revisada')
         self.assertEqual(self.client.get(reverse('assessments:bank-question-update', args=[self.item.pk])).status_code, 404)
         self.assertEqual(self.client.get(reverse('assessments:bank-question-derive', args=[self.item.pk])).status_code, 200)
