@@ -97,7 +97,7 @@ class QuestionSharingTests(TestCase):
         self.client.force_login(self.manager)
         self.assertContains(self.client.get(reverse('assessments:institutional-sharing')), 'Todos os usuários cadastrados')
         self.client.force_login(self.teacher)
-        self.assertContains(self.client.get(reverse('assessments:index')), 'share_with_institution')
+        self.assertContains(self.client.get(reverse('assessments:bank-question-create')), 'share_with_institution')
         self.assertContains(self.client.get(reverse('assessments:bank-question-create')), 'share_with_institution')
 
     def test_images_follow_scope_and_existing_assessment_copies_survive(self):

@@ -5,7 +5,8 @@
 <h2>{{ content.kind_label }} · {{ content.title }}</h2><p>{{ publication.subject }} · {{ publication.offer.name }}</p>
 {% if publication.visible_due_at %}<p>Prazo: {{ publication.visible_due_at|date:'d/m/Y H:i' }}</p>{% endif %}
 {{ content.instructions|linebreaks }}
-{% if submission %}
+{% if content.delivery_mode == 'printed' %}<p>Questionário impresso. Responda na prova entregue pelo professor; a correção será registrada após o envio do gabarito.</p>
+{% elif submission %}
 <h3>Entrega registrada</h3><p>Enviada em {{ submission.submitted_at|date:'d/m/Y H:i' }}.</p>
 <p>{% if submission.score != None %}Nota: {{ submission.score }} / {{ submission.maximum_score }}{% else %}Aguardando correção do professor.{% endif %}</p>
 {{ submission.feedback|linebreaks }}

@@ -20,27 +20,15 @@ def sidebar_navigation(request):
     bank_active = name == 'assessments:question-bank' or name.startswith('assessments:bank-question-')
     sharing_active = name == 'assessments:institutional-sharing'
     corrections_active = is_teacher and section == 'correcoes'
-    evaluation_links = []
-    if is_teacher:
-        evaluation_links.append({'label': 'Provas e atividades', 'url': reverse('coursework:index'), 'active': namespace == 'coursework'})
-    evaluation_links.extend([
-        {'label': 'Editor de avaliações', 'url': reverse('assessments:index'),
-         'active': namespace in ('assessments', 'paper-exams') and not bank_active and not sharing_active and name != 'paper-exams:scan'},
-        {'label': 'Banco de questões', 'url': reverse('assessments:question-bank'), 'active': bank_active},
-    ])
-    if is_teacher:
-        evaluation_links.extend([
-            {'label': 'Fotografar prova', 'url': reverse('paper-exams:scan'), 'active': name == 'paper-exams:scan'},
-            {'label': 'Disciplinas e publicações', 'url': reverse('institutions:teacher-administration-section', args=['publicacoes']),
-             'active': section == 'publicacoes'},
-            {'label': 'Correções pendentes', 'url': reverse('institutions:teacher-administration-section', args=['correcoes']),
-             'active': corrections_active},
-        ])
-    if is_manager:
-        evaluation_links.append({'label': 'Compartilhar questões', 'url': reverse('assessments:institutional-sharing'), 'active': sharing_active})
+    evaluation_links = [
+        {'label': 'Banco de questões', 'url': reverse('assessments:question-bank'), 'active': bank_active or sharing_active},
+        {'label': 'Questionários', 'url': reverse('assessments:index'),
+         'active': namespace in ('assessments', 'coursework', 'paper-exams') and not bank_active and not sharing_active and name != 'assessments:corrections'},
+    ]
     evaluation_navigation = {'evaluation_links': evaluation_links,
         'evaluations_active': any(link['active'] for link in evaluation_links),
-        'evaluation_section': bool(is_teacher and section in ('publicacoes', 'correcoes'))}
+        'evaluation_section': bool(is_teacher and section in ('publicacoes', 'correcoes')),
+        'corrections_active': name == 'assessments:corrections'}
     if not account:
         return evaluation_navigation
     if name in ('institutions:classrooms', 'institutions:classroom'):

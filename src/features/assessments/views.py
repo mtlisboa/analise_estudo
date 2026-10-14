@@ -155,6 +155,7 @@ def question_bank(request: HttpRequest) -> HttpResponse:
 
 def _question_initial(source):
     return {
+        "title": source.title,
         "subject": source.subject,
         "topic": source.topic,
         "question_type": source.question_type,

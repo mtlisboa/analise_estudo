@@ -50,6 +50,8 @@ def student_detail(request, pk):
     obj = get_object_or_404(Publication.objects.select_related('offer__period'), pk=pk,
         offer__period__organization=account.organization)
     obj = get_object_or_404(student_publications(account, obj.offer, obj.subject), pk=pk)
+    if request.method == 'POST' and obj.public_snapshot.get('delivery_mode') == 'printed':
+        raise PermissionDenied('Este questionário é respondido em papel.')
     submission = Submission.objects.filter(publication=obj, student=request.user).first()
     form = AnswerForm(obj, request.POST if request.method == 'POST' else None)
     if request.method == 'POST' and not submission and form.is_valid():

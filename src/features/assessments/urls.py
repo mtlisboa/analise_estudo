@@ -1,16 +1,22 @@
 from django.urls import path
 
-from . import views
+from . import views, workspace
 from .sharing_views import institutional_sharing
 from .image_views import question_image
 
 app_name = "assessments"
 
 urlpatterns = [
+    path('questionarios/novo/', workspace.questionnaire, name='questionnaire-create'),
+    path('questionarios/<int:pk>/', workspace.questionnaire, name='questionnaire-edit'),
+    path('questionarios/<int:pk>/finalizar/', workspace.finalize, name='questionnaire-finalize'),
+    path('correcoes/', workspace.corrections, name='corrections'),
+    path('questoes/<int:pk>/previa/', workspace.preview, name='question-preview'),
+
     path("questoes/compartilhamento/", institutional_sharing, name="institutional-sharing"),
     path("questoes/imagens/<int:pk>/", question_image, name="question-image"),
-    path("", views.index, name="index"),
-    path("questoes/", views.question_bank, name="question-bank"),
+    path("", workspace.questionnaires, name="index"),
+    path("questoes/", workspace.bank, name="question-bank"),
     path("questoes/nova/", views.create_bank_question, name="bank-question-create"),
     path(
         "questoes/<int:source_pk>/derivar/",

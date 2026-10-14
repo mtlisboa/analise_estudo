@@ -1,3 +1,19 @@
+# Organização de Avaliações
+
+A navegação lateral possui apenas Banco de questões e Questionários. Correções fica na navegação de topo, com entregas online, gabaritos para revisão e solicitações de gabaritos de aplicações físicas finalizadas ou com prazo vencido.
+
+## Banco
+
+Públicas reúne o banco da instituição e conteúdos disponibilizados com autorização. Privadas reúne somente questões próprias não compartilhadas. As linhas mostram título e metadados, e a prévia completa abre em modal. A lista usa carregamento incremental com cursor, rolagem infinita e botão de fallback. As regras de acesso também são verificadas nas prévias e na seleção.
+
+## Questionários
+
+Criar questionário abre um editor único: título, disciplina, formato (impresso ou área do aluno), prazo obrigatório, questões selecionadas em modal, turmas e visibilidade. O mesmo editor abre pelos módulos da turma, com disciplina e turma pré-selecionadas. Ocultar retira a publicação dos alunos; disponibilizar publica e notifica. Questionários impressos visíveis geram emissões identificadas para as turmas selecionadas e bloqueiam o envio online de respostas.
+
+Finalizar aplicação física coloca os gabaritos faltantes na página Correções. Os atalhos permitem fotografar, importar e revisar. Aplicações anteriores, questões e correções continuam preservadas. A migração recupera visibilidade e prazo das publicações anteriores.
+
+---
+
 # Avaliações online e impressas
 
 ## Montagem

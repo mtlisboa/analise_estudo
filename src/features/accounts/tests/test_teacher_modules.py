@@ -84,7 +84,7 @@ class TeacherModulesTests(TestCase):
 
     def test_administration_opens_options_and_each_option_has_its_own_page(self):
         response = self.client.get(reverse('institutions:teacher-administration'))
-        for section in ('acesso','turmas','publicacoes','correcoes'):
+        for section in ('acesso','turmas'):
             url = reverse('institutions:teacher-administration-section',args=[section])
             self.assertContains(response,url)
             self.assertEqual(self.client.get(url).status_code,200)

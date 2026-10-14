@@ -246,6 +246,7 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionImages
     class Meta:
         model = QuestionBankItem
         fields = (
+            "title",
             "subject",
             "topic",
             "question_type",

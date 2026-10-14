@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% load static %}{% block title %}Banco de questões | Lumini{% endblock %}{% block main_class %}manager-page{% endblock %}
+{% block content %}<section class="manager-shell" data-question-workspace>
+<header class="compact-heading"><div><h1>Banco de questões</h1><p>Conteúdo da instituição e suas questões pessoais.</p></div><a class="button" href="{% url 'assessments:bank-question-create' %}">Criar questão</a></header>
+<div class="bank-tabs" role="group" aria-label="Visibilidade das questões"><a href="?scope=public"{% if scope != 'private' %} aria-current="page"{% endif %}>Públicas</a><a href="?scope=private"{% if scope == 'private' %} aria-current="page"{% endif %}>Privadas</a></div>
+<form method="get" class="bank-filter"><input type="hidden" name="scope" value="{{ scope }}"><label class="visually-hidden" for="bank-search">Buscar questões</label><input id="bank-search" type="search" name="q" value="{{ query }}" placeholder="Buscar título, disciplina ou assunto"><button class="button button-secondary">Buscar</button></form>
+<p class="muted-copy">{% if scope == 'private' %}Questões que você criou e ainda não compartilhou.{% else %}Questões compartilhadas pela instituição ou disponibilizadas por você. Outros bancos liberados também aparecem aqui.{% endif %} Clique em uma linha para ver a prévia.</p>
+<div data-infinite-list data-url="{% url 'assessments:question-bank' %}" data-scope="{{ scope }}" data-query="{{ query }}" data-next="{{ next_cursor }}">{% include 'assessments/bank_rows.html' %}</div>
+<button class="bank-load" type="button" data-load-more{% if not next_cursor %} hidden{% endif %}>Carregar mais questões</button><p data-list-status role="status"></p>
+<details class="bank-tools"><summary>Mais opções de criação</summary><a href="{% url 'assessments:bank-question-ai-create' %}">Gerar questão com IA</a>{% if request.user.institutional_account.role == 'MANAGER' or request.user.institutional_account.role == 'ADMIN' %}<a href="{% url 'assessments:institutional-sharing' %}">Compartilhamento externo</a>{% endif %}</details>
+{% include 'assessments/preview_dialog.html' %}</section>{% endblock %}
+{% block scripts %}<script src="{% static 'js/question-workspace.js' %}" defer></script>{% endblock %}

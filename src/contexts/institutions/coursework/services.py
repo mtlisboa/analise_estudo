@@ -48,7 +48,7 @@ def publish(account, publication):
     for question in questions:
         question.full_clean()
     # Only these public fields cross into the student-facing snapshot.
-    snapshot = {'title': publication.title, 'kind_label': publication.get_kind_display(),
+    snapshot = {'delivery_mode': publication.assessment.delivery_mode, 'title': publication.title, 'kind_label': publication.get_kind_display(),
         'instructions': publication.instructions, 'due_at': publication.due_at.isoformat() if publication.due_at else None,
         'questions': [{'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(), 'type': q.question_type,
                        'options': q.options, 'points': str(q.points)} for q in questions]}

@@ -1,0 +1,5 @@
+<nav class="evaluation-topbar" aria-label="Navegação de avaliações">
+<a href="{% url 'assessments:question-bank' %}"{% if workspace_page == 'bank' %} aria-current="page"{% endif %}>Banco de questões</a>
+<a href="{% url 'assessments:index' %}"{% if workspace_page == 'questionnaires' %} aria-current="page"{% endif %}>Questionários</a>
+<a href="{% url 'assessments:corrections' %}"{% if corrections_active %} aria-current="page"{% endif %}>Correções</a>
+</nav>

@@ -58,10 +58,10 @@ class QuestionImageTests(TestCase):
         self.assertEqual(list(question.images.values_list('pk', flat=True)),
                          list(question.bank_item.images.values_list('pk', flat=True)))
         self.assertEqual(question.images.count(), 2)
-        page = self.client.get(reverse('assessments:index')).content.decode()
+        page = self.client.get(reverse('assessments:question-preview',args=[question.bank_item_id])).content.decode()
         self.assertLess(page.index('Texto de apoio original'), page.index('class="question-images"'))
-        self.assertLess(page.index('class="question-images"'), page.index('Qual região está indicada?'))
-        self.assertIn('enctype="multipart/form-data"', page)
+        self.assertLess(page.index('class="question-images"'), page.index('class="question-command"'))
+        self.assertIn('enctype="multipart/form-data"', self.client.get(reverse('assessments:bank-question-create')).content.decode())
 
     def test_derivation_keeps_images_and_edits_do_not_change_assessment_copy(self):
         item = self.create_bank()
