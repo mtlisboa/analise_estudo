@@ -50,12 +50,14 @@ def answer_sheets_pdf(run, sheets=None):
             pdf.setFont('Helvetica', size)
             pdf.drawString(50, HEIGHT - y, text)
         pdf.setFont('Helvetica', 9)
-        pdf.drawString(50, HEIGHT - 195, f'ID do aluno: {sheet.student_id}')
+        pdf.drawString(50, HEIGHT - 195, f'ID: {sheet.student_id} | Turno: {run.context.get("shift", "")} | Sala: {run.context.get("room", "")}'[:100])
         qr = qrcode.make(qr_payload(sheet)).get_image()
         pdf.drawImage(ImageReader(qr), 438, HEIGHT - 187, 110, 110)
         pdf.setFont('Helvetica', 9)
         pdf.drawString(50, HEIGHT - 220, 'Preencha toda a bolinha com caneta preta ou azul. Marque uma alternativa por questão.')
         for i, question in enumerate(run.questions):
+            if question.get('type') == 'open_ended':
+                continue
             x, y = bubble_position(i, 0)
             pdf.setFont('Helvetica-Bold', 9)
             pdf.drawRightString(x - 19, HEIGHT - y - 3, f'{i + 1:02}')
@@ -74,36 +76,50 @@ def answer_sheets_pdf(run, sheets=None):
     return stream.getvalue()
 
 
-def exam_pdf(run):
-    stream = BytesIO()
+def exam_pdf(run, sheets=None):
+    from pypdf import PdfReader, PdfWriter
+    output = BytesIO()
+    writer = PdfWriter()
     styles = getSampleStyleSheet()
-    story = []
     def paragraph(text, style='Normal'):
         return Paragraph(escape(str(text)).replace('\n', '<br/>'), styles[style])
-    for sheet in run.sheets.all():
-        if story:
-            story.append(PageBreak())
-        story.extend([paragraph(run.title, 'Title'), paragraph(run.classroom_name),
-                      paragraph(f'Aluno: {sheet.student_name} | ID: {sheet.student_id}'),
-                      Spacer(1, 16)])
+    for sheet in (sheets if sheets is not None else run.sheets.all()):
+        cover = BytesIO(answer_sheets_pdf(run, [sheet]))
+        writer.append(PdfReader(cover))
+        body = BytesIO()
+        story = []
         for index, question in enumerate(run.questions):
-            block = [paragraph(f'Questão {index + 1}', 'Heading3')]
+            story.append(paragraph(f'Questão {index + 1} - {question["points"]} pontos', 'Heading3'))
             if question.get('support_text'):
-                block.extend([paragraph(question['support_text']), Spacer(1, 8)])
+                story.extend([paragraph(question['support_text']), Spacer(1, 8)])
             for asset in question.get('images', []):
                 picture = Image(BytesIO(base64.b64decode(asset['data'])))
-                scale = min((WIDTH - 84) / picture.imageWidth, 260 / picture.imageHeight, 1)
+                scale = min((WIDTH - 84) / picture.imageWidth, 210 / picture.imageHeight, 1)
                 picture.drawWidth = picture.imageWidth * scale
                 picture.drawHeight = picture.imageHeight * scale
-                block.extend([picture, paragraph(asset['description']), Spacer(1, 8)])
-            block.append(paragraph(question['statement']))
-            for letter, option in zip(LETTERS, question['options']):
-                block.append(paragraph(f'{letter}) {option}'))
-            block.append(Spacer(1, 12))
-            story.append(KeepTogether(block))
-    def footer(pdf, doc):
-        pdf.setFont('Helvetica', 8)
-        pdf.drawRightString(WIDTH - 42, 25, f'Página {doc.page}')
-    SimpleDocTemplate(stream, pagesize=A4, rightMargin=42, leftMargin=42,
-                      topMargin=42, bottomMargin=42).build(story, onFirstPage=footer, onLaterPages=footer)
-    return stream.getvalue()
+                story.extend([picture, paragraph(asset['description']), Spacer(1, 8)])
+            story.append(paragraph(question['statement']))
+            if question.get('type') == 'open_ended':
+                for _ in range(6):
+                    story.extend([Spacer(1, 13), paragraph('_' * 85)])
+            else:
+                for letter, option in zip(LETTERS, question['options']):
+                    story.append(paragraph(f'{letter}) {option}'))
+            story.append(Spacer(1, 16))
+        def header(pdf, doc):
+            payload = signing.Signer(salt=SALT).sign(f'2:{sheet.student_id}:{sheet.pk.hex}:{doc.page}')
+            qr = qrcode.make(payload).get_image()
+            pdf.drawImage(ImageReader(qr), 438, HEIGHT - 165, 110, 110)
+            fields = [run.title, f'Aluno: {sheet.student_name}', f'Registro: {sheet.student_registration} | ID: {sheet.student_id}',
+                      f'Turma: {run.classroom_name}', f'Turno: {run.context.get("shift", "")} | Sala: {run.context.get("room", "")}',
+                      f'Oferta: {run.context.get("offer", "")}']
+            block = KeepInFrame(375, 130, [paragraph(v) for v in fields], mode='shrink')
+            _, height = block.wrapOn(pdf, 375, 130)
+            block.drawOn(pdf, 42, HEIGHT - 50 - height)
+            pdf.setFont('Helvetica', 8)
+            pdf.drawString(42, 25, f'Questões - página {doc.page} | Aluno ID {sheet.student_id}')
+        SimpleDocTemplate(body, pagesize=A4, rightMargin=42, leftMargin=42,
+            topMargin=190, bottomMargin=42).build(story, onFirstPage=header, onLaterPages=header)
+        writer.append(PdfReader(body))
+    writer.write(output)
+    return output.getvalue()

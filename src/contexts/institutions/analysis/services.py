@@ -73,6 +73,11 @@ def build(scope, f):
             skills=meta.get('skills',[])
             if q.get('annulled') or (skills_filter and skills_filter not in skills): continue
             points=Decimal(q['points']); answer=result.answers[i] if i<len(result.answers) else ''
+            if q.get('type') == 'open_ended':
+                total += points
+                score += Decimal(result.open_scores.get(str(i+1), '0'))
+                used += 1
+                continue
             valid=answer in list('ABCDE'[:len(q.get('options',[]))]); correct=valid and answer==q['correct']
             total+=points; score+=points if correct else 0; used+=1
             item_key=(str(run.pk),i)

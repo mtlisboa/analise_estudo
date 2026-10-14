@@ -19,6 +19,7 @@ class Publication(models.Model):
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     public_snapshot = models.JSONField(default=dict, blank=True)
+    grading_snapshot = models.JSONField(default=list, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -45,3 +46,29 @@ class PDFModule(models.Model):
 
     class Meta:
         ordering = ['created_at', 'pk']
+
+
+class Submission(models.Model):
+    publication = models.ForeignKey(Publication, on_delete=models.PROTECT, related_name='submissions')
+    student = models.ForeignKey('accounts.User', on_delete=models.PROTECT)
+    answers = models.JSONField(default=dict)
+    automatic_score = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    maximum_score = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    score = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    open_scores = models.JSONField(default=dict)
+    feedback = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True)
+    reviewed_by = models.ForeignKey('accounts.User', null=True, on_delete=models.PROTECT, related_name='+')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['publication', 'student'], name='one_submission_per_publication')]
+
+
+class SubmissionReview(models.Model):
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='reviews')
+    reviewer = models.ForeignKey('accounts.User', on_delete=models.PROTECT)
+    previous_scores = models.JSONField(default=dict)
+    scores = models.JSONField(default=dict)
+    feedback = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

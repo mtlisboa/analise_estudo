@@ -15,7 +15,7 @@ from ..roles import workspace_for
 from ..views import institutional_identity
 from .forms import ExistingAssessmentForm, PublicationForm
 from .models import Publication
-from .services import authorize_teacher, publish, student_publications, teacher_disciplines
+from .services import authorize_teacher, publish, teacher_disciplines
 
 
 def teacher_identity(request):
@@ -129,20 +129,6 @@ def action(request, pk, operation):
     else:
         raise Http404
     return redirect('coursework:edit', pk=pk)
-
-
-@login_required
-@never_cache
-@require_GET
-def student_detail(request, pk):
-    account = institutional_identity(request.user)
-    if account.role != 'STUDENT':
-        raise PermissionDenied
-    obj = get_object_or_404(Publication.objects.select_related('offer__period', 'teacher__user'), pk=pk,
-        offer__period__organization=account.organization)
-    obj = get_object_or_404(student_publications(account, obj.offer, obj.subject), pk=pk)
-    return render(request, 'coursework/student.html', {**base_data(account), 'publication': obj,
-        'content': obj.public_snapshot})
 
 
 @login_required

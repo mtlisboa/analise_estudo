@@ -23,20 +23,27 @@ MAX_PAGES = 100
 
 
 @transaction.atomic
-def issue_run(assessment, classroom, user):
+def issue_run(assessment, classroom, user, student_ids=None):
     if assessment.owner_id != user.pk or not can_manage_classroom(user, classroom):
         raise ValidationError('Você não pode emitir provas para esta avaliação ou turma.')
+    account = getattr(user, 'institutional_account', None)
+    if account:
+        from contexts.institutions.coursework.services import teacher_disciplines
+        if not any(r['offer'].classroom_id == classroom.pk and r['subject'].casefold() == assessment.subject.casefold()
+                   for r in teacher_disciplines(account)):
+            raise ValidationError('Selecione uma turma em que você leciona esta disciplina.')
     questions = list(assessment.questions.prefetch_related('images'))
     if not 1 <= len(questions) <= 50:
-        raise ValidationError('A emissão aceita de 1 a 50 questões objetivas por prova.')
+        raise ValidationError('A emissão aceita de 1 a 50 questões por prova.')
     snapshot = []
     image_bytes = 0
     for question in questions:
-        options = question.options
-        if (question.question_type != 'multiple_choice' or not isinstance(options, list)
+        options = question.options if question.question_type == 'multiple_choice' else []
+        question.full_clean()
+        if question.question_type == 'multiple_choice' and (not isinstance(options, list)
                 or not 2 <= len(options) <= 5 or any(not isinstance(o, str) or not o.strip() for o in options)
                 or len(set(options)) != len(options) or question.correct_answer not in options):
-            raise ValidationError(f'Questão {question.order}: use 2 a 5 alternativas distintas e um gabarito válido. Questões discursivas não são corrigidas por este módulo.')
+            raise ValidationError(f'Questão {question.order}: use 2 a 5 alternativas distintas e um gabarito válido.')
         if question.points <= 0:
             raise ValidationError('A pontuação de cada questão deve ser positiva.')
         images = []
@@ -51,24 +58,40 @@ def issue_run(assessment, classroom, user):
                 raise ValidationError('As imagens da prova excedem o limite de 30 MB. Reduza as imagens antes de emitir.')
             images.append({'data': base64.b64encode(content).decode('ascii'), 'description': image.description})
         snapshot.append({'id': question.pk, 'version': question.updated_at.isoformat(), 'diagnostic_metadata': question.diagnostic_metadata, 'support_text': question.support_text, 'images': images,
-                         'statement': question.statement, 'options': options,
-                         'correct': LETTERS[options.index(question.correct_answer)], 'points': str(question.points)})
+                         'statement': question.statement, 'type': question.question_type, 'options': options,
+                         'expected_answer': question.correct_answer if question.question_type == 'open_ended' else '',
+                         'correct': LETTERS[options.index(question.correct_answer)] if question.question_type == 'multiple_choice' else '', 'points': str(question.points)})
     members = list(classroom.memberships.filter(role=ClassroomMembership.Role.STUDENT,
                    status=MembershipStatus.ACTIVE, user__is_active=True).select_related('user'))
+    if student_ids is not None:
+        selected = {int(v) for v in student_ids}
+        if not selected.issubset({m.user_id for m in members}):
+            raise ValidationError('Selecione somente alunos ativos desta turma.')
+        members = [m for m in members if m.user_id in selected]
     if not members:
         raise ValidationError('A turma não possui alunos ativos.')
     if len(members) > 100:
         raise ValidationError('A emissão está limitada a 100 alunos por turma.')
+    offer = getattr(classroom, 'planning_offer', None)
+    context = {'shift': classroom.get_shift_display(), 'room': classroom.name,
+               'offer': str(offer.code) if offer else '', 'period': str(offer.period) if offer else ''}
     run = ExamRun.objects.create(assessment=assessment, classroom=classroom, created_by=user,
-            title=str(assessment), classroom_name=str(classroom), questions=snapshot, subject=assessment.subject.strip().upper())
+            title=str(assessment), classroom_name=str(classroom), questions=snapshot, context=context, subject=assessment.subject.strip().upper())
     AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user,
-            student_name=m.user.get_full_name() or m.user.username, student_registration=m.user.username) for m in members])
+            student_name=m.user.get_full_name() or m.user.username, student_registration=getattr(getattr(m.user, 'institutional_account', None), 'registration', m.user.username)) for m in members])
     return run
 
 
-def grade(questions, answers):
+def grade(questions, answers, open_scores=None):
     maximum = sum((Decimal(q['points']) for q in questions if not q.get('annulled')), Decimal('0'))
-    score = sum((Decimal(q['points']) for q, answer in zip(questions, answers) if not q.get('annulled') and q['correct'] == answer), Decimal('0'))
+    score = Decimal('0')
+    for i, (q, answer) in enumerate(zip(questions, answers)):
+        if q.get('annulled'):
+            continue
+        if q.get('type') == 'open_ended':
+            score += Decimal((open_scores or {}).get(str(i+1), '0'))
+        elif q['correct'] == answer:
+            score += Decimal(q['points'])
     return score, maximum
 
 
@@ -83,6 +106,9 @@ def save_result(batch, identity, answers, issues, source, evidence=None):
         raise ReadError('Quantidade de respostas diferente da prova.')
     from contexts.institutions.analysis.services import effective_questions
     score, maximum = grade(effective_questions(batch.run), answers)
+    issues = list(issues)
+    if any(q.get('type') == 'open_ended' for q in batch.run.questions):
+        issues.append('Questões abertas aguardam correção do professor.')
     result, created = SheetResult.objects.get_or_create(sheet=sheet, defaults={
         'batch': batch, 'source_name': source[:255], 'detected': answers, 'answers': answers,
         'issues': issues, 'status': 'review' if issues else 'graded',
@@ -121,6 +147,9 @@ def import_csv(batch, data):
                 raise ReadError('Quantidade de colunas inválida.')
             answers = [row[f'q{i+1}'].strip().upper() for i in range(len(batch.run.questions))]
             for index, answer in enumerate(answers):
+                if batch.run.questions[index].get('type') == 'open_ended':
+                    answers[index] = row[f'q{index+1}'].strip()[:15000]
+                    continue
                 if answer and answer not in list(LETTERS[:len(batch.run.questions[index]['options'])]):
                     raise ReadError(f'Questão {index+1}: alternativa inválida. Use uma letra ou deixe vazio.')
             save_result(batch, {'sheet': row['sheet_id'].strip(), 'student': row['student_id'].strip(),
@@ -177,6 +206,11 @@ def import_scans(batch, files):
                     return
                 source = f'{name} / página {number}'
                 try:
+                    from .omr import page_identity
+                    identity = page_identity(image)
+                    if identity and identity.get('v') == 2:
+                        save_scan_page(batch, identity, image)
+                        continue
                     identity, answers, issues, evidence = read_page(image, batch.run.questions)
                     save_result(batch, identity, answers, issues, source, evidence)
                 except ReadError as exc:
@@ -229,3 +263,19 @@ def process_upload(run, user, upload):
         batch.errors.append(str(exc))
     batch.save(update_fields=['errors'])
     return batch
+
+
+def save_scan_page(batch, identity, image):
+    import cv2
+    from .models import ScanPage
+    try:
+        sheet = batch.run.sheets.get(pk=identity['sheet'], student_id=identity['student'])
+    except (AnswerSheet.DoesNotExist, ValueError, ValidationError):
+        raise ReadError('A página não pertence a esta emissão ou aluno.')
+    ok, png = cv2.imencode('.png', image)
+    if not ok:
+        raise ReadError('Não foi possível guardar a página.')
+    _, created = ScanPage.objects.get_or_create(sheet=sheet, page=identity['page'],
+        defaults={'evidence': png.tobytes(), 'uploaded_by': batch.created_by})
+    if not created:
+        raise ReadError('Página já anexada. A imagem original foi preservada.')

@@ -1112,3 +1112,14 @@ body.analytics-chart-expanded { overflow: hidden; }
 .question-images img,.question-image-preview img { display: block; max-width: 100%; max-height: 360px; height: auto; object-fit: contain; }
 .question-images figcaption,.question-image-preview figcaption { font-size: .85rem; color: var(--text-soft); margin-top: .4rem; }
 .question-command { font-weight: 600; }
+
+/* Answering and reviewing institutional assessments. */
+.assessment-flow-form { width:100%; max-width:850px; }
+.assessment-flow-form fieldset { min-width:0; margin:24px 0; padding:20px; border:1px solid var(--border); border-radius:10px; }
+.assessment-flow-form legend { font-weight:650; padding:0 8px; }
+.assessment-flow-form textarea, .assessment-flow-form input:not([type=radio]):not([type=checkbox]):not([type=hidden]), .assessment-flow-form select { width:100%; box-sizing:border-box; max-width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font:inherit; }
+.assessment-flow-form textarea { resize:vertical; }
+.assessment-flow-form label:has(input[type=radio]), .assessment-flow-form label:has(input[type=checkbox]) { display:flex; align-items:center; gap:12px; min-height:44px; padding:8px; cursor:pointer; overflow-wrap:anywhere; }
+.assessment-flow-form input[type=radio], .assessment-flow-form input[type=checkbox] { flex:0 0 auto; width:20px; height:20px; accent-color:var(--primary); }
+.assessment-flow-form .errorlist { color:var(--text); border-left:3px solid var(--primary); padding-left:24px; }
+.assessment-flow-form :focus-visible { outline:2px solid var(--primary); outline-offset:3px; }

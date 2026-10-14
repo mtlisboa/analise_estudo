@@ -1,0 +1,25 @@
+# Avaliações online e impressas
+
+## Montagem
+
+Em Avaliações > Banco de questões, crie os itens e marque as questões desejadas. Escolha uma avaliação existente ou deixe a seleção vazia e informe o título para criar uma avaliação da mesma disciplina. O botão Montar avaliação e continuar leva o professor à aplicação nas turmas. O editor mantém atalhos para selecionar mais questões, aplicar nas turmas ou imprimir.
+
+## Aplicação online
+
+Selecione uma ou mais ofertas publicadas da disciplina nas quais o professor tem vínculo ativo. Aplicar e notificar publica uma cópia do conteúdo para cada turma. As notificações possuem um link para a atividade; a atividade também aparece nos módulos da turma e da disciplina.
+
+O aluno responde alternativas e questões abertas e envia uma única entrega. Há validação de prazo, matrícula, alternativas e versão da atividade. As alternativas recebem pontuação automática; questões abertas ficam pendentes. O professor abre a entrega na publicação ou em Correções pendentes, atribui pontos e conclui. Cada revisão guarda os pontos anteriores e o responsável.
+
+O gabarito fica em um snapshot privado separado do conteúdo do aluno. Depois da primeira entrega, alterações de conteúdo/gabarito exigem uma nova avaliação/aplicação. Publicações antigas devem ser republicadas pelo professor antes do primeiro envio para registrar esse gabarito privado.
+
+## Aplicação impressa
+
+Em Imprimir e corrigir, emita para uma turma da disciplina. Baixe as provas completas da turma ou a prova individual ao lado do aluno. O PDF contém a folha de bolinhas e as páginas das questões, com identificação e QR assinado em cada página. A emissão preserva questões, imagens, pontos, gabarito e identificação. Questões abertas têm linhas para resposta e são corrigidas manualmente.
+
+Em Fotografar prova, use a câmera do celular (quando suportada pelo navegador) ou selecione uma imagem JPG/PNG. O QR identifica a emissão e o aluno; a autorização do professor é verificada antes de anexar. Fotografe a folha completa, com os quatro marcadores, e depois as páginas das respostas abertas. As páginas podem chegar em qualquer ordem. O resultado só surge após importar a folha de bolinhas.
+
+Os envios por PDF, ZIP e CSV continuam disponíveis por emissão. No CSV, A–E representam alternativas e as colunas de questões abertas aceitam texto; a nota dessas questões continua sendo manual. Uma página ou resultado duplicado é preservado, sem sobrescrita. Marcações ambíguas exigem revisão; páginas com QR inválido não são atribuídas a ninguém.
+
+## Implantação e validação
+
+Executar as migrações (o entrypoint já faz isso) e instalar as dependências atualizadas, incluindo pypdf. Os testes cobrem publicação, notificação, acesso pela turma, envio, correção, seleção de várias turmas, PDF misto, QR, câmera, OMR, páginas fora de ordem e controles de acesso. A validação automática usa PDFs rasterizados e imagens transformadas; fotos reais de celulares ainda precisam de validação em campo.

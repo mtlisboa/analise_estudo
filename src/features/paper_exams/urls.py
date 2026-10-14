@@ -3,6 +3,8 @@ from . import views
 
 app_name = 'paper-exams'
 urlpatterns = [
+    path('fotografar/', views.scan, name='scan'),
+    path('pagina/<int:page_pk>/', views.scan_evidence, name='scan-evidence'),
     path('avaliacao/<int:assessment_pk>/', views.index, name='index'),
     path('emissao/<uuid:pk>/', views.detail, name='detail'),
     path('emissao/<uuid:pk>/baixar/<str:kind>/', views.download, name='download'),

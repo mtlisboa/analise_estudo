@@ -40,6 +40,13 @@
             time.dateTime = item.created_at;
             time.textContent = new Date(item.created_at).toLocaleString('pt-BR');
             row.append(title, message, time);
+            if (item.target_url && item.target_url.startsWith('/') && !item.target_url.startsWith('//')) {
+                const link = document.createElement('a');
+                link.href = item.target_url;
+                link.textContent = 'Abrir atividade';
+                link.addEventListener('click', () => send({type: 'notifications.read', id: item.id}));
+                row.append(link);
+            }
             if (!item.is_read) {
                 const button = document.createElement('button');
                 button.type = 'button';

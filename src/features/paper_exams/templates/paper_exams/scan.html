@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block content %}
+<section class="panel"><h1>Fotografar prova</h1><p>Fotografe uma página inteira por vez, incluindo o QR code. O sistema identifica o aluno e a turma automaticamente. Envie a folha de bolinhas e as páginas com respostas abertas.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="button" type="submit">Identificar, anexar e corrigir</button></form>
+<p>No celular, o botão abre a câmera quando o navegador permite; você também pode escolher uma foto.</p></section>{% endblock %}

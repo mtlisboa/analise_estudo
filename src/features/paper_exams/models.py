@@ -13,6 +13,7 @@ class ExamRun(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     title = models.CharField(max_length=300)
     classroom_name = models.CharField(max_length=300)
+    context = models.JSONField(default=dict, blank=True)
     questions = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -60,6 +61,7 @@ class SheetResult(models.Model):
     maximum_score = models.DecimalField(max_digits=10, decimal_places=2)
     evidence = models.BinaryField(null=True, editable=False)
     reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+    open_scores = models.JSONField(default=dict, blank=True)
     review_note = models.TextField(blank=True)
     reviewed_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -71,7 +73,21 @@ class ResultReview(models.Model):
     previous_answers = models.JSONField()
     answers = models.JSONField()
     note = models.TextField()
+    open_scores = models.JSONField(default=dict, blank=True)
+    previous_open_scores = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at', '-pk']
+
+
+class ScanPage(models.Model):
+    sheet = models.ForeignKey(AnswerSheet, on_delete=models.CASCADE, related_name='scan_pages')
+    page = models.PositiveSmallIntegerField()
+    evidence = models.BinaryField(editable=False)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['page']
+        constraints = [models.UniqueConstraint(fields=['sheet', 'page'], name='unique_scanned_exam_page')]

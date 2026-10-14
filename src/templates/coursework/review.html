@@ -1,0 +1,6 @@
+{% extends 'institutions/base.html' %}{% block workspace_content %}
+<a href="{% url 'coursework:edit' publication.pk %}">← Entregas da turma</a>
+<article class="dash-card full-card"><h2>{{ submission.student.get_full_name|default:submission.student.username }} · {{ publication.title }}</h2>
+{% for row in rows %}<h3>Questão {{ forloop.counter }}</h3><p>{{ row.question.statement }}</p><p>Resposta: {{ row.answer|linebreaksbr }}</p><p>Referência: {{ row.key.answer }}</p>{% endfor %}
+{% if submission.answers.response %}{{ submission.answers.response|linebreaks }}{% endif %}
+<p>Pontos objetivos: {{ submission.automatic_score }}</p><form method="post" class="assessment-flow-form">{% csrf_token %}{{ form.as_p }}<button class="button" type="submit">Concluir correção</button></form></article>{% endblock %}

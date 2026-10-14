@@ -9,6 +9,9 @@
 {% if result.evidence %}<a href="{% url 'paper-exams:evidence' result.pk %}" target="_blank" rel="noopener">Abrir imagem em tamanho completo</a><img src="{% url 'paper-exams:evidence' result.pk %}" alt="Folha digitalizada do aluno para conferir as marcações" style="width:100%;max-width:720px;height:auto;display:block">{% endif %}
 {% if result.reviewed_at %}<p>Revisado em {{ result.reviewed_at|date:'d/m/Y H:i' }} por {{ result.reviewed_by }}.</p><p>{{ result.review_note }}</p><p>Respostas finais: {{ result.answers|join:', ' }}. Nota: {{ result.score }} / {{ result.maximum_score }}.</p>
 {% endif %}<p>Confira todas as respostas antes de confirmar. Cada revisão fica registrada no histórico.</p><form method="post">{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Confirmar respostas e recalcular nota</button></form>
+<h2>Páginas com respostas abertas</h2>
+{% for page in result.sheet.scan_pages.all %}<a href="{% url 'paper-exams:scan-evidence' page.pk %}" target="_blank" rel="noopener">Abrir página {{ page.page }}</a><img src="{% url 'paper-exams:scan-evidence' page.pk %}" alt="Resposta aberta, página {{ page.page }}" style="max-width:100%;height:auto">{% empty %}<p>Nenhuma página de questões anexada. Fotografe as respostas abertas ou confira o original em papel antes de corrigir.</p>{% endfor %}
+{% for question in run.questions %}{% if question.type == 'open_ended' %}<p>Questão {{ forloop.counter }} · Referência do professor: {{ question.expected_answer }}</p>{% endif %}{% endfor %}
 <h2>Histórico de revisões</h2>
 {% for review in result.reviews.all %}<p>{{ review.created_at|date:"d/m/Y H:i" }} · {{ review.reviewer }} · {{ review.note }} · Respostas: {{ review.answers|join:", " }}</p>{% empty %}<p>Nenhuma revisão manual.</p>{% endfor %}
 </section>

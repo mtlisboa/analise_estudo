@@ -132,13 +132,13 @@ class QuestionImageTests(TestCase):
         question.support_text = 'Texto alterado'
         question.save()
         document = pdfium.PdfDocument(exam_pdf(run))
-        text = document[0].get_textpage().get_text_range()
+        text = document[1].get_textpage().get_text_range()
         self.assertIn('Texto de apoio original', text)
         self.assertNotIn('Texto alterado', text)
         self.assertLess(text.index('Texto de apoio original'), text.index('Mapa do Brasil'))
         self.assertLess(text.index('Mapa do Brasil'), text.index('Qual região'))
-        objects = list(document[0].get_objects())
-        self.assertEqual(sum(obj.type == pdfium.raw.FPDF_PAGEOBJ_IMAGE for obj in objects), 2)
+        objects = list(document[1].get_objects())
+        self.assertEqual(sum(obj.type == pdfium.raw.FPDF_PAGEOBJ_IMAGE for obj in objects), 3)
         document.close()
 
 

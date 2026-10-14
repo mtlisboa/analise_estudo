@@ -167,7 +167,7 @@ class PaperExamTests(TestCase):
     def test_invalid_exam_and_permissions(self):
         with self.assertRaises(ValidationError):
             issue_run(self.assessment, self.classroom, self.other)
-        self.assessment.questions.update(question_type='open_ended')
+        self.assessment.questions.update(options=['Uma'])
         with self.assertRaises(ValidationError):
             issue_run(self.assessment, self.classroom, self.teacher)
 

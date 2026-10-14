@@ -1,6 +1,7 @@
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.urls import reverse
 
 from features.notifications.services import notify_user
 from features.users_manager.models import InstitutionalAccount
@@ -49,18 +50,24 @@ def publish(account, publication):
     # Only these public fields cross into the student-facing snapshot.
     snapshot = {'title': publication.title, 'kind_label': publication.get_kind_display(),
         'instructions': publication.instructions, 'due_at': publication.due_at.isoformat() if publication.due_at else None,
-        'questions': [{'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(),
+        'questions': [{'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(), 'type': q.question_type,
                        'options': q.options, 'points': str(q.points)} for q in questions]}
-    if publication.is_published and publication.public_snapshot == snapshot:
-        return publication
+    grading = [{'type': q.question_type, 'answer': q.correct_answer, 'points': str(q.points)} for q in questions]
+    if publication.public_snapshot == snapshot and publication.grading_snapshot == grading:
+        if publication.is_published:
+            return publication
+    elif publication.submissions.exists():
+        raise ValidationError('Esta publicação já recebeu respostas. Crie outra aplicação para alterar as questões ou o gabarito.')
+    publication.grading_snapshot = grading
     publication.public_snapshot = snapshot
     publication.is_published = True
     publication.published_at = timezone.now()
-    publication.save(update_fields=['public_snapshot', 'is_published', 'published_at', 'updated_at'])
+    publication.save(update_fields=['public_snapshot', 'grading_snapshot', 'is_published', 'published_at', 'updated_at'])
     recipients = InstitutionalAccount.objects.filter(organization=account.organization, role='STUDENT', user__is_active=True,
         user__classroom_memberships__classroom_id=publication.offer.classroom_id,
         user__classroom_memberships__role='STUDENT', user__classroom_memberships__status='ACTIVE').select_related('user').distinct()
     for recipient in recipients:
         notify_user(recipient=recipient.user, title=f'{publication.get_kind_display()} publicada',
-            message=f'{publication.subject} · {publication.title} · {publication.offer.name}')
+            message=f'{publication.subject} · {publication.title} · {publication.offer.name}',
+            target_url=reverse('coursework:student-detail', args=[publication.pk]))
     return publication

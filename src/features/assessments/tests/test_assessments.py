@@ -334,7 +334,7 @@ class AssessmentManagerTests(TestCase):
             {"assessment": assessment.pk, "questions": [item.pk]},
         )
 
-        self.assertRedirects(response, reverse("assessments:question-bank"))
+        self.assertRedirects(response, reverse("paper-exams:index", args=[assessment.pk]))
         self.assertEqual(assessment.questions.get().bank_item, item)
 
     def test_algorithmic_assembly_uses_matching_bank_questions(self):

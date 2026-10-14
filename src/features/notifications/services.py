@@ -23,8 +23,8 @@ def publish_change(user_id):
         logger.exception("Could not publish notification update for user %s", user_id)
 
 
-def notify_user(*, recipient, title, message=""):
-    notification = Notification(recipient=recipient, title=title, message=message)
+def notify_user(*, recipient, title, message="", target_url=""):
+    notification = Notification(recipient=recipient, title=title, message=message, target_url=target_url)
     notification.full_clean()
     notification.save()
     return notification

@@ -25,11 +25,12 @@ def sidebar_navigation(request):
         evaluation_links.append({'label': 'Provas e atividades', 'url': reverse('coursework:index'), 'active': namespace == 'coursework'})
     evaluation_links.extend([
         {'label': 'Editor de avaliações', 'url': reverse('assessments:index'),
-         'active': namespace in ('assessments', 'paper-exams') and not bank_active and not sharing_active},
+         'active': namespace in ('assessments', 'paper-exams') and not bank_active and not sharing_active and name != 'paper-exams:scan'},
         {'label': 'Banco de questões', 'url': reverse('assessments:question-bank'), 'active': bank_active},
     ])
     if is_teacher:
         evaluation_links.extend([
+            {'label': 'Fotografar prova', 'url': reverse('paper-exams:scan'), 'active': name == 'paper-exams:scan'},
             {'label': 'Disciplinas e publicações', 'url': reverse('institutions:teacher-administration-section', args=['publicacoes']),
              'active': section == 'publicacoes'},
             {'label': 'Correções pendentes', 'url': reverse('institutions:teacher-administration-section', args=['correcoes']),
