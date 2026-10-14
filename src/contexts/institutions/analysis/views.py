@@ -111,11 +111,10 @@ def record(request,kind,pk=None):
                     # Existing printed results and family views must agree with the new answer key.
                     from features.paper_exams.models import SheetResult
                     from features.paper_exams.services import grade
-                    questions=[q for q in effective_questions(obj.run) if not q.get('annulled')]
                     all_questions=effective_questions(obj.run)
                     for result in SheetResult.objects.select_for_update().filter(sheet__run=obj.run):
-                        old={'score':str(result.score)};answers=[a for q,a in zip(all_questions,result.answers) if not q.get('annulled')]
-                        score,maximum=grade(questions,answers);result.maximum_score=maximum
+                        old={'score':str(result.score)}
+                        score,maximum=grade(all_questions,result.answers,result.open_scores);result.maximum_score=maximum
                         if result.status=='graded':result.score=score
                         result.save(update_fields=['score','maximum_score'])
                         # Binary scan data never enters the audit.

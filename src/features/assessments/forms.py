@@ -306,8 +306,9 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionImages
 
 
 class AddBankQuestionsForm(forms.Form):
+    title = forms.CharField(label='Título da nova avaliação (se não escolher uma existente)', max_length=160, required=False)
     assessment = forms.ModelChoiceField(
-        label="Atividade ou prova de destino",
+        label="Atividade ou prova de destino", required=False, empty_label="Criar avaliação com as questões selecionadas",
         queryset=Assessment.objects.none(),
     )
     questions = forms.ModelMultipleChoiceField(

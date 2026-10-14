@@ -15,7 +15,7 @@ from features.assessments.models import Assessment
 from features.users_manager.models import Classroom
 from features.users_manager.permissions import can_manage_classroom, visible_classrooms
 from .documents import answer_sheets_pdf, exam_pdf, LETTERS
-from .models import ExamRun, SheetResult, ResultReview
+from .models import ExamRun, SheetResult, ResultReview, AnswerSheet, ScanPage
 from .services import issue_run, process_upload, csv_template, grade
 from .omr import ReadError
 
@@ -25,15 +25,27 @@ def permitted_run(user, pk):
     if not can_manage_classroom(user, run.classroom):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied('Você não possui mais acesso de gestão à turma.')
+    account = getattr(user, 'institutional_account', None)
+    if account:
+        from contexts.institutions.coursework.services import teacher_disciplines
+        if not any(r['offer'].classroom_id == run.classroom_id and r['subject'].casefold() == run.subject.casefold()
+                   for r in teacher_disciplines(account)):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
     return run
 
 
 class IssueForm(forms.Form):
     classroom = forms.ModelChoiceField(label='Turma', queryset=Classroom.objects.none())
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user, *args, assessment=None, **kwargs):
         super().__init__(*args, **kwargs)
         permitted = [c.pk for c in visible_classrooms(user).select_related('organization') if can_manage_classroom(user, c)]
+        account = getattr(user, 'institutional_account', None)
+        if account and assessment:
+            from contexts.institutions.coursework.services import teacher_disciplines
+            permitted = [r['offer'].classroom_id for r in teacher_disciplines(account)
+                         if r['subject'].casefold() == assessment.subject.casefold()]
         self.fields['classroom'].queryset = Classroom.objects.filter(pk__in=permitted)
 
 
@@ -48,6 +60,12 @@ class ReviewForm(forms.Form):
     def __init__(self, result, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for i, question in enumerate(result.sheet.run.questions):
+            if question.get('type') == 'open_ended':
+                from decimal import Decimal
+                self.fields[f'open{i+1}'] = forms.DecimalField(label=f'Questão {i+1}: {question["statement"]} — nota (máximo {question["points"]})',
+                    min_value=0, max_value=Decimal(question['points']), decimal_places=2,
+                    initial=result.open_scores.get(str(i+1)))
+                continue
             self.fields[f'q{i+1}'] = forms.ChoiceField(label=f'Questão {i+1}', required=True,
                 choices=[('-', 'Em branco / inválida')] + [(l, l) for l in LETTERS[:len(question['options'])]],
                 initial=result.answers[i] if result.answers[i] in LETTERS and result.answers[i] else '-')
@@ -57,7 +75,7 @@ class ReviewForm(forms.Form):
 @require_http_methods(['GET', 'POST'])
 def index(request, assessment_pk):
     assessment = get_object_or_404(Assessment, pk=assessment_pk, owner=request.user)
-    form = IssueForm(request.user, request.POST if request.method == 'POST' else None)
+    form = IssueForm(request.user, request.POST if request.method == 'POST' else None, assessment=assessment)
     if request.method == 'POST' and form.is_valid():
         try:
             run = issue_run(assessment, form.cleaned_data['classroom'], request.user)
@@ -96,10 +114,14 @@ def download_response(data, content_type, filename):
 @require_GET
 def download(request, pk, kind):
     run = permitted_run(request.user, pk)
+    sheets = run.sheets.all()
+    if request.GET.get('student'):
+        sheet = get_object_or_404(sheets, student_id=request.GET['student'])
+        sheets = [sheet]
     if kind == 'folhas':
-        return download_response(answer_sheets_pdf(run), 'application/pdf', 'folhas-de-respostas.pdf')
+        return download_response(answer_sheets_pdf(run, sheets), 'application/pdf', 'folhas-de-respostas.pdf')
     if kind == 'provas':
-        return download_response(exam_pdf(run), 'application/pdf', 'provas.pdf')
+        return download_response(exam_pdf(run, sheets), 'application/pdf', 'provas.pdf')
     if kind == 'modelo':
         return download_response(csv_template(run), 'text/csv; charset=utf-8', 'modelo-respostas.csv')
     if kind == 'resultados':
@@ -128,12 +150,17 @@ def review(request, result_pk):
     if request.method == 'POST' and form.is_valid():
         with transaction.atomic():
             locked = SheetResult.objects.select_for_update().get(pk=result.pk)
-            answers = [form.cleaned_data[f'q{i+1}'].replace('-', '') for i in range(len(run.questions))]
+            answers = [locked.answers[i] if q.get('type') == 'open_ended' else form.cleaned_data[f'q{i+1}'].replace('-', '')
+                       for i, q in enumerate(run.questions)]
+            open_scores = {str(i+1): str(form.cleaned_data[f'open{i+1}']) for i, q in enumerate(run.questions)
+                           if q.get('type') == 'open_ended'}
             ResultReview.objects.create(result=locked, reviewer=request.user,
-                previous_answers=locked.answers, answers=answers, note=form.cleaned_data['note'])
+                previous_answers=locked.answers, answers=answers, note=form.cleaned_data['note'],
+                previous_open_scores=locked.open_scores, open_scores=open_scores)
             locked.answers = answers
+            locked.open_scores = open_scores
             from contexts.institutions.analysis.services import effective_questions
-            locked.score, locked.maximum_score = grade(effective_questions(run), locked.answers)
+            locked.score, locked.maximum_score = grade(effective_questions(run), locked.answers, open_scores)
             locked.status = 'graded'
             locked.reviewed_by = request.user
             locked.reviewed_at = timezone.now()
@@ -152,6 +179,51 @@ def evidence(request, result_pk):
         from django.http import Http404
         raise Http404
     response = HttpResponse(bytes(result.evidence), content_type='image/png')
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
+class CameraForm(forms.Form):
+    file = forms.ImageField(label='Fotografar página da prova', widget=forms.FileInput(attrs={
+        'accept': 'image/jpeg,image/png', 'capture': 'environment'}))
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def scan(request):
+    from .omr import decode_image, page_identity
+    from .services import MAX_UPLOAD
+    form = CameraForm(request.POST if request.method == 'POST' else None, request.FILES or None)
+    if request.method == 'POST' and form.is_valid():
+        upload = form.cleaned_data['file']
+        try:
+            if upload.size > MAX_UPLOAD:
+                raise ReadError('A foto deve ter até 30 MB.')
+            identity = page_identity(decode_image(upload.read(MAX_UPLOAD + 1)))
+            if not identity:
+                raise ReadError('QR code ilegível. Fotografe uma página inteira, com boa iluminação.')
+            sheet = get_object_or_404(AnswerSheet, pk=identity['sheet'], student_id=identity['student'])
+            run = permitted_run(request.user, sheet.run_id)
+            upload.seek(0)
+            batch = process_upload(run, request.user, upload)
+            if batch.errors:
+                for error in batch.errors:
+                    form.add_error(None, error)
+            else:
+                messages.success(request, f'Página identificada e anexada a {sheet.student_name}, turma {run.classroom_name}.')
+                return redirect('paper-exams:detail', pk=run.pk)
+        except ReadError as exc:
+            form.add_error(None, str(exc))
+    return render(request, 'paper_exams/scan.html', {'form': form})
+
+
+@login_required
+@require_GET
+def scan_evidence(request, page_pk):
+    page = get_object_or_404(ScanPage.objects.select_related('sheet__run'), pk=page_pk)
+    permitted_run(request.user, page.sheet.run_id)
+    response = HttpResponse(bytes(page.evidence), content_type='image/png')
     response['Cache-Control'] = 'private, no-store'
     response['X-Content-Type-Options'] = 'nosniff'
     return response

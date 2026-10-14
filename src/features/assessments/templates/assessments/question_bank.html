@@ -42,8 +42,9 @@
             <div class="form-field">
                 <label for="{{ selection_form.assessment.id_for_label }}">{{ selection_form.assessment.label }}</label>
                 {{ selection_form.assessment }}
+                {{ selection_form.title.label_tag }}{{ selection_form.title }}
             </div>
-            <button class="button button-small" type="submit">Adicionar selecionadas</button>
+            <button class="button button-small" type="submit">Montar avaliação e continuar</button>
         </div>
         <div class="question-bank-list">
             {% for question in questions %}

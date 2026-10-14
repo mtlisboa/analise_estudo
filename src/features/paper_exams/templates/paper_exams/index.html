@@ -2,10 +2,10 @@
 {% block content %}
 <section class="panel">
     <a href="{% url 'assessments:index' %}">← Avaliações</a>
-    <h1>Provas impressas</h1>
+    <h1>Provas impressas</h1><a class="button" href="{% url 'paper-exams:scan' %}">Fotografar uma prova</a>
     <p>{{ assessment }}</p>
     <p>Emita provas e folhas individuais para os alunos ativos de uma turma. As questões e o gabarito ficam preservados nesta emissão.</p>
-    <p>De 1 a 50 questões objetivas, com 2 a 5 alternativas. A correção usa a pontuação cadastrada em cada questão.</p>
+    <p>De 1 a 50 questões, objetivas ou abertas. As objetivas aceitam de 2 a 5 alternativas. A correção usa a pontuação cadastrada em cada questão.</p>
     <form method="post">{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Emitir para a turma</button></form>
 </section>
 <section class="panel">

@@ -78,7 +78,7 @@ class NotificationsConsumer(AsyncJsonWebsocketConsumer):
             "type": "notifications.snapshot",
             "unread_count": queryset.filter(read_at__isnull=True).count(),
             "items": [
-                {"id": n.pk, "title": n.title, "message": n.message,
+                {"id": n.pk, "title": n.title, "message": n.message, "target_url": n.target_url,
                  "created_at": n.created_at.isoformat(), "is_read": n.read_at is not None}
                 for n in queryset[:30]
             ],

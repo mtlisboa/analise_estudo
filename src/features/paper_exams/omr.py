@@ -101,3 +101,20 @@ def read_page(image, questions):
     if not ok:
         raise ReadError('Não foi possível guardar a imagem para revisão.')
     return identity, answers, issues, png.tobytes()
+
+
+def page_identity(image):
+    """Authenticate the entire photograph before using any claimed student ID."""
+    identities = []
+    for barcode in zxingcpp.read_barcodes(image, formats=zxingcpp.BarcodeFormat.QRCode):
+        try:
+            parts = signing.Signer(salt=SALT).unsign(barcode.text).split(':')
+            if parts[0] == '1' and len(parts) == 3:
+                identities.append({'v': 1, 'student': int(parts[1]), 'sheet': parts[2]})
+            elif parts[0] == '2' and len(parts) == 4 and 1 <= int(parts[3]) <= 200:
+                identities.append({'v': 2, 'student': int(parts[1]), 'sheet': parts[2], 'page': int(parts[3])})
+        except (signing.BadSignature, ValueError, TypeError):
+            continue
+    if len(identities) > 1:
+        raise ReadError('Fotografe apenas uma página por vez.')
+    return identities[0] if identities else None

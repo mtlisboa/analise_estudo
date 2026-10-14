@@ -1,0 +1,5 @@
+{% extends 'institutions/base.html' %}{% block workspace_content %}
+<article class="dash-card full-card"><h2>Aplicar {{ assessment.topic }}</h2><p>{{ assessment.subject }} · {{ assessment.questions.count }} questões</p>
+<p>Selecione as turmas da disciplina em que você leciona. A publicação aparece na turma e envia uma notificação aos alunos.</p>
+<form method="post" class="assessment-flow-form">{% csrf_token %}{{ form.as_p }}<button class="button" type="submit">Aplicar e notificar alunos</button></form>
+<p><a href="{% url 'assessments:question-bank' %}?assessment={{ assessment.pk }}">Selecionar mais questões</a> · <a href="{% url 'paper-exams:index' assessment.pk %}">Aplicar em papel</a></p></article>{% endblock %}

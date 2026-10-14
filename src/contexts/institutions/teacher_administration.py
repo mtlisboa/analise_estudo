@@ -2,6 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from django.http import Http404
+from django.db.models import Q
+from .coursework.models import Submission
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
@@ -28,8 +30,13 @@ def index(request, section='inicio'):
     pending = SheetResult.objects.filter(status='review', sheet__run__created_by=request.user,
         sheet__run__assessment__owner=request.user, sheet__run__classroom__in=manageable
         ).select_related('sheet__run', 'sheet__student').order_by('pk')
+    courses = teacher_disciplines(account)
+    permitted = Q(pk__in=[])
+    for row in courses:
+        permitted |= Q(publication__offer=row['offer'], publication__subject=row['subject'])
+    online_pending = Submission.objects.filter(permitted, publication__teacher=account, score__isnull=True).select_related('student', 'publication').order_by('submitted_at')
     return render(request, 'institutions/teacher_administration.html', {
         'institution': account.organization.school, 'identity': account, 'admin_section': section, 'title': titles[section],
         'classrooms': classrooms, 'manageable_ids': [c.pk for c in manageable],
-        'disciplines': teacher_disciplines(account), 'pending_reviews': pending[:10],
-        'metrics': [('Minhas turmas', classrooms.count())] + ([('Correções em revisão',pending.count())] if section in ('publicacoes', 'correcoes') else [])})
+        'disciplines': courses, 'online_pending': online_pending[:20], 'pending_reviews': pending[:10],
+        'metrics': [('Minhas turmas', classrooms.count())] + ([('Correções em revisão',pending.count()+online_pending.count())] if section in ('publicacoes', 'correcoes') else [])})

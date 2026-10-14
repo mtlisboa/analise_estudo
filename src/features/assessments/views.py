@@ -2,6 +2,7 @@ from django.core.paginator import Paginator
 from .bank_access import available_questions
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q, TextField
 from django.db.models.functions import Cast
 from django.http import HttpRequest, HttpResponse
@@ -146,7 +147,7 @@ def question_bank(request: HttpRequest) -> HttpResponse:
         {
             "questions": Paginator(questions.select_related("organization"), 25).get_page(request.GET.get("page")),
             "assessments": Assessment.objects.filter(owner=request.user),
-            "selection_form": AddBankQuestionsForm(owner=request.user),
+            "selection_form": AddBankQuestionsForm(owner=request.user, initial={"assessment": request.GET.get("assessment")}),
             "query": query,
         },
     )
@@ -265,12 +266,25 @@ def edit_bank_question_with_ai(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required
+@transaction.atomic
 def add_bank_questions(request: HttpRequest, assessment_pk: int | None = None) -> HttpResponse:
     if request.method != "POST":
         return redirect("assessments:question-bank")
     form = AddBankQuestionsForm(request.POST, owner=request.user)
     if form.is_valid():
         assessment = form.cleaned_data["assessment"]
+        if assessment is None:
+            items = list(form.cleaned_data['questions'])
+            subjects = {q.subject.strip().upper() for q in items}
+            if len(subjects) != 1 or not form.cleaned_data['title'].strip():
+                messages.error(request, 'Para criar a avaliação, informe um título e selecione questões de uma mesma disciplina.')
+                return redirect('assessments:question-bank')
+            from .models import AssessmentTechnique
+            technique = AssessmentTechnique.objects.order_by('pk').first()
+            if technique is None:
+                technique = AssessmentTechnique.objects.create(code='manual', name='Manual')
+            assessment = Assessment.objects.create(owner=request.user, subject=subjects.pop(),
+                topic=form.cleaned_data['title'].strip(), technique=technique)
         if assessment_pk is not None and assessment.pk != assessment_pk:
             return redirect("assessments:question-bank")
         added = 0
@@ -282,4 +296,9 @@ def add_bank_questions(request: HttpRequest, assessment_pk: int | None = None) -
         assessment.assembly_notes = f"{added} questão(ões) adicionada(s) manualmente do banco."
         assessment.save(update_fields=("assembly_status", "assembly_notes", "updated_at"))
         messages.success(request, f"{added} questão(ões) adicionada(s) à avaliação.")
+        account = getattr(request.user, 'institutional_account', None)
+        if account and account.role == 'TEACHER':
+            return redirect('coursework:apply', assessment_pk=assessment.pk)
+        return redirect('paper-exams:index', assessment_pk=assessment.pk)
+    messages.error(request, 'Selecione questões válidas e uma avaliação sua ou informe o título de uma nova avaliação.')
     return redirect("assessments:question-bank")

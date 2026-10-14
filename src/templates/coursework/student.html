@@ -1,5 +1,20 @@
 {% extends 'institutions/base.html' %}
 {% block workspace_content %}
 <a href="{% url 'institutions:student-discipline' publication.offer.code publication.subject %}">← {{ publication.subject }}</a>
-<article class="dash-card manager-card full-card"><h2>{{ content.kind_label }} · {{ content.title }}</h2><p>{{ publication.subject }} · {{ publication.offer.name }}</p>{% if publication.visible_due_at %}<p>Prazo / data: {{ publication.visible_due_at|date:'d/m/Y H:i' }}</p>{% endif %}{{ content.instructions|linebreaks }}<ol>{% for question in content.questions %}<li>{% include 'components/question_snapshot_content.html' %}<small>{{ question.question_type }} · {{ question.points }} pontos</small>{% if question.options %}<ul>{% for option in question.options %}<li>{{ option }}</li>{% endfor %}</ul>{% endif %}</li>{% endfor %}</ol></article>
-{% endblock %}
+<article class="dash-card manager-card full-card">
+<h2>{{ content.kind_label }} · {{ content.title }}</h2><p>{{ publication.subject }} · {{ publication.offer.name }}</p>
+{% if publication.visible_due_at %}<p>Prazo: {{ publication.visible_due_at|date:'d/m/Y H:i' }}</p>{% endif %}
+{{ content.instructions|linebreaks }}
+{% if submission %}
+<h3>Entrega registrada</h3><p>Enviada em {{ submission.submitted_at|date:'d/m/Y H:i' }}.</p>
+<p>{% if submission.score != None %}Nota: {{ submission.score }} / {{ submission.maximum_score }}{% else %}Aguardando correção do professor.{% endif %}</p>
+{{ submission.feedback|linebreaks }}
+{% elif not ready_for_submission %}<p>Esta atividade precisa ser republicada pelo professor para habilitar o envio de respostas.</p>
+{% else %}
+<form method="post" class="assessment-flow-form">{% csrf_token %}{{ form.non_field_errors }}{{ form.revision }}{{ form.revision.errors }}
+{% for question, field in answer_rows %}<fieldset><legend>Questão {{ forloop.counter }} · {{ question.points }} pontos</legend>
+{% include 'components/question_snapshot_content.html' %}{{ field.errors }}{{ field }}</fieldset>
+{% empty %}{{ form.response.as_field_group }}{% endfor %}
+<button class="button button-primary" type="submit">Enviar respostas</button>
+<p>Confira suas respostas. Depois do envio, a entrega fica registrada e não pode ser substituída.</p>
+</form>{% endif %}</article>{% endblock %}
