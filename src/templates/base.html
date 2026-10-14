@@ -65,7 +65,7 @@
         <script src="{% static 'js/notifications.js' %}?v=2" defer></script>
     {% endif %}
     <main id="main-content" class="app-main {% block main_class %}container{% endblock %}">
-        {% if teacher_sidebar %}{% include "components/layout/assessment_topbar.html" %}{% endif %}
+        {% if questionnaire_topbar %}{% include "components/layout/assessment_topbar.html" %}{% endif %}
         {% include "components/layout/messages.html" %}
         {% block content %}{% endblock %}
     </main>

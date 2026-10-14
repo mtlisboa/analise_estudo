@@ -28,7 +28,11 @@ def sidebar_navigation(request):
     evaluation_navigation = {'evaluation_links': evaluation_links,
         'evaluations_active': any(link['active'] for link in evaluation_links),
         'evaluation_section': bool(is_teacher and section in ('publicacoes', 'correcoes')),
-        'corrections_active': name == 'assessments:corrections'}
+        'corrections_active': name == 'assessments:corrections',
+        'questionnaire_topbar': bool(is_teacher and (
+            (namespace == 'assessments' and not bank_active and not sharing_active and name != 'assessments:question-preview')
+            or namespace in ('coursework', 'paper-exams')))
+    }
     if not account:
         return evaluation_navigation
     if name in ('institutions:classrooms', 'institutions:classroom'):
