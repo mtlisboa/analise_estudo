@@ -1,6 +1,6 @@
 # Organização de Avaliações
 
-A navegação lateral possui apenas Banco de questões e Questionários. Correções fica na navegação de topo, com entregas online, gabaritos para revisão e solicitações de gabaritos de aplicações físicas finalizadas ou com prazo vencido.
+A navegação lateral possui apenas Banco de questões e Questionários. Correções fica na navegação de topo da área de Questionários, com entregas online, gabaritos para revisão e solicitações de gabaritos de aplicações físicas finalizadas ou com prazo vencido.
 
 ## Banco
 
