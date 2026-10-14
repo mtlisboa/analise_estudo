@@ -3,9 +3,11 @@ from io import BytesIO
 from urllib.parse import urlencode
 
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse, Http404
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -47,15 +49,24 @@ def room_link(offer, subject):
 @login_required
 @never_cache
 @require_http_methods(['GET', 'POST'])
+@transaction.atomic
 def create(request, code, subject):
     account = institutional_identity(request.user)
     offer = get_object_or_404(Offer.objects.select_related('period'), code=code, period__organization=account.organization)
     authorize_teacher(account, offer, subject)
     form = PDFModuleForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
-        PDFModule.objects.create(offer=offer, subject=subject, teacher=account,
+        module = PDFModule.objects.create(offer=offer, subject=subject, teacher=account,
             title=form.cleaned_data['title'], document=form.cleaned_data['document'])
-        return redirect(room_link(offer, subject))
+        from features.notifications.services import notify_user
+        recipients = account.organization.institutional_accounts.filter(role='STUDENT', user__is_active=True,
+            user__classroom_memberships__classroom=offer.classroom, user__classroom_memberships__role='STUDENT',
+            user__classroom_memberships__status='ACTIVE').select_related('user').distinct()
+        for recipient in recipients:
+            notify_user(recipient=recipient.user, title='Novo módulo PDF', message=f'{subject} · {module.title}',
+                target_url=reverse('coursework:pdf-reader', args=[module.pk]))
+        messages.success(request, 'Módulo PDF publicado na turma e disponível aos alunos.')
+        return redirect(room_link(offer, subject) + '#room-activities')
     return render(request, 'coursework/pdf_module_form.html', {'form': form, 'subject': subject, 'back_url': room_link(offer, subject)})
 
 
@@ -78,9 +89,33 @@ def accessible_pdf(request, pk):
 @require_GET
 def reader(request, pk):
     module = accessible_pdf(request, pk)
+    import pypdfium2
+    try:
+        with pypdfium2.PdfDocument(bytes(module.document)) as pdf:
+            raw_page = request.GET.get('page', '1')
+            number = int(raw_page) if raw_page.isdigit() and len(raw_page) < 6 else 0
+            if not 1 <= number <= len(pdf):
+                raise Http404('Página não encontrada.')
+            total = len(pdf)
+            page = pdf[number-1]
+            try:
+                textpage = page.get_textpage()
+                try:
+                    page_text = textpage.get_text_range()[:50000]
+                finally:
+                    textpage.close()
+            finally:
+                page.close()
+    except Http404:
+        raise
+    except Exception as exc:
+        raise Http404('Não foi possível ler este PDF.') from exc
     from .views import base_data
     return render(request, 'coursework/pdf_reader.html', {**base_data(institutional_identity(request.user)), 'module': module,
-        'back_url': room_link(module.offer, module.subject) + '#room-activities'})
+        'back_url': room_link(module.offer, module.subject) + '#room-activities', 'page_number': number,
+        'total_pages': total, 'previous_page': number-1 if number > 1 else None,
+        'next_page': number+1 if number < total else None, 'page_text': page_text})
+
 
 
 @login_required
@@ -104,3 +139,40 @@ def remove(request, pk):
     target = room_link(module.offer, module.subject)
     module.delete()
     return redirect(target)
+
+
+@login_required
+@never_cache
+@require_GET
+def page_image(request, pk, page):
+    import pypdfium2
+    module = accessible_pdf(request, pk)
+    try:
+        with pypdfium2.PdfDocument(bytes(module.document)) as document:
+            if not 1 <= page <= len(document):
+                raise Http404('Página não encontrada.')
+            pdf_page = document[page-1]
+            bitmap = None
+            try:
+                width, height = pdf_page.get_size()
+                if min(width, height) <= 0:
+                    raise Http404('Dimensões inválidas.')
+                bitmap = pdf_page.render(scale=min(2, 1400/max(width, height)))
+                output = BytesIO()
+                image = bitmap.to_pil()
+                try:
+                    image.save(output, format='PNG')
+                finally:
+                    image.close()
+            finally:
+                if bitmap is not None:
+                    bitmap.close()
+                pdf_page.close()
+    except Http404:
+        raise
+    except Exception as exc:
+        raise Http404('Não foi possível exibir esta página.') from exc
+    response = HttpResponse(output.getvalue(), content_type='image/png')
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response

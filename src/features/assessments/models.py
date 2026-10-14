@@ -46,6 +46,7 @@ class Assessment(models.Model):
         ONLINE = 'online', 'Área do aluno'
         PRINTED = 'printed', 'Impressa'
 
+    kind = models.CharField('tipo', max_length=10, choices=[('ACTIVITY', 'Atividade'), ('EXAM', 'Prova')], default='ACTIVITY')
     delivery_mode = models.CharField('aplicação', max_length=10, choices=Delivery.choices, default=Delivery.ONLINE)
     due_at = models.DateTimeField('data de entrega', null=True, blank=True)
     is_visible = models.BooleanField('visível aos alunos', default=False)

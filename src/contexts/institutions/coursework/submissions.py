@@ -13,7 +13,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from .models import Publication, Submission, SubmissionReview
-from .services import student_publications
+from .services import student_publications, enable_legacy_submission
 from .views import base_data, owned_publication
 from ..views import institutional_identity
 
@@ -52,6 +52,7 @@ def student_detail(request, pk):
     obj = get_object_or_404(student_publications(account, obj.offer, obj.subject), pk=pk)
     if request.method == 'POST' and obj.public_snapshot.get('delivery_mode') == 'printed':
         raise PermissionDenied('Este questionário é respondido em papel.')
+    obj = enable_legacy_submission(obj)
     submission = Submission.objects.filter(publication=obj, student=request.user).first()
     form = AnswerForm(obj, request.POST if request.method == 'POST' else None)
     if request.method == 'POST' and not submission and form.is_valid():
@@ -76,7 +77,7 @@ def student_detail(request, pk):
                 pending = not obj.grading_snapshot
                 for i, key in enumerate(obj.grading_snapshot):
                     maximum += Decimal(key['points'])
-                    if key['type'] == 'open_ended':
+                    if key['type'] == 'open_ended' or key.get('manual'):
                         pending = True
                     elif obj.public_snapshot['questions'][i]['options'][int(answers[f'q{i+1}'])] == key['answer']:
                         score += Decimal(key['points'])
@@ -99,7 +100,7 @@ class GradeForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields['feedback'].initial = submission.feedback
         for i, key in enumerate(submission.publication.grading_snapshot):
-            if key['type'] == 'open_ended':
+            if key['type'] == 'open_ended' or key.get('manual'):
                 self.fields[f'q{i+1}'] = forms.DecimalField(label=f'Nota da questão {i+1} (máximo {key["points"]})',
                     min_value=0, max_value=Decimal(key['points']), decimal_places=2,
                     initial=submission.open_scores.get(f'q{i+1}'))
@@ -131,4 +132,5 @@ def review(request, pk, submission_pk):
         if row['question'].get('options'):
             row['answer'] = row['question']['options'][int(row['answer'])]
     return render(request, 'coursework/review.html', {**base_data(account), 'publication': publication,
-        'submission': submission, 'rows': rows, 'form': form})
+        'submission': submission, 'rows': rows, 'form': form,
+        'manual_grading': any(key.get('manual') for key in publication.grading_snapshot)})

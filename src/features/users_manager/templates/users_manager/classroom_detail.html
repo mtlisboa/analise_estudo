@@ -32,8 +32,11 @@
             <section id="room-activities" class="dash-card manager-card" aria-labelledby="room-modules-title">
                 <p class="section-kicker">{{ subject }}</p><h2 id="room-modules-title">Módulos</h2>
                 {% if subject %}<p>Abra um PDF, uma atividade ou uma prova desta disciplina.</p>
-                {% for folder in directories %}{% if folder.create_url %}<div class="manager-actions"><a class="button button-small" href="{{ folder.create_url }}">Criar questionário</a><a class="button button-small button-secondary" href="{% url 'coursework:pdf-create' selected_offer.code subject %}">Adicionar PDF</a></div>{% endif %}{% endfor %}
-                {% for item in modules %}<article class="room-file"><span class="room-file-kind">{{ item.kind }}</span><div>{% if item.url %}<a href="{{ item.url }}">{{ item.title }}{% if item.pdf %} — Ler PDF{% endif %}</a>{% else %}<strong>{{ item.title }}</strong>{% endif %}{% if item.due_at %}<small>Prazo {{ item.due_at|date:'d/m/Y H:i' }}</small>{% endif %}</div>{% if item.can_remove %}<form method="post" action="{% url 'coursework:pdf-remove' item.pdf.pk %}">{% csrf_token %}<button class="button button-small button-secondary">Remover</button></form>{% endif %}</article>{% empty %}<p class="empty-state">Nenhum módulo publicado nesta disciplina.</p>{% endfor %}
+                {% if can_publish_content %}<div class="manager-actions">
+                {% for folder in directories %}{% if folder.create_url %}<a class="button button-small" href="{{ folder.create_url }}">Adicionar atividade ou prova</a>{% endif %}{% endfor %}
+                <a class="button button-small button-secondary" href="#room-pdf-upload">Adicionar módulo PDF</a></div>
+                <details id="room-pdf-upload" class="room-module-upload"><summary>Enviar PDF para os alunos</summary><form method="post" enctype="multipart/form-data" class="assessment-flow-form" action="{% url 'coursework:pdf-create' selected_offer.code subject %}">{% csrf_token %}{{ pdf_module_form.as_p }}<button class="button" type="submit">Publicar módulo PDF</button></form></details>{% endif %}
+                {% for item in modules %}<article class="room-file"><span class="room-file-kind">{{ item.kind }}</span><div>{% if item.url %}<a href="{{ item.url }}">{{ item.title }}{% if item.pdf %} — Ler PDF{% endif %}</a>{% if item.draft %}<small>Rascunho · Ainda não disponível ao aluno</small>{% endif %}{% else %}<strong>{{ item.title }}</strong>{% endif %}{% if item.due_at %}<small>Prazo {{ item.due_at|date:'d/m/Y H:i' }}</small>{% endif %}</div>{% if item.can_remove %}<form method="post" action="{% url 'coursework:pdf-remove' item.pdf.pk %}">{% csrf_token %}<button class="button button-small button-secondary">Remover</button></form>{% endif %}</article>{% empty %}<p class="empty-state">Nenhum módulo publicado nesta disciplina.</p>{% endfor %}
                 {% elif subject_choices %}<p>Escolha a sala de uma disciplina para abrir seus módulos.</p><div class="manager-actions">{% for name in subject_choices %}<a class="button button-secondary" href="?subject={{ name|urlencode }}">{{ name }}</a>{% endfor %}</div>
                 {% else %}<p class="empty-state">Os módulos estarão disponíveis após a publicação da disciplina.</p>{% endif %}
             </section>
@@ -58,4 +61,4 @@
 </section>
 {% endblock %}
 
-{% block scripts %}<script src="{% static 'js/classroom-room.js' %}?v=4" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/classroom-room.js' %}?v=5" defer></script>{% endblock %}

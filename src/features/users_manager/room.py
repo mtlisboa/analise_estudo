@@ -1,13 +1,11 @@
 """Classroom room: published coursework, cover and a shared notice hub."""
-from urllib.parse import urlencode
-
 from django import forms
 from django.contrib import messages
 from urllib.parse import urlencode
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db import transaction, models
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -82,17 +80,24 @@ def room_data(request, classroom):
     subjects = sorted({lesson['subject'] for lesson in selected.published_schedule}) if selected else []
     identity = getattr(request.user, 'institutional_account', None)
     if identity and identity.role == 'TEACHER':
-        subjects = [s for s in subjects if any(l['subject'] == s and l.get('teacher_id') == identity.pk for l in selected.published_schedule)]
+        subjects = [s for s in subjects if any(l['subject'] == s and str(l.get('teacher_id')) == str(identity.pk) for l in selected.published_schedule)]
     requested_subject = request.GET.get('subject')
     if requested_subject and requested_subject not in subjects:
         raise Http404('Disciplina não encontrada nesta turma.')
     subject = requested_subject or (subjects[0] if len(subjects) == 1 else None)
     subject_choices = subjects
     subjects = [subject] if subject else []
-    publications = list(Publication.objects.filter(offer=selected, is_published=True, subject__in=subjects)
-        .select_related('teacher__user').order_by('-published_at', '-pk')) if selected else []
-    items = [{'publication': p, 'title': p.visible_title, 'kind': p.public_snapshot.get('kind_label', ''),
-              'due_at': p.visible_due_at, 'url': reverse('coursework:student-detail', args=[p.pk])}
+    content_teacher = bool(identity and identity.role == 'TEACHER' and selected and subject and
+        any(row.get('subject') == subject and str(row.get('teacher_id')) == str(identity.pk) for row in selected.published_schedule))
+    publication_qs = Publication.objects.filter(offer=selected, subject__in=subjects)
+    if content_teacher:
+        publication_qs = publication_qs.filter(models.Q(is_published=True) | models.Q(teacher=identity))
+    else:
+        publication_qs = publication_qs.filter(is_published=True)
+    publications = list(publication_qs.select_related('teacher__user', 'assessment').order_by('-published_at', '-pk')) if selected else []
+    items = [{'publication': p, 'title': p.visible_title if p.is_published else p.title, 'kind': p.public_snapshot.get('kind_label') or p.get_kind_display(),
+              'draft': not p.is_published,
+              'due_at': p.visible_due_at if p.is_published else p.due_at, 'url': reverse('coursework:student-detail', args=[p.pk])}
              for p in publications]
     identity = getattr(request.user, 'institutional_account', None)
     for item in items:
@@ -100,14 +105,14 @@ def room_data(request, classroom):
         if not identity or identity.role != 'STUDENT':
             item['url'] = reverse('assessments:questionnaire-edit', args=[p.assessment_id]) if identity and identity.pk == p.teacher_id else ''
     now = timezone.now()
-    available_exams = [item for item in items if item['kind'] == 'Prova'
+    available_exams = [item for item in items if not item['draft'] and item['kind'] == 'Prova'
                        and (item['due_at'] is None or item['due_at'] >= now)]
     available_exams.sort(key=lambda item: (item['due_at'] is None, item['due_at'] or now))
     manage = can_manage_classroom(request.user, classroom) and (not identity or identity.role in ('ADMIN', 'TEACHER'))
     directories = []
     for subject in subjects:
         folder = {'name': subject, 'items': [item for item in items if item['publication'].subject == subject]}
-        if identity and identity.role == 'TEACHER' and any(lesson['subject'] == subject and lesson['teacher_id'] == identity.pk
+        if identity and identity.role == 'TEACHER' and any(lesson['subject'] == subject and str(lesson.get('teacher_id')) == str(identity.pk)
                 for lesson in selected.published_schedule):
             folder['create_url'] = reverse('assessments:questionnaire-create') + '?' + urlencode({'offer': selected.pk, 'subject': subject})
         directories.append(folder)
@@ -140,7 +145,8 @@ def room_data(request, classroom):
             chat_data['chat_room_id'] = classroom.pk
             chat_data['room_teachers'] = classroom.memberships.filter(role='TEACHER',status='ACTIVE',user__is_active=True,user__institutional_account__role='TEACHER',user__institutional_account__organization=classroom.organization).select_related('user__institutional_account').exclude(user=request.user)
     from features.accounts.institutional import can_provision
-    return {**chat_data, 'can_register_student': bool(identity and can_provision(request.user, classroom.organization)), 'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
+    from contexts.institutions.coursework.pdf_modules import PDFModuleForm
+    return {**chat_data, 'can_publish_content': content_teacher, 'pdf_module_form': PDFModuleForm(), 'can_register_student': bool(identity and can_provision(request.user, classroom.organization)), 'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
         'subject': subject, 'subject_choices': subject_choices, 'modules': modules, 'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
         'tests': classroom.tests.all() if manage else classroom.tests.filter(is_published=True),
         'notices': list(notices[:3]), 'notice_count': notices.count(),

@@ -1,6 +1,13 @@
 (function () {
     var hub = document.getElementById('room-hub');
     if (!hub) return;
+    document.querySelector('a[href="#room-pdf-upload"]')?.addEventListener('click', function (event) {
+        event.preventDefault();
+        var upload = document.getElementById('room-pdf-upload');
+        upload.open = true;
+        upload.scrollIntoView({block:'center'});
+        upload.querySelector('input[type="text"]')?.focus();
+    });
     var links = Array.from(hub.querySelectorAll('a'));
     var panels = Array.from(document.querySelectorAll('[data-room-panel]'));
     hub.setAttribute('role', 'tablist');

@@ -34,7 +34,7 @@ class SubjectModulesTests(TestCase):
         reader_url = reverse('coursework:pdf-reader', args=[pdf.pk])
         self.assertContains(room, reader_url)
         reader = self.client.get(reader_url)
-        self.assertContains(reader, '<iframe')
+        self.assertContains(reader, 'data-pdf-page')
         self.assertContains(reader, 'Abrir PDF em outra guia')
         opened = self.client.get(reverse('coursework:pdf-open', args=[pdf.pk]))
         self.assertEqual(opened['X-Frame-Options'], 'SAMEORIGIN')

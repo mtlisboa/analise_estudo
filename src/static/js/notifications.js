@@ -43,7 +43,7 @@
             if (item.target_url && item.target_url.startsWith('/') && !item.target_url.startsWith('//')) {
                 const link = document.createElement('a');
                 link.href = item.target_url;
-                link.textContent = 'Abrir atividade';
+                link.textContent = 'Abrir conteúdo';
                 link.addEventListener('click', () => send({type: 'notifications.read', id: item.id}));
                 row.append(link);
             }

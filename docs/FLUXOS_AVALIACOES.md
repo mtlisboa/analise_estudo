@@ -26,7 +26,7 @@ Selecione uma ou mais ofertas publicadas da disciplina nas quais o professor tem
 
 O aluno responde alternativas e questões abertas e envia uma única entrega. Há validação de prazo, matrícula, alternativas e versão da atividade. As alternativas recebem pontuação automática; questões abertas ficam pendentes. O professor abre a entrega na publicação ou em Correções pendentes, atribui pontos e conclui. Cada revisão guarda os pontos anteriores e o responsável.
 
-O gabarito fica em um snapshot privado separado do conteúdo do aluno. Depois da primeira entrega, alterações de conteúdo/gabarito exigem uma nova avaliação/aplicação. Publicações antigas devem ser republicadas pelo professor antes do primeiro envio para registrar esse gabarito privado.
+O gabarito fica em um snapshot privado separado do conteúdo do aluno. Depois da primeira entrega, alterações de conteúdo/gabarito exigem uma nova avaliação/aplicação. Publicações antigas sem gabarito histórico registrado aceitam respostas, mas todas as questões exigem correção manual; o sistema não utiliza o gabarito atual para adivinhar a versão antiga.
 
 ## Aplicação impressa
 
@@ -39,3 +39,7 @@ Os envios por PDF, ZIP e CSV continuam disponíveis por emissão. No CSV, A–E 
 ## Implantação e validação
 
 Executar as migrações (o entrypoint já faz isso) e instalar as dependências atualizadas, incluindo pypdf. Os testes cobrem publicação, notificação, acesso pela turma, envio, correção, seleção de várias turmas, PDF misto, QR, câmera, OMR, páginas fora de ordem e controles de acesso. A validação automática usa PDFs rasterizados e imagens transformadas; fotos reais de celulares ainda precisam de validação em campo.
+
+## Inclusão de conteúdo na turma
+
+O professor com vínculo institucional e matrícula ativa de professor pode gerenciar sua turma sem depender da marcação legada de professor no vínculo organizacional. Na disciplina publicada, há controles para adicionar atividade/prova e enviar um módulo PDF diretamente pela sala. Rascunhos próprios aparecem para o professor, mas permanecem ocultos aos alunos. A criação pela turma pré-seleciona a disciplina, a turma e a visibilidade; o professor pode desmarcar a visibilidade para salvar um rascunho. PDFs aparecem tanto na turma quanto na disciplina do aluno, com leitor integrado e opção de outra guia.

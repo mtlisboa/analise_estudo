@@ -62,7 +62,7 @@
     {% endif %}
     {% if user.is_authenticated and not onboarding_mode and not public_page %}
         {% include "notifications/bell.html" %}
-        <script src="{% static 'js/notifications.js' %}?v=2" defer></script>
+        <script src="{% static 'js/notifications.js' %}?v=3" defer></script>
     {% endif %}
     <main id="main-content" class="app-main {% block main_class %}container{% endblock %}">
         {% if questionnaire_topbar %}{% include "components/layout/assessment_topbar.html" %}{% endif %}

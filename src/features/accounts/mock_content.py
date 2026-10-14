@@ -8,11 +8,11 @@ from django.utils import timezone
 from PIL import Image, ImageDraw
 
 from contexts.institutions.planning.models import Period, Offer, Student, Slot, Teacher, Requirement, Lesson
-from contexts.institutions.coursework.models import Publication
+from contexts.institutions.coursework.models import Publication, PDFModule
 from contexts.institutions.coursework.services import publish
 from contexts.institutions.communication.models import Conversation, Message
 from contexts.institutions.family.models import GuardianLink, FamilyRequest, RequestMessage, SchoolEvent
-from features.assessments.models import Assessment, AssessmentTechnique, Question, QuestionImage
+from features.assessments.models import Assessment, AssessmentTechnique, Question, QuestionImage, QuestionBankItem
 from features.notifications.models import Notification
 from features.paper_exams.models import ExamRun, ImportBatch
 from features.paper_exams.services import issue_run, save_result
@@ -120,12 +120,23 @@ def populate(organization, administrator, teacher, assistant, student, guardian)
                     image = QuestionImage(owner=planner.account.user, description='Material visual demonstrativo de apoio à questão')
                     image.file.save(f'mock-questao-{question.pk}.png', ContentFile(illustration('MATERIAL DE APOIO')))
                     question.images.add(image)
+                if question.bank_item_id is None:
+                    bank_item = QuestionBankItem.objects.create(owner=planner.account.user,
+                        title=f'[MOCK] {planner.subjects} - questão {order}', subject=planner.subjects,
+                        topic=assessment.topic, support_text=question.support_text, statement=question.statement,
+                        question_type=question.question_type, options=question.options, correct_answer=question.correct_answer,
+                        explanation=question.explanation, default_points=question.points)
+                    bank_item.images.set(question.images.all())
+                    question.bank_item = bank_item
+                    question.save(update_fields=['bank_item'])
+            PDFModule.objects.get_or_create(offer=offer, subject=planner.subjects, teacher=planner.account,
+                title='[MOCK] Material de leitura', defaults={'document':demo_pdf('Material de leitura da disciplina')})
             for kind, suffix in (('EXAM', 'Prova diagnóstica'), ('ACTIVITY', 'Lista de revisão'), ('ACTIVITY', 'Projeto em preparação')):
                 publication, created = Publication.objects.get_or_create(offer=offer, subject=planner.subjects,
                     title=f'[MOCK] {suffix}', defaults={'teacher': planner.account, 'assessment': assessment,
                         'kind': kind, 'instructions': 'Leia o material de apoio e resolva as questões. Tire dúvidas com o professor.',
                         'due_at': now+timedelta(days=7+index)})
-                if created and suffix != 'Projeto em preparação':
+                if suffix != 'Projeto em preparação' and (created or (not publication.grading_snapshot and not publication.submissions.exists())):
                     publish(planner.account, publication)
             if members.exists():
                 run = ExamRun.objects.filter(assessment=assessment, classroom=room, created_by=planner.account.user).first()
