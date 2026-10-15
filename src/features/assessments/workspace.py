@@ -1,4 +1,7 @@
 """Compact question bank and questionnaire workspace."""
+from decimal import Decimal
+import random
+
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -78,7 +81,7 @@ class QuestionnaireForm(forms.ModelForm):
 
     class Meta:
         model = Assessment
-        fields = ['topic', 'subject', 'kind', 'delivery_mode', 'due_at', 'is_visible']
+        fields = ['topic', 'subject', 'kind', 'delivery_mode', 'due_at', 'is_visible', 'shuffle_options']
         labels = {'topic':'Título do questionário','subject':'Disciplina'}
         widgets = {'due_at': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type':'datetime-local'})}
 
@@ -96,6 +99,17 @@ class QuestionnaireForm(forms.ModelForm):
             self.fields['offers'].initial = Publication.objects.filter(assessment=self.instance, teacher=self.account).values_list('offer_id', flat=True) if self.account else []
             pub = Publication.objects.filter(assessment=self.instance).first()
             self.fields['instructions'].initial = pub.instructions if pub else ''
+
+        selected_ids = (self.data.getlist('questions') if hasattr(self.data, 'getlist') else self.data.get('questions', [])) if self.is_bound else list(self.fields['questions'].initial or [])
+        selected_ids = [value for value in selected_ids if str(value).isdigit() and len(str(value)) <= 19]
+        copies = {q.bank_item_id: q for q in self.instance.questions.all()} if self.instance.pk else {}
+        for item in self.fields['questions'].queryset.filter(pk__in=selected_ids):
+            name = f'points_{item.pk}'
+            self.fields[name] = forms.DecimalField(label=f'Pontuação · {item.display_title}',
+                min_value=Decimal('0.01'), max_value=Decimal('9999.99'), decimal_places=2,
+                required=self.is_bound and name in self.data,
+                initial=copies[item.pk].points if item.pk in copies else Decimal('1'),
+                widget=forms.NumberInput(attrs={'min': '.01', 'step': '.01', 'max': '9999.99'}))
 
     def clean(self):
         data = super().clean()
@@ -146,13 +160,17 @@ def questionnaire(request, pk=None):
     if request.method=='POST' and form.is_valid():
         try:
             with transaction.atomic():
+                previous_shuffle = False
                 if pk:
                     locked = Assessment.objects.select_for_update().get(pk=pk)
+                    previous_shuffle = locked.shuffle_options
                     old_ids = set(locked.questions.exclude(bank_item=None).values_list('bank_item_id', flat=True))
                     new_ids = {q.pk for q in form.cleaned_data['questions']}
-                    if (old_ids != new_ids or locked.delivery_mode != form.cleaned_data['delivery_mode'] or locked.subject != form.cleaned_data['subject']) and (
+                    score_changed = any(q.points != form.cleaned_data.get(f'points_{q.bank_item_id}', q.points)
+                        for q in locked.questions.exclude(bank_item=None) if f'points_{q.bank_item_id}' in request.POST)
+                    if (old_ids != new_ids or score_changed or locked.shuffle_options != form.cleaned_data['shuffle_options'] or locked.delivery_mode != form.cleaned_data['delivery_mode'] or locked.subject != form.cleaned_data['subject']) and (
                             locked.examrun_set.exists() or Submission.objects.filter(publication__assessment=locked).exists()):
-                        raise ValidationError('Este questionário já foi aplicado. Crie outro para alterar questões, disciplina ou formato.')
+                        raise ValidationError('Este questionário já foi aplicado. Crie outro para alterar questões, pontuação, alternativas, disciplina ou formato.')
                 obj = form.save(commit=False)
                 if not obj.technique_id:
                     obj.technique = AssessmentTechnique.objects.order_by('pk').first()
@@ -163,7 +181,15 @@ def questionnaire(request, pk=None):
                 selected_ids = {q.pk for q in form.cleaned_data['questions']}
                 obj.questions.filter(bank_item__isnull=False).exclude(bank_item_id__in=selected_ids).delete()
                 for item in form.cleaned_data['questions']:
-                    add_bank_item_to_assessment(obj,item)
+                    existing_question = obj.questions.filter(bank_item=item).first()
+                    question = add_bank_item_to_assessment(obj,item)
+                    question.points = form.cleaned_data.get(f'points_{item.pk}') or question.points
+                    if existing_question is None or previous_shuffle != obj.shuffle_options:
+                        options = list(item.options) if existing_question is None or set(item.options) == set(question.options) else list(question.options)
+                        if obj.shuffle_options:
+                            random.Random(f'{obj.pk}:{item.pk}').shuffle(options)
+                        question.options = options if question.question_type == 'multiple_choice' else []
+                    question.save(update_fields=['points', 'options', 'updated_at'])
                 obj.assembly_status = 'ready'
                 obj.save(update_fields=['assembly_status'])
                 offers = list(form.cleaned_data['offers'])
@@ -192,6 +218,8 @@ def questionnaire(request, pk=None):
             return redirect('assessments:questionnaire-edit',pk=obj.pk)
     selected = list(form.fields['questions'].queryset.filter(pk__in=request.POST.getlist('questions'))) if request.method=='POST' else (
         list(form.fields['questions'].queryset.filter(pk__in=assessment.questions.values_list('bank_item_id',flat=True))) if pk else [])
+    for item in selected:
+        item.points_field = form[f'points_{item.pk}']
     return render(request,'assessments/questionnaire_form.html',{'form':form,'assessment':assessment,'selected_questions':selected,
         'legacy_questions':assessment.questions.filter(bank_item=None) if pk else [],
         'runs':ExamRun.objects.filter(assessment=assessment,created_by=request.user) if pk else [],'workspace_page':'questionnaires'})

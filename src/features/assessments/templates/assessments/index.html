@@ -215,6 +215,7 @@
                 <div class="form-field">
                     <label for="{{ question_form.question_type.id_for_label }}">{{ question_form.question_type.label }}</label>
                     {{ question_form.question_type }}{{ question_form.question_type.errors }}
+                    {{ question_form.alternatives.as_field_group }}{{ question_form.answer_lines.as_field_group }}
                 </div>
                 <div class="form-field">
                     <label for="{{ question_form.points.id_for_label }}">{{ question_form.points.label }}</label>

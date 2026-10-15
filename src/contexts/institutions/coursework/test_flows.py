@@ -56,7 +56,7 @@ class OnlineFlowTests(TestCase):
         self.assertContains(self.client.get(url, {'iniciar': '1'}), 'Enviar respostas')
         self.assertContains(self.client.get(reverse('institutions:classroom', args=[self.classroom.pk])+'?subject=MATEM%C3%81TICA'), url)
         self.assertEqual(self.client.post(url, {'revision':revision(obj), 'q1':'1'}).status_code, 302)
-        self.assertEqual(Submission.objects.get(publication=obj).score, Decimal('3'))
+        self.assertEqual(Submission.objects.get(publication=obj).score, Decimal('1'))
 
     def test_mixed_submission_is_idempotent_and_private_then_teacher_grades(self):
         publish(self.teacher, self.publication)

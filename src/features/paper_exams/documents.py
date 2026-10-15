@@ -105,8 +105,12 @@ def exam_pdf(run, sheets=None):
                     story.extend([picture, paragraph(block['description']), Spacer(1, 8)])
             story.append(paragraph(question['statement']))
             if question.get('type') == 'open_ended':
-                for _ in range(6):
-                    story.extend([Spacer(1, 13), paragraph('_' * 85)])
+                from reportlab.graphics.shapes import Drawing, Line
+                from reportlab.lib.units import mm
+                for _ in range(question.get('answer_lines', 6)):
+                    line = Drawing(WIDTH - 84, 7 * mm)
+                    line.add(Line(0, 0, WIDTH - 84, 0, strokeWidth=.4))
+                    story.append(line)
             else:
                 for letter, option in zip(LETTERS, question['options']):
                     story.append(paragraph(f'{letter}) {option}'))

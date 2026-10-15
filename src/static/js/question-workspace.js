@@ -5,6 +5,7 @@
     const picker = root.querySelector('#question-picker-dialog');
     const selectedRoot = root.querySelector('[data-selected-questions]');
     const selected = new Map();
+    const scores = new Map();
     selectedRoot?.querySelectorAll('[data-selected-id]').forEach(row => selected.set(row.dataset.selectedId, row.querySelector('span').textContent));
     const states = new Map();
     root.querySelectorAll('[data-infinite-list]').forEach(list => states.set(list, {cursor:list.dataset.next || null, loading:false, controller:null, initialized:!list.hasAttribute('data-picker-list')}));
@@ -13,13 +14,16 @@
     }
     function renderSelection() {
         if (!selectedRoot) return;
+        selectedRoot.querySelectorAll('[data-selected-id]').forEach(row=>{ const field=row.querySelector('input[type=number]');if(field)scores.set(row.dataset.selectedId,field.value); });
         selectedRoot.replaceChildren();
         for (const [id, title] of selected) {
             const row = document.createElement('div'); row.className = 'selected-question'; row.dataset.selectedId = id;
             const input = document.createElement('input'); input.type = 'hidden'; input.name = 'questions'; input.value = id;
             const label = document.createElement('span'); label.textContent = title;
             const button = document.createElement('button'); button.type = 'button'; button.dataset.removeQuestion = id; button.textContent = 'Remover';
-            row.append(input,label,button); selectedRoot.append(row);
+            const scoreLabel=document.createElement('label');scoreLabel.textContent='Pontuação';
+            const score=document.createElement('input');score.type='number';score.name=`points_${id}`;score.min='.01';score.max='9999.99';score.step='.01';score.required=true;score.value=scores.get(id) || '1';scoreLabel.append(score);
+            row.append(input,label,scoreLabel,button); selectedRoot.append(row);
         }
         syncChecks();
     }

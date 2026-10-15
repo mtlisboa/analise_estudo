@@ -1,0 +1,6 @@
+{% load static %}
+<div data-question-type-editor>
+<textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>{{ widget.value|default_if_none:"[]" }}</textarea>
+<div data-alternative-controls hidden><p>Adicione o texto de cada alternativa e marque a correta. A pontuação e a ordem serão definidas na avaliação.</p><div data-alternative-list></div><button type="button" data-add-alternative>Adicionar alternativa</button><p role="status" data-alternative-status></p></div>
+</div>
+<script src="{% static 'js/question-types.js' %}?v=1" defer></script>
