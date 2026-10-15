@@ -10,3 +10,8 @@
 .content-block [hidden] {display:none}
 
 .content-block input[type=radio] {display:inline-block;width:auto;margin:.5rem .5rem .5rem 0}
+
+.alternative-block .alternative-correctness {display:flex;align-items:center;gap:.35rem;margin:0}
+.alternative-block .alternative-correctness span {padding:.2rem .5rem;border:1px solid currentColor;border-radius:.4rem;font-size:.85rem}
+.alternative-block .alternative-correctness input:checked + span {color:var(--accent,#218b87);font-weight:700}
+.alternative-block-list {min-width:0}

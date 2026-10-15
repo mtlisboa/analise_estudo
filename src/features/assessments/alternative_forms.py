@@ -6,13 +6,15 @@ class AlternativesWidget(forms.Textarea):
     template_name = 'assessments/widgets/alternatives.html'
 
     def __init__(self):
-        super().__init__(attrs={'data-alternatives-input': '', 'rows': 4})
+        super().__init__(attrs={'data-alternatives-input': '', 'hidden': True})
 
 
 class QuestionTypeMixin:
     def configure_question_type(self, source=None):
         current = self.instance if self.instance.pk else source
         initial = [{'text': option, 'correct': option == current.correct_answer} for option in current.options] if current else []
+        self.fields['options'].widget = forms.HiddenInput()
+        self.fields['correct_answer'].widget = forms.HiddenInput()
         self.fields['answer_lines'].required = False
         self.fields['answer_lines'].widget.attrs.update({'min': '1', 'max': '40', 'step': '1'})
         self.fields['answer_lines'].help_text = 'Na impressão, cada linha terá 7 mm de altura.'

@@ -16,14 +16,14 @@
             {% for image in form.existing_images %}<figure class="question-image-preview"><img src="{% url 'assessments:question-image' image.pk %}" alt="{{ image.description }}"><figcaption>{{ image.description }}</figcaption></figure>{% endfor %}
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
-            {% for field in form %}
+            {% for field in form %}{% if field.is_hidden %}{{ field }}{{ field.errors }}{% else %}
             <div class="form-field">
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
                 {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
                 {{ field.errors }}
             </div>
-            {% endfor %}
+            {% endif %}{% endfor %}
             <button class="button form-submit" type="submit">Salvar no banco <span>→</span></button>
         </form>
     </div>

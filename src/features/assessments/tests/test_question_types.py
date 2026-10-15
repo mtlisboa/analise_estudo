@@ -65,3 +65,14 @@ class QuestionTypeTests(TestCase):
         self.assertEqual(run.questions[0]['answer_lines'], 12)
         with pypdfium2.PdfDocument(exam_pdf(run)) as pdf:
             self.assertGreaterEqual(len(pdf), 2)
+
+    def test_question_form_renders_iterative_editor_without_legacy_textarea(self):
+        form = QuestionBankItemForm()
+        self.assertTrue(form['options'].is_hidden)
+        self.assertTrue(form['correct_answer'].is_hidden)
+        self.assertIn('data-alternative-list', str(form['alternatives']))
+        response = self.client.get(reverse('assessments:bank-question-create'))
+        self.assertContains(response, 'Adicionar alternativa')
+        self.assertContains(response, 'Lista de alternativas')
+        self.assertNotContains(response, '<textarea name="options"')
+        self.assertNotContains(response, '<textarea name="correct_answer"')
