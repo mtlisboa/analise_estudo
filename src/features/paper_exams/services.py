@@ -60,7 +60,7 @@ def issue_run(assessment, classroom, user, student_ids=None):
         assets = {image['id']: image for image in images}
         blocks = [{**block, **assets[block['id']]} if block['type'] == 'image' else block
                   for block in question.ordered_content]
-        snapshot.append({'content_blocks': blocks, 'id': question.pk, 'version': question.updated_at.isoformat(), 'diagnostic_metadata': question.diagnostic_metadata, 'support_text': question.support_text, 'images': images,
+        snapshot.append({'answer_lines': question.answer_lines, 'content_blocks': blocks, 'id': question.pk, 'version': question.updated_at.isoformat(), 'diagnostic_metadata': question.diagnostic_metadata, 'support_text': question.support_text, 'images': images,
                          'statement': question.statement, 'type': question.question_type, 'options': options,
                          'expected_answer': question.correct_answer if question.question_type == 'open_ended' else '',
                          'correct': LETTERS[options.index(question.correct_answer)] if question.question_type == 'multiple_choice' else '', 'points': str(question.points)})

@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
@@ -51,6 +51,8 @@ class Assessment(models.Model):
     due_at = models.DateTimeField('data de entrega', null=True, blank=True)
     is_visible = models.BooleanField('visível aos alunos', default=False)
     is_finalized = models.BooleanField('aplicação física finalizada', default=False)
+
+    shuffle_options = models.BooleanField('Embaralhar alternativas nesta avaliação', default=False)
 
     class AssemblyMethod(models.TextChoices):
         MANUAL = "manual", "Montagem manual"
@@ -172,6 +174,7 @@ class QuestionBankItem(models.Model):
     )
     subject = models.CharField("matéria", max_length=120)
     topic = models.CharField("assunto", max_length=160)
+    answer_lines = models.PositiveSmallIntegerField("Número de linhas", default=6, validators=[MinValueValidator(1), MaxValueValidator(40)])
     content_blocks = models.JSONField("Parágrafos e imagens", default=list, blank=True)
     support_text = models.TextField("texto de apoio", blank=True)
     images = models.ManyToManyField("QuestionImage", blank=True, related_name="bank_items")
@@ -269,6 +272,7 @@ class Question(models.Model):
         null=True,
         blank=True,
     )
+    answer_lines = models.PositiveSmallIntegerField("Número de linhas", default=6, validators=[MinValueValidator(1), MaxValueValidator(40)])
     content_blocks = models.JSONField("Parágrafos e imagens", default=list, blank=True)
     support_text = models.TextField("texto de apoio", blank=True)
     images = models.ManyToManyField("QuestionImage", blank=True, related_name="questions")

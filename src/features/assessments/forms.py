@@ -6,6 +6,7 @@ from django.db import transaction
 from django.db.models import Max
 
 from .image_forms import QuestionImagesMixin
+from .alternative_forms import QuestionTypeMixin
 from .models import (
     Assessment,
     AssessmentTechnique,
@@ -130,7 +131,7 @@ class AssessmentForm(forms.ModelForm):
         return assessment
 
 
-class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
+class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMixin, QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,
@@ -147,6 +148,7 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, f
         model = Question
         fields = (
             "question_type",
+            "answer_lines",
             "support_text",
             "statement",
             "options",
@@ -171,6 +173,7 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, f
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.configure_images()
+        self.configure_question_type()
 
     def clean_statement(self) -> str:
         return self.cleaned_data["statement"].strip()
@@ -186,7 +189,7 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, f
         return self.cleaned_data.get("explanation", "").strip()
 
     def clean(self):
-        cleaned_data = super().clean()
+        cleaned_data = self.clean_question_type_fields(super().clean())
         question_type = cleaned_data.get("question_type")
         options = cleaned_data.get("options", [])
         correct_answer = cleaned_data.get("correct_answer", "")
@@ -213,13 +216,13 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, f
             subject=assessment.subject,
             topic=assessment.topic,
             support_text=question.support_text,
+            answer_lines=question.answer_lines,
             diagnostic_metadata=question.diagnostic_metadata,
             statement=question.statement,
             question_type=question.question_type,
             options=question.options,
             correct_answer=question.correct_answer,
             explanation=question.explanation,
-            default_points=question.points,
             creation_method=QuestionBankItem.CreationMethod.MANUAL,
         )
         self.apply_sharing(bank_item, assessment.owner)
@@ -239,7 +242,7 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, f
         return question
 
 
-class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, forms.ModelForm):
+class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMixin, QuestionImagesMixin, forms.ModelForm):
     options = forms.CharField(
         label="Alternativas",
         required=False,
@@ -253,24 +256,24 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionImages
             "subject",
             "topic",
             "question_type",
+            "answer_lines",
             "support_text",
             "statement",
             "options",
             "correct_answer",
             "explanation",
-            "default_points",
         )
         widgets = {
             "support_text": forms.Textarea(attrs={"rows": 4}),
             "statement": forms.Textarea(attrs={"rows": 4}),
             "correct_answer": forms.Textarea(attrs={"rows": 2}),
             "explanation": forms.Textarea(attrs={"rows": 3}),
-            "default_points": forms.NumberInput(attrs={"min": "0.01", "step": "0.25"}),
         }
 
     def __init__(self, *args, source=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.configure_images(source)
+        self.configure_question_type(source)
         if self.instance.pk and not self.is_bound:
             self.initial["options"] = "\n".join(self.instance.options)
 
@@ -279,7 +282,7 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionImages
         return list(dict.fromkeys(item.strip() for item in raw.splitlines() if item.strip()))
 
     def clean(self):
-        cleaned_data = super().clean()
+        cleaned_data = self.clean_question_type_fields(super().clean())
         if cleaned_data.get("question_type") == Question.Type.MULTIPLE_CHOICE:
             options = cleaned_data.get("options", [])
             answer = cleaned_data.get("correct_answer", "").strip()

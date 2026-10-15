@@ -119,3 +119,58 @@ class QuestionnaireWorkspaceTests(TestCase):
         response=self.client.get(url)
         self.assertEqual(response.context['form'].initial['subject'],'MATEMÁTICA')
         self.assertContains(response,'question-picker-dialog')
+
+    def test_question_scores_are_defined_per_assessment_and_not_in_bank(self):
+        from decimal import Decimal
+        payload = self.payload(**{f'points_{self.private.pk}': '2.50', f'points_{self.public.pk}': '7.00', 'shuffle_options': 'on'})
+        response = self.client.post(reverse('assessments:questionnaire-create'), payload)
+        self.assertEqual(response.status_code, 302)
+        assessment = Assessment.objects.get(topic='Questionário compacto')
+        self.assertTrue(assessment.shuffle_options)
+        self.assertEqual(assessment.questions.get(bank_item=self.private).points, Decimal('2.50'))
+        self.assertEqual(assessment.questions.get(bank_item=self.public).points, Decimal('7.00'))
+        self.private.refresh_from_db()
+        self.assertEqual(self.private.default_points, 1)
+        page = self.client.get(response.url)
+        self.assertContains(page, f'name="points_{self.private.pk}"')
+        publication = Publication.objects.get(assessment=assessment)
+        self.assertEqual({q['points'] for q in publication.public_snapshot['questions']}, {'2.50', '7.00'})
+        self.client.force_login(self.student.user)
+        answers = {f'q{i+1}': str(question['options'].index('Dois'))
+            for i, question in enumerate(publication.public_snapshot['questions'])}
+        answers['revision'] = revision(publication)
+        self.assertEqual(self.client.post(reverse('coursework:student-detail', args=[publication.pk]), answers).status_code, 302)
+        self.assertEqual(Submission.objects.get(publication=publication).score, Decimal('9.50'))
+        self.client.force_login(self.teacher.user)
+        old_options = assessment.questions.get(bank_item=self.private).options
+        self.private.options = ['Questão alterada', 'Outra resposta']
+        self.private.correct_answer = 'Outra resposta'
+        self.private.save()
+        edited = self.client.post(response.url, payload)
+        self.assertEqual(edited.status_code, 302, edited.context['form'].errors if edited.context else '')
+        self.assertEqual(assessment.questions.get(bank_item=self.private).options, old_options)
+
+    def test_invalid_score_is_not_saved(self):
+        payload = self.payload(**{f'points_{self.private.pk}': '0', f'points_{self.public.pk}': '2'})
+        response = self.client.post(reverse('assessments:questionnaire-create'), payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(f'points_{self.private.pk}', response.context['form'].errors)
+        self.assertFalse(Assessment.objects.filter(topic='Questionário compacto').exists())
+
+    def test_scores_and_option_order_cannot_change_after_submission(self):
+        payload = self.payload(**{f'points_{self.private.pk}': '2', f'points_{self.public.pk}': '3'})
+        response = self.client.post(reverse('assessments:questionnaire-create'), payload)
+        self.assertEqual(response.status_code, 302)
+        assessment = Assessment.objects.get(topic='Questionário compacto')
+        publication = Publication.objects.get(assessment=assessment)
+        Submission.objects.create(publication=publication, student=self.student.user, answers={}, maximum_score=5)
+        payload[f'points_{self.private.pk}'] = '9'
+        denied = self.client.post(response.url, payload)
+        self.assertContains(denied, 'já foi aplicado')
+        self.assertEqual(assessment.questions.get(bank_item=self.private).points, 2)
+        payload[f'points_{self.private.pk}'] = '2'
+        payload['shuffle_options'] = 'on'
+        denied = self.client.post(response.url, payload)
+        self.assertContains(denied, 'já foi aplicado')
+        assessment.refresh_from_db()
+        self.assertFalse(assessment.shuffle_options)
