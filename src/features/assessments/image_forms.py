@@ -86,11 +86,22 @@ class QuestionImagesMixin:
             self.add_error('image_description', 'Descreva as imagens adicionadas.')
         return cleaned
 
+    def block_image_choices(self):
+        from django.db.models import Q
+        from .bank_access import reusable_images
+        current = self.fields['remove_images'].queryset
+        owner = getattr(self, 'sharing_owner', None)
+        if owner is None:
+            return current
+        return QuestionImage.objects.filter(Q(pk__in=current.values('pk')) |
+            Q(pk__in=reusable_images(owner).values('pk'))).distinct()
+
     def validate_blocks(self, blocks):
         import re
         if not isinstance(blocks, list) or len(blocks) > 50:
             raise forms.ValidationError('Use uma lista com até 50 blocos.')
-        allowed = {image.pk: image for image in self.fields['remove_images'].queryset}
+        ids = [block['id'] for block in blocks if isinstance(block, dict) and type(block.get('id')) is int]
+        allowed = {image.pk: image for image in self.block_image_choices().filter(pk__in=ids)}
         self.block_uploads = {}
         images = 0
         for block in blocks:
@@ -115,7 +126,7 @@ class QuestionImagesMixin:
                         raise forms.ValidationError('Selecione novamente o arquivo de cada imagem nova.')
                     self.block_uploads[key] = MultipleImageField().clean(upload)[0]
                 elif not isinstance(block.get('id'), int) or block['id'] not in allowed:
-                    raise forms.ValidationError('A imagem não pertence a esta questão.')
+                    raise forms.ValidationError('Escolha uma imagem disponível no seu banco ou nas questões públicas acessíveis.')
             else:
                 raise forms.ValidationError('Escolha parágrafo ou imagem.')
         if images > MAX_IMAGES:
@@ -124,11 +135,15 @@ class QuestionImagesMixin:
     def save_images(self, item, owner):
         if 'content_blocks' in self.data:
             blocks, image_ids = [], []
-            allowed = {image.pk: image for image in self.fields['remove_images'].queryset}
+            ids = [block['id'] for block in self.cleaned_data.get('content_blocks') or [] if type(block.get('id')) is int]
+            allowed = {image.pk: image for image in self.block_image_choices().filter(pk__in=ids)}
             for block in self.cleaned_data.get('content_blocks') or []:
                 if block['type'] == 'text':
                     blocks.append({'type': 'text', 'text': block['text'].strip()})
                 else:
+                    if 'upload' not in block and block['id'] not in allowed:
+                        from django.core.exceptions import PermissionDenied
+                        raise PermissionDenied('A imagem não está mais disponível para esta questão.')
                     image = (QuestionImage.objects.create(owner=owner, file=self.block_uploads[block['upload']],
                         description=block['description'].strip()) if 'upload' in block else allowed[block['id']])
                     image_ids.append(image.pk)

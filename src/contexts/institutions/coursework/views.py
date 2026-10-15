@@ -95,7 +95,7 @@ def edit(request, pk):
         form.save()
         return redirect('coursework:edit', pk=pk)
     return render(request, 'coursework/edit.html', {**base_data(account), 'publication': obj, 'form': form,
-        'question_form': QuestionForm(), 'questions': obj.assessment.questions.prefetch_related('images')})
+        'question_form': QuestionForm(owner=request.user), 'questions': obj.assessment.questions.prefetch_related('images')})
 
 
 @login_required
@@ -103,7 +103,7 @@ def edit(request, pk):
 @require_POST
 def add_question(request, pk):
     account, obj = owned_publication(request, pk)
-    form = QuestionForm(request.POST, request.FILES)
+    form = QuestionForm(request.POST, request.FILES, owner=request.user)
     if form.is_valid():
         form.save(assessment=obj.assessment)
         return redirect('coursework:edit', pk=pk)
