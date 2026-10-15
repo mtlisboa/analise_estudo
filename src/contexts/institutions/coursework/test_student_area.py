@@ -1,4 +1,5 @@
 import io
+import uuid
 from datetime import timedelta
 from decimal import Decimal
 
@@ -68,14 +69,19 @@ class StudentAreaIntegrationTests(TestCase):
         self.client.force_login(self.student.user)
         self.assertNotContains(self.client.get(room),self.publication.title)
 
-    def test_classroom_context_defaults_to_visible_and_exam_reaches_student_submission(self):
+    def test_classroom_creation_requires_separate_application_before_student_submission(self):
         url=reverse('assessments:questionnaire-create')+f'?offer={self.offer.pk}&subject=MATEM%C3%81TICA'
         response=self.client.get(url)
-        self.assertTrue(response.context['form'].initial['is_visible'])
+        self.assertNotContains(response, 'name="is_visible"')
         data={'topic':'Prova publicada da turma','subject':'MATEMÁTICA','kind':'EXAM','delivery_mode':'online',
             'due_at':(timezone.now()+timedelta(days=7)).strftime('%Y-%m-%dT%H:%M'),'offers':[self.offer.pk],
             'questions':[self.bank.pk],'is_visible':'on'}
         self.assertEqual(self.client.post(url,data).status_code,302)
+        self.assertFalse(Publication.objects.filter(title=data['topic']).exists())
+        assessment = Assessment.objects.get(topic=data['topic'])
+        self.assertEqual(self.client.post(reverse('coursework:apply', args=[assessment.pk]), {
+            'request_token': str(uuid.uuid4()), 'offers': [self.offer.pk], 'kind': 'EXAM',
+            'title': data['topic'], 'delivery_mode': 'online', 'due_at': data['due_at']}).status_code, 302)
         obj=Publication.objects.get(title=data['topic'])
         self.assertEqual(obj.kind,'EXAM')
         self.client.force_login(self.student.user)

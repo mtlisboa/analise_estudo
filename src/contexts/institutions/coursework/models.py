@@ -16,6 +16,13 @@ class Publication(models.Model):
     title = models.CharField('título', max_length=160)
     instructions = models.TextField('instruções', max_length=3000, blank=True)
     due_at = models.DateTimeField('prazo / data da prova', null=True, blank=True)
+    request_token = models.UUIDField(null=True, blank=True)
+    delivery_mode = models.CharField('formato', max_length=10, blank=True, choices=[('online', 'Online'), ('printed', 'Física')])
+    scheduled_at = models.DateTimeField('data de aplicação', null=True, blank=True)
+    application_status = models.CharField(max_length=12, default='draft', choices=[('draft', 'Rascunho'), ('scheduled', 'Agendada'), ('completed', 'Aplicada'), ('failed', 'Falha'), ('cancelled', 'Cancelada')])
+    application_error = models.TextField(blank=True)
+    finalized_at = models.DateTimeField(null=True, blank=True)
+    exam_run = models.OneToOneField('paper_exams.ExamRun', null=True, blank=True, on_delete=models.PROTECT, related_name='publication')
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     public_snapshot = models.JSONField(default=dict, blank=True)
@@ -25,6 +32,8 @@ class Publication(models.Model):
 
     class Meta:
         ordering = ['-published_at', '-created_at', '-pk']
+        constraints = [models.UniqueConstraint(fields=['request_token', 'offer'], name='unique_application_request_offer')]
+        indexes = [models.Index(fields=['application_status', 'scheduled_at'], name='coursework_due_applications')]
 
     @property
     def visible_title(self):

@@ -21,3 +21,5 @@
 .selected-question-actions input[type=number] {max-width:7rem}
 .question-order-handle {touch-action:none;cursor:grab!important;user-select:none}
 .selected-question.is-dragging {outline:2px solid var(--primary);border-radius:.4rem;opacity:.85}
+
+.questionnaire-actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0}.questionnaire-row{flex-wrap:wrap;gap:16px}.questionnaire-actions .button{white-space:normal}

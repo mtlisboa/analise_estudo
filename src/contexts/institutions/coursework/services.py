@@ -37,18 +37,20 @@ def student_publications(account, offer, subject):
 
 
 @transaction.atomic
-def publish(account, publication):
+def publish(account, publication, *, prepare_only=False):
     publication = Publication.objects.select_for_update().select_related('offer__period', 'assessment').get(pk=publication.pk)
     authorize_teacher(account, publication.offer, publication.subject)
     if publication.teacher_id != account.pk or publication.assessment.owner_id != account.user_id:
         raise PermissionDenied
+    if publication.application_status in ('cancelled', 'failed', 'completed') or (publication.application_status == 'scheduled' and not prepare_only):
+        raise ValidationError('Use o fluxo de aplicações para esta avaliação agendada.')
     questions = list(publication.assessment.questions.prefetch_related('images'))
     if not questions and (publication.kind == 'EXAM' or not publication.instructions.strip()):
         raise ValidationError('Uma prova precisa de questões. Uma atividade precisa de questões ou instruções.')
     for question in questions:
         question.full_clean()
     # Only these public fields cross into the student-facing snapshot.
-    snapshot = {'delivery_mode': publication.assessment.delivery_mode, 'title': publication.title, 'kind_label': publication.get_kind_display(),
+    snapshot = {'delivery_mode': (publication.delivery_mode or publication.assessment.delivery_mode), 'title': publication.title, 'kind_label': publication.get_kind_display(),
         'instructions': publication.instructions, 'due_at': publication.due_at.isoformat() if publication.due_at else None,
         'questions': [{'answer_lines': q.answer_lines, 'content_blocks': q.ordered_content, 'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(), 'type': q.question_type,
                        'options': q.options, 'points': str(q.points)} for q in questions]}
@@ -60,6 +62,15 @@ def publish(account, publication):
         raise ValidationError('Esta publicação já recebeu respostas. Crie outra aplicação para alterar as questões ou o gabarito.')
     publication.grading_snapshot = grading
     publication.public_snapshot = snapshot
+    if prepare_only:
+        publication.save(update_fields=['public_snapshot', 'grading_snapshot', 'updated_at'])
+        return publication
+    return activate_publication(account, publication)
+
+
+def activate_publication(account, publication):
+    """Release the saved snapshot, without rebuilding a scheduled assessment."""
+    authorize_teacher(account, publication.offer, publication.subject)
     publication.is_published = True
     publication.published_at = timezone.now()
     publication.save(update_fields=['public_snapshot', 'grading_snapshot', 'is_published', 'published_at', 'updated_at'])

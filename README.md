@@ -598,3 +598,28 @@ A gestão não pode publicar questões pessoais nem questões de outra institui�
 Qualquer edição do autor revoga a liberação externa e exige nova decisão da gestão.
 Desmarcar o compartilhamento retira o original do banco institucional, sem apagar
 as cópias que já foram utilizadas em avaliações. Imagens seguem essas permissões.
+
+
+## Avaliações e aplicações
+
+Salvar um questionário monta a avaliação e não cria publicações nas turmas.
+Na listagem, **Editar**, **Aplicar avaliação** e **Agendar aplicação** são ações
+separadas. Cada aplicação registra turmas autorizadas, formato, instruções e
+prazo próprios; a mesma avaliação pode ser aplicada novamente. As questões,
+a ordem, a pontuação e o gabarito são copiados ao confirmar a aplicação ou o
+agendamento. Alterações posteriores na montagem não mudam esse registro.
+
+Online, a aplicação libera o conteúdo na área dos alunos e cria notificações.
+Física, as folhas são preparadas ao confirmar, e no horário marcado o professor
+recebe um aviso com acesso à impressão; os alunos recebem a publicação física,
+sem formulário de entrega online. Agendamentos pendentes podem ser cancelados
+na página de aplicações. Falhas ficam visíveis e notificam o professor.
+
+O entrypoint Docker inicia o servidor web e o agendador persistente juntos;
+se um processo parar, o contêiner encerra para permitir reinicialização.
+Fora do Docker, execute também `python src/manage.py run_application_scheduler`.
+Para execução única: `python src/manage.py run_application_scheduler --once`.
+O agendador verifica o banco a cada 15 segundos e recupera aplicações pendentes
+após reiniciar. Os horários usam o fuso configurado no Django, exibido no formulário.
+Se o serviço ficar indisponível até depois do prazo online, a aplicação falha
+em vez de publicar uma avaliação já vencida. Não é necessário haver usuário conectado.

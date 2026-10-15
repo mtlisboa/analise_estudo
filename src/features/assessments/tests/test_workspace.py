@@ -1,4 +1,5 @@
 import re
+import uuid
 from datetime import timedelta
 
 from django.test import TestCase
@@ -29,6 +30,13 @@ class QuestionnaireWorkspaceTests(TestCase):
         return {'topic':'Questionário compacto','subject':'MATEMÁTICA','questions':[self.private.pk,self.public.pk],
             'offers':[self.offer.pk],'delivery_mode':'online','due_at':(timezone.now()+timedelta(days=7)).strftime('%Y-%m-%dT%H:%M'),
             'is_visible':'on',**overrides}
+
+    def apply_assessment(self, assessment, mode='online'):
+        data = {'request_token': str(uuid.uuid4()), 'offers': [self.offer.pk], 'kind': assessment.kind,
+            'title': assessment.topic, 'delivery_mode': mode,
+            'due_at': (timezone.now() + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M')}
+        response = self.client.post(reverse('coursework:apply', args=[assessment.pk]), data)
+        self.assertEqual(response.status_code, 302, response.context['form'].errors if response.context else '')
 
     def test_two_sidebar_entries_and_bank_visibility_preview_permissions(self):
         response=self.client.get(reverse('assessments:index'))
@@ -67,6 +75,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         response=self.client.post(reverse('assessments:questionnaire-create'),self.payload())
         self.assertEqual(response.status_code,302)
         assessment=Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment)
         publication=Publication.objects.get(assessment=assessment)
         self.assertTrue(publication.is_published)
         self.assertEqual(assessment.questions.count(),2)
@@ -80,19 +89,20 @@ class QuestionnaireWorkspaceTests(TestCase):
     def test_hidden_questionnaire_and_validation(self):
         response=self.client.post(reverse('assessments:questionnaire-create'),self.payload(is_visible=''))
         self.assertEqual(response.status_code,302)
-        self.assertFalse(Publication.objects.get(assessment__topic='Questionário compacto').is_published)
+        self.assertFalse(Publication.objects.filter(assessment__topic='Questionário compacto').exists())
         self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(topic='Inválido',questions=[])).status_code,200)
         self.assertFalse(Assessment.objects.filter(topic='Inválido').exists())
-        self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(topic='Sem prazo',due_at='')).status_code,200)
-        self.assertFalse(Assessment.objects.filter(topic='Sem prazo').exists())
+        self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(topic='Sem prazo',due_at='')).status_code,302)
+        self.assertTrue(Assessment.objects.filter(topic='Sem prazo').exists())
 
     def test_printed_questionnaire_finalization_requests_missing_answer_sheets(self):
         self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(delivery_mode='printed')).status_code,302)
         assessment=Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment, 'printed')
         run=ExamRun.objects.get(assessment=assessment)
         self.assertEqual(run.sheets.count(),1)
-        self.assertContains(self.client.get(reverse('assessments:questionnaire-edit',args=[assessment.pk])), 'Finalizar aplicação física')
-        self.assertRedirects(self.client.post(reverse('assessments:questionnaire-finalize',args=[assessment.pk])),reverse('assessments:corrections'))
+        self.assertContains(self.client.get(reverse('coursework:apply',args=[assessment.pk])), 'Finalizar aplicação física')
+        self.assertRedirects(self.client.post(reverse('coursework:application-finalize',args=[Publication.objects.get(assessment=assessment).pk])),reverse('assessments:corrections'))
         response=self.client.get(reverse('assessments:corrections'))
         self.assertEqual(len(response.context['waiting']),1)
         self.assertEqual(response.context['waiting'][0]['missing'],1)
@@ -106,6 +116,7 @@ class QuestionnaireWorkspaceTests(TestCase):
     def test_issued_questions_are_preserved_and_revoked_teachers_lose_corrections(self):
         self.client.post(reverse('assessments:questionnaire-create'),self.payload(delivery_mode='printed'))
         assessment=Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment, 'printed')
         response=self.client.post(reverse('assessments:questionnaire-edit',args=[assessment.pk]),self.payload(delivery_mode='printed',questions=[self.private.pk]))
         self.assertContains(response,'já foi aplicado')
         self.assertEqual(assessment.questions.count(),2)
@@ -133,6 +144,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertEqual(self.private.default_points, 1)
         page = self.client.get(response.url)
         self.assertContains(page, f'name="points_{self.private.pk}"')
+        self.apply_assessment(assessment)
         publication = Publication.objects.get(assessment=assessment)
         self.assertEqual({q['points'] for q in publication.public_snapshot['questions']}, {'2.50', '7.00'})
         self.client.force_login(self.student.user)
@@ -162,6 +174,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         response = self.client.post(reverse('assessments:questionnaire-create'), payload)
         self.assertEqual(response.status_code, 302)
         assessment = Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment)
         publication = Publication.objects.get(assessment=assessment)
         Submission.objects.create(publication=publication, student=self.student.user, answers={}, maximum_score=5)
         payload[f'points_{self.private.pk}'] = '9'
@@ -186,6 +199,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertEqual([item.pk for item in page.context['selected_questions']], ordered)
         self.assertContains(page, 'data-picker-selected')
         self.assertContains(page, 'Públicas e privadas')
+        self.apply_assessment(obj)
         publication = Publication.objects.get(assessment=obj)
         self.assertEqual([q['statement'] for q in publication.public_snapshot['questions']],
             [self.public.statement, self.private.statement])
@@ -203,6 +217,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         response = self.client.post(reverse('assessments:questionnaire-create'), payload)
         self.assertEqual(response.status_code, 302)
         obj = Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(obj, 'printed')
         run = ExamRun.objects.get(assessment=obj)
         self.assertEqual([q['statement'] for q in run.questions], [self.public.statement, self.private.statement])
         payload['questions'] = [self.private.pk, self.public.pk]

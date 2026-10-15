@@ -15,4 +15,4 @@ fi
 echo "Loading institutional mathematics catalog..."
 python manage.py import_math_catalog
 
-exec "$@"
+exec python -m config.application_processes "$@"
