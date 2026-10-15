@@ -1,6 +1,7 @@
 """Compact question bank and questionnaire workspace."""
 from decimal import Decimal
 import random
+import json
 
 from django import forms
 from django.contrib import messages
@@ -44,7 +45,7 @@ def bank_rows(user, params):
         qs = qs.filter(subject__iexact=subject)
     query = params.get('q', '').strip()[:150]
     if query:
-        qs = qs.filter(Q(title__icontains=query) | Q(topic__icontains=query) | Q(subject__icontains=query) | Q(statement__icontains=query))
+        qs = qs.filter(Q(title__icontains=query) | Q(topic__icontains=query) | Q(subject__icontains=query) | Q(statement__icontains=query) | Q(metadata_tags__icontains=query) | Q(metadata_tags__icontains=json.dumps(query, ensure_ascii=True)[1:-1]) | Q(assessment_method__icontains=query))
     before = params.get('before', '')
     if before.isdigit():
         qs = qs.filter(pk__lt=int(before))

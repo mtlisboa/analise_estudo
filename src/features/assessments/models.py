@@ -1,4 +1,4 @@
-from .diagnostics import validate_metadata
+from .diagnostics import validate_metadata, validate_tags
 from decimal import Decimal
 
 from django.conf import settings
@@ -174,6 +174,8 @@ class QuestionBankItem(models.Model):
     )
     subject = models.CharField("matéria", max_length=120)
     topic = models.CharField("assunto", max_length=160)
+    assessment_method = models.CharField("Método avaliativo", max_length=160, blank=True)
+    metadata_tags = models.JSONField("Metadados", default=list, blank=True, validators=[validate_tags])
     answer_lines = models.PositiveSmallIntegerField("Número de linhas", default=6, validators=[MinValueValidator(1), MaxValueValidator(40)])
     content_blocks = models.JSONField("Parágrafos e imagens", default=list, blank=True)
     support_text = models.TextField("texto de apoio", blank=True)
@@ -272,6 +274,8 @@ class Question(models.Model):
         null=True,
         blank=True,
     )
+    assessment_method = models.CharField("Método avaliativo", max_length=160, blank=True)
+    metadata_tags = models.JSONField("Metadados", default=list, blank=True, validators=[validate_tags])
     answer_lines = models.PositiveSmallIntegerField("Número de linhas", default=6, validators=[MinValueValidator(1), MaxValueValidator(40)])
     content_blocks = models.JSONField("Parágrafos e imagens", default=list, blank=True)
     support_text = models.TextField("texto de apoio", blank=True)

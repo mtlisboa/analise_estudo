@@ -58,6 +58,8 @@ def _question_from_payload(owner, subject, topic, payload, *, method, source=Non
         default_points=Decimal(str(payload.get("points", "1"))),
         creation_method=method,
         source_question=source,
+        assessment_method=source.assessment_method if source else '',
+        metadata_tags=source.metadata_tags if source else [],
         ai_instructions=prompt,
     )
     item.full_clean()
@@ -131,6 +133,8 @@ def add_bank_item_to_assessment(assessment, item):
         support_text=item.support_text,
         content_blocks=item.content_blocks,
         answer_lines=item.answer_lines,
+        assessment_method=item.assessment_method,
+        metadata_tags=item.metadata_tags,
         statement=item.statement,
         question_type=item.question_type,
         options=item.options,

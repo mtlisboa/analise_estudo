@@ -156,6 +156,8 @@ def question_bank(request: HttpRequest) -> HttpResponse:
 def _question_initial(source):
     return {
         "title": source.title,
+        "assessment_method": source.assessment_method,
+        "metadata_text": "; ".join(source.metadata_tags),
         "subject": source.subject,
         "topic": source.topic,
         "question_type": source.question_type,
