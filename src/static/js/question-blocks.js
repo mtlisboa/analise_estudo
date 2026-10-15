@@ -56,26 +56,48 @@
         text.value = block.text || ''; label.append(text); row.append(label);
       } else {
         const picture = document.createElement('img'); picture.className = 'content-block-preview';
+        const sources = document.createElement('div'); sources.className = 'content-block-actions';
+        const fileLabel = document.createElement('label'); fileLabel.textContent = 'Arquivo da imagem';
+        const file = document.createElement('input'); file.type = 'file';
+        file.accept = 'image/png,image/jpeg,image/webp'; file.required = true;
+        file.name = block.upload || ('block_image_' + (window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2)));
+        const description = document.createElement('label'); description.textContent = 'Descrição da imagem';
+        const alt = document.createElement('input'); alt.type = 'text'; alt.maxLength = 300; alt.required = true;
+        alt.value = block.description || ''; description.append(alt); fileLabel.append(file);
+        function releasePreview() {
+          if (row.dataset.previewUrl) { URL.revokeObjectURL(row.dataset.previewUrl); urls.delete(row.dataset.previewUrl); delete row.dataset.previewUrl; }
+        }
+        function uploadMode() {
+          delete row.dataset.imageId; releasePreview();
+          file.disabled = alt.disabled = false; file.required = alt.required = true;
+          fileLabel.hidden = description.hidden = false;
+          picture.hidden = !file.files.length;
+          if (file.files.length) { const url = URL.createObjectURL(file.files[0]); urls.add(url); row.dataset.previewUrl = url; picture.src = url; }
+          sync();
+        }
+        function useExisting(asset) {
+          if (!row.isConnected) return;
+          releasePreview(); row.dataset.imageId = asset.id;
+          file.disabled = alt.disabled = true; file.required = alt.required = false;
+          fileLabel.hidden = description.hidden = true;
+          picture.src = asset.thumbnail || asset.url; picture.alt = asset.description || 'Imagem da questão'; picture.hidden = false;
+          sync(); status.textContent = 'Imagem selecionada da biblioteca.';
+        }
+        const uploadButton = button('Enviar arquivo', () => { uploadMode(); file.click(); });
+        const libraryButton = button('Usar imagem existente', () => {
+          if (!window.questionImageLibrary) { status.textContent = 'A biblioteca não pôde ser carregada. Recarregue a página.'; return; }
+          window.questionImageLibrary.open(useExisting);
+        });
+        sources.append(uploadButton, libraryButton); row.append(sources, fileLabel, description, picture);
+        file.addEventListener('change', () => { uploadMode(); picture.alt = alt.value || 'Nova imagem'; });
+        alt.addEventListener('input', () => { picture.alt = alt.value || 'Nova imagem'; });
+        picture.hidden = true;
         if (block.id) {
           row.dataset.imageId = block.id;
+          file.disabled = alt.disabled = true; file.required = alt.required = false;
+          fileLabel.hidden = description.hidden = true;
           picture.src = editor.dataset.imagePattern.replace('987654321', String(block.id));
-          picture.alt = block.description || 'Imagem da questão';
-          row.append(picture);
-        } else {
-          const label = document.createElement('label'); label.textContent = 'Arquivo da imagem';
-          const file = document.createElement('input'); file.type = 'file';
-          file.accept = 'image/png,image/jpeg,image/webp'; file.required = true;
-          file.name = block.upload || ('block_image_' + (window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2)));
-          file.addEventListener('change', () => {
-            if (row.dataset.previewUrl) { URL.revokeObjectURL(row.dataset.previewUrl); urls.delete(row.dataset.previewUrl); }
-            picture.hidden = !file.files.length;
-            if (file.files.length) { const url = URL.createObjectURL(file.files[0]); urls.add(url); row.dataset.previewUrl = url; picture.src = url; }
-          });
-          picture.hidden = true;
-          const description = document.createElement('label'); description.textContent = 'Descrição da imagem';
-          const alt = document.createElement('input'); alt.type = 'text'; alt.maxLength = 300; alt.required = true;
-          alt.value = block.description || ''; description.append(alt);
-          label.append(file); row.append(label, description, picture);
+          picture.alt = block.description || 'Imagem da questão'; picture.hidden = false;
         }
       }
       let drag = null;

@@ -2,7 +2,7 @@ from django.urls import path
 
 from . import views, workspace
 from .sharing_views import institutional_sharing
-from .image_views import question_image
+from .image_views import question_image, image_library
 
 app_name = "assessments"
 
@@ -14,6 +14,7 @@ urlpatterns = [
     path('questoes/<int:pk>/previa/', workspace.preview, name='question-preview'),
 
     path("questoes/compartilhamento/", institutional_sharing, name="institutional-sharing"),
+    path("questoes/imagens/biblioteca/", image_library, name="image-library"),
     path("questoes/imagens/<int:pk>/", question_image, name="question-image"),
     path("", workspace.questionnaires, name="index"),
     path("questoes/", workspace.bank, name="question-bank"),

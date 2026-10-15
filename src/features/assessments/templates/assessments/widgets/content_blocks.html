@@ -1,5 +1,5 @@
 {% load static %}
-<div data-content-block-editor data-image-pattern="{% url 'assessments:question-image' 987654321 %}">
+<div data-content-block-editor data-image-library-url="{% url 'assessments:image-library' %}" data-image-pattern="{% url 'assessments:question-image' 987654321 %}">
 <textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>{{ widget.value|default_if_none:"[]" }}</textarea>
 <div data-block-controls hidden>
 <p>Adicione parágrafos e imagens na sequência desejada. Arraste pela alça para reordenar.</p>
@@ -8,5 +8,6 @@
 <p data-block-status role="status" aria-live="polite"></p>
 </div>
 </div>
-<link rel="stylesheet" href="{% static 'css/question-blocks.css' %}?v=2">
-<script src="{% static 'js/question-blocks.js' %}?v=1" defer></script>
+<link rel="stylesheet" href="{% static 'css/question-blocks.css' %}?v=4">
+<script src="{% static 'js/question-image-library.js' %}?v=1" defer></script>
+<script src="{% static 'js/question-blocks.js' %}?v=2" defer></script>

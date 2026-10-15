@@ -15,3 +15,18 @@
 .alternative-block .alternative-correctness span {padding:.2rem .5rem;border:1px solid currentColor;border-radius:.4rem;font-size:.85rem}
 .alternative-block .alternative-correctness input:checked + span {color:var(--accent,#218b87);font-weight:700}
 .alternative-block-list {min-width:0}
+.question-image-library {width:min(960px,94vw);max-height:90dvh;padding:1.25rem;border:1px solid var(--border-color,#ccd4dc);border-radius:.8rem;background:var(--surface,#fff);color:var(--text,#222);overflow:auto}
+.question-image-library::backdrop,.question-image-enlarged::backdrop {background:rgb(0 0 0 / .6)}
+.image-library-toolbar {display:flex;flex-wrap:wrap;align-items:center;gap:.65rem;margin-bottom:.85rem}
+.image-library-toolbar h2,.image-library-toolbar label {flex:1;min-width:10rem;margin:0}
+.image-library-toolbar input {display:block;width:100%;box-sizing:border-box}
+.image-library-toolbar button,.question-image-library > button,.question-image-enlarged > button {padding:.5rem .75rem;border:1px solid currentColor;border-radius:.4rem;background:transparent;color:inherit;cursor:pointer}
+.image-library-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(180px,100%),1fr));gap:1rem}
+.image-library-card {min-width:0;border:1px solid var(--border-color,#ccd4dc);padding:.6rem;border-radius:.6rem}
+.image-library-card p {overflow-wrap:anywhere;margin:.5rem 0}
+.image-library-thumb {display:block;position:relative;isolation:isolate;overflow:hidden;width:100%;aspect-ratio:1;border:0;border-radius:.4rem;background:#26313b;padding:0;cursor:pointer}
+.image-library-thumb img {display:block;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.image-library-blur {object-fit:cover;filter:blur(14px) brightness(.7);transform:scale(1.15);z-index:0}
+.image-library-foreground {object-fit:contain;z-index:1}
+.question-image-enlarged {width:min(1100px,95vw);max-height:94dvh;border:0;border-radius:.6rem;padding:1rem;background:var(--surface,#fff);color:var(--text,#222)}
+.question-image-enlarged img {display:block;width:100%;height:75dvh;object-fit:contain;margin:.75rem 0}

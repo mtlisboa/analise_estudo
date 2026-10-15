@@ -32,3 +32,13 @@ def available_questions(user):
     return QuestionBankItem.objects.filter(is_active=True).filter(
         Q(owner=user) | (Q(organization__is_active=True) & (local | external))
     ).distinct()
+
+
+def reusable_images(user):
+    """Only images already exposed by an accessible question or the author's assessment."""
+    from .models import QuestionImage
+    if not user or not user.is_authenticated or not user.is_active:
+        return QuestionImage.objects.none()
+    return QuestionImage.objects.filter(
+        Q(bank_items__in=available_questions(user)) | Q(questions__assessment__owner=user)
+    ).distinct()
