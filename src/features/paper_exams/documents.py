@@ -90,14 +90,19 @@ def exam_pdf(run, sheets=None):
         story = []
         for index, question in enumerate(run.questions):
             story.append(paragraph(f'Questão {index + 1} - {question["points"]} pontos', 'Heading3'))
-            if question.get('support_text'):
-                story.extend([paragraph(question['support_text']), Spacer(1, 8)])
-            for asset in question.get('images', []):
-                picture = Image(BytesIO(base64.b64decode(asset['data'])))
-                scale = min((WIDTH - 84) / picture.imageWidth, 210 / picture.imageHeight, 1)
-                picture.drawWidth = picture.imageWidth * scale
-                picture.drawHeight = picture.imageHeight * scale
-                story.extend([picture, paragraph(asset['description']), Spacer(1, 8)])
+            blocks = question.get('content_blocks')
+            if blocks is None:
+                blocks = ([{'type': 'text', 'text': question['support_text']}] if question.get('support_text') else [])
+                blocks += [{'type': 'image', **asset} for asset in question.get('images', [])]
+            for block in blocks:
+                if block['type'] == 'text':
+                    story.extend([paragraph(block['text']), Spacer(1, 8)])
+                else:
+                    picture = Image(BytesIO(base64.b64decode(block['data'])))
+                    scale = min((WIDTH - 84) / picture.imageWidth, 210 / picture.imageHeight, 1)
+                    picture.drawWidth = picture.imageWidth * scale
+                    picture.drawHeight = picture.imageHeight * scale
+                    story.extend([picture, paragraph(block['description']), Spacer(1, 8)])
             story.append(paragraph(question['statement']))
             if question.get('type') == 'open_ended':
                 for _ in range(6):

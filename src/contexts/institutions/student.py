@@ -62,8 +62,10 @@ def disciplines(request, code=None, subject=None):
         if selected is None:
             raise Http404('Disciplina não encontrada nas suas matrículas.')
         from .coursework.services import student_publications
+        from .coursework.models import PDFModule
         data.update(discipline=selected, itinerary=selected['itinerary'],
-                    publications=student_publications(account, selected['offer'], subject))
+                    publications=student_publications(account, selected['offer'], subject),
+                    pdf_modules=PDFModule.objects.filter(offer=selected['offer'], subject=subject).defer('document'))
         return render(request, 'institutions/student_discipline.html', data)
     query = request.GET.get('q', '').strip()[:100]
     data.update(query=query, subjects=[row for row in subjects if query.casefold() in row['name'].casefold()])

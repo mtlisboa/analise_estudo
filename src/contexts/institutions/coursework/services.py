@@ -17,7 +17,7 @@ def teacher_disciplines(account):
         classroom__memberships__status='ACTIVE').select_related('period', 'classroom').distinct()
     rows = []
     for offer in offers:
-        names = {lesson['subject'] for lesson in offer.published_schedule if lesson['teacher_id'] == account.pk}
+        names = {lesson['subject'] for lesson in offer.published_schedule if str(lesson.get('teacher_id')) == str(account.pk)}
         rows.extend({'offer': offer, 'subject': subject} for subject in sorted(names))
     return rows
 
@@ -50,7 +50,7 @@ def publish(account, publication):
     # Only these public fields cross into the student-facing snapshot.
     snapshot = {'delivery_mode': publication.assessment.delivery_mode, 'title': publication.title, 'kind_label': publication.get_kind_display(),
         'instructions': publication.instructions, 'due_at': publication.due_at.isoformat() if publication.due_at else None,
-        'questions': [{'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(), 'type': q.question_type,
+        'questions': [{'content_blocks': q.ordered_content, 'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(), 'type': q.question_type,
                        'options': q.options, 'points': str(q.points)} for q in questions]}
     grading = [{'type': q.question_type, 'answer': q.correct_answer, 'points': str(q.points)} for q in questions]
     if publication.public_snapshot == snapshot and publication.grading_snapshot == grading:
@@ -70,4 +70,27 @@ def publish(account, publication):
         notify_user(recipient=recipient.user, title=f'{publication.get_kind_display()} publicada',
             message=f'{publication.subject} · {publication.title} · {publication.offer.name}',
             target_url=reverse('coursework:student-detail', args=[publication.pk]))
+    return publication
+
+
+@transaction.atomic
+def enable_legacy_submission(publication):
+    """Old public snapshots have no historical key. Accept answers for manual grading."""
+    from decimal import Decimal, InvalidOperation
+    publication = Publication.objects.select_for_update().get(pk=publication.pk)
+    questions = publication.public_snapshot.get('questions', [])
+    if publication.grading_snapshot or not questions:
+        return publication
+    keys = []
+    for question in questions:
+        try:
+            points = Decimal(str(question['points']))
+            if not points.is_finite() or points <= 0:
+                return publication
+        except (KeyError, InvalidOperation, ValueError):
+            return publication
+        keys.append({'type': 'multiple_choice' if question.get('options') else 'open_ended',
+            'points': str(points), 'answer': '', 'manual': True})
+    publication.grading_snapshot = keys
+    publication.save(update_fields=['grading_snapshot'])
     return publication

@@ -129,6 +129,7 @@ def add_bank_item_to_assessment(assessment, item):
         assessment=assessment,
         bank_item=item,
         support_text=item.support_text,
+        content_blocks=item.content_blocks,
         statement=item.statement,
         question_type=item.question_type,
         options=item.options,

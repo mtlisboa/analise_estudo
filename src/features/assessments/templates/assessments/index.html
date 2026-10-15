@@ -221,7 +221,7 @@
                     {{ question_form.points }}{{ question_form.points.errors }}
                 </div>
             </div>
-            {% for field in question_form %}{% if field.name == 'support_text' or field.name == 'new_images' or field.name == 'image_description' %}
+            {% for field in question_form %}{% if field.name == 'content_blocks' or field.name == 'support_text' or field.name == 'new_images' or field.name == 'image_description' %}
             <div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>
             {% endif %}{% endfor %}
             <div class="form-field">

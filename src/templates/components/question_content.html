@@ -1,5 +1,9 @@
+{% if question.content_blocks %}
+{% for block in question.content_blocks %}{% if block.type == 'text' %}<div class="question-support">{{ block.text|linebreaks }}</div>{% elif block.type == 'image' %}<figure class="question-images"><img src="{% url 'assessments:question-image' block.id %}" alt="{{ block.description }}" loading="lazy"><figcaption>{{ block.description }}</figcaption></figure>{% endif %}{% endfor %}
+{% else %}
 {% if question.support_text %}<div class="question-support">{{ question.support_text|linebreaks }}</div>{% endif %}
 <div class="question-images">
 {% for image in question.images.all %}<figure><img src="{% url 'assessments:question-image' image.pk %}" alt="{{ image.description }}" loading="lazy"><figcaption>{{ image.description }}</figcaption></figure>{% endfor %}
 </div>
+{% endif %}
 <div class="question-command">{{ question.statement|linebreaks }}</div>

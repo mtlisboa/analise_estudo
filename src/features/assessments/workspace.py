@@ -78,13 +78,14 @@ class QuestionnaireForm(forms.ModelForm):
 
     class Meta:
         model = Assessment
-        fields = ['topic', 'subject', 'delivery_mode', 'due_at', 'is_visible']
+        fields = ['topic', 'subject', 'kind', 'delivery_mode', 'due_at', 'is_visible']
         labels = {'topic':'Título do questionário','subject':'Disciplina'}
         widgets = {'due_at': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type':'datetime-local'})}
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
+        self.fields['kind'].required = False
         self.fields['due_at'].required = True
         self.fields['questions'].queryset = available_questions(user)
         self.account = account_for(user)
@@ -98,6 +99,7 @@ class QuestionnaireForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+        data['kind'] = data.get('kind') or (self.instance.kind if self.instance.pk else 'ACTIVITY')
         subject = data.get('subject','').strip().upper()
         data['subject'] = subject
         if any(item.subject.strip().upper() != subject for item in data.get('questions', [])):
@@ -132,8 +134,15 @@ def questionnaire(request, pk=None):
     if identity and identity.role != 'TEACHER':
         raise PermissionDenied('Criação de questionários exclusiva do professor.')
     assessment = get_object_or_404(Assessment, pk=pk, owner=request.user) if pk else Assessment(owner=request.user)
-    form = QuestionnaireForm(request.user, request.POST if request.method=='POST' else None, instance=assessment,
-        initial={'subject': request.GET.get('subject',''), 'offers':[request.GET['offer']] if request.GET.get('offer','').isdigit() else []})
+    initial = {'subject': request.GET.get('subject','')}
+    account = account_for(request.user)
+    context_offer = request.GET.get('offer','')
+    if not pk and account and context_offer.isdigit():
+        rows = [r for r in teacher_disciplines(account) if r['offer'].pk == int(context_offer)
+            and r['subject'].casefold() == initial['subject'].casefold()]
+        if rows:
+            initial.update(subject=rows[0]['subject'], offers=[int(context_offer)], is_visible=True)
+    form = QuestionnaireForm(request.user, request.POST if request.method=='POST' else None, instance=assessment, initial=initial)
     if request.method=='POST' and form.is_valid():
         try:
             with transaction.atomic():
@@ -167,7 +176,7 @@ def questionnaire(request, pk=None):
                         pub.title = obj.topic
                         pub.instructions = form.cleaned_data['instructions']
                         pub.due_at = obj.due_at
-                        pub.kind = 'ACTIVITY'
+                        pub.kind = obj.kind
                         pub.save()
                         if obj.is_visible:
                             publish(form.account,pub)

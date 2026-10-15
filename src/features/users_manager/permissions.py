@@ -80,9 +80,11 @@ def can_view_classroom(user, classroom: Classroom) -> bool:
 def can_manage_classroom(user, classroom: Classroom) -> bool:
     if can_manage_organization(user, classroom.organization):
         return True
-    return has_teacher_role(
-        user, classroom.organization
-    ) and ClassroomMembership.objects.filter(
+    from .models import InstitutionalAccount
+    account = InstitutionalAccount.objects.filter(user=user).first()
+    teacher = (user.is_active and account.role == 'TEACHER' and account.organization_id == classroom.organization_id
+        and classroom.organization.is_active) if account else has_teacher_role(user, classroom.organization)
+    return teacher and ClassroomMembership.objects.filter(
         classroom=classroom,
         user=user,
         role=ClassroomMembership.Role.TEACHER,

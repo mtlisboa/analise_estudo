@@ -56,8 +56,11 @@ def issue_run(assessment, classroom, user, student_ids=None):
             image_bytes += len(content)
             if len(content) > 2 * 1024 * 1024 or image_bytes > 30 * 1024 * 1024:
                 raise ValidationError('As imagens da prova excedem o limite de 30 MB. Reduza as imagens antes de emitir.')
-            images.append({'data': base64.b64encode(content).decode('ascii'), 'description': image.description})
-        snapshot.append({'id': question.pk, 'version': question.updated_at.isoformat(), 'diagnostic_metadata': question.diagnostic_metadata, 'support_text': question.support_text, 'images': images,
+            images.append({'id': image.pk, 'data': base64.b64encode(content).decode('ascii'), 'description': image.description})
+        assets = {image['id']: image for image in images}
+        blocks = [{**block, **assets[block['id']]} if block['type'] == 'image' else block
+                  for block in question.ordered_content]
+        snapshot.append({'content_blocks': blocks, 'id': question.pk, 'version': question.updated_at.isoformat(), 'diagnostic_metadata': question.diagnostic_metadata, 'support_text': question.support_text, 'images': images,
                          'statement': question.statement, 'type': question.question_type, 'options': options,
                          'expected_answer': question.correct_answer if question.question_type == 'open_ended' else '',
                          'correct': LETTERS[options.index(question.correct_answer)] if question.question_type == 'multiple_choice' else '', 'points': str(question.points)})

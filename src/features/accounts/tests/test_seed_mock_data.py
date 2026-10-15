@@ -126,7 +126,7 @@ class SeedMockDataCommandTests(TestCase):
         )
         self.assertEqual(Assessment.objects.filter(owner=teacher).count(), 8)
         self.assertEqual(Question.objects.filter(assessment__owner=teacher).count(), 19)
-        self.assertEqual(QuestionBankItem.objects.filter(owner=teacher).count(), 14)
+        self.assertEqual(QuestionBankItem.objects.filter(owner=teacher).count(), 19)
         self.assertEqual(SavedAnalysis.objects.filter(created_by=teacher).count(), 6)
         self.assertEqual(EducationalRelationship.objects.count(), 4)
         self.assertEqual(School.objects.count(), 1)
