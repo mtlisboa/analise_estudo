@@ -174,3 +174,38 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertContains(denied, 'já foi aplicado')
         assessment.refresh_from_db()
         self.assertFalse(assessment.shuffle_options)
+
+    def test_modal_question_order_is_saved_reopened_and_used_in_publication(self):
+        ordered = [self.public.pk, self.private.pk]
+        payload = self.payload(questions=ordered)
+        response = self.client.post(reverse('assessments:questionnaire-create'), payload)
+        self.assertEqual(response.status_code, 302)
+        obj = Assessment.objects.get(topic='Questionário compacto')
+        self.assertEqual(list(obj.questions.values_list('bank_item_id', flat=True)), ordered)
+        page = self.client.get(response.url)
+        self.assertEqual([item.pk for item in page.context['selected_questions']], ordered)
+        self.assertContains(page, 'data-picker-selected')
+        self.assertContains(page, 'Públicas e privadas')
+        publication = Publication.objects.get(assessment=obj)
+        self.assertEqual([q['statement'] for q in publication.public_snapshot['questions']],
+            [self.public.statement, self.private.statement])
+        payload['questions'] = list(reversed(ordered))
+        self.assertEqual(self.client.post(response.url, payload).status_code, 302)
+        self.assertEqual(list(obj.questions.values_list('bank_item_id', flat=True)), list(reversed(ordered)))
+        self.assertEqual(list(obj.questions.values_list('order', flat=True)), [1, 2])
+
+    def test_duplicate_selection_is_rejected_and_applied_order_is_immutable(self):
+        duplicate = self.client.post(reverse('assessments:questionnaire-create'), self.payload(questions=[self.private.pk, self.private.pk]))
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertContains(duplicate, 'cada questão apenas uma vez')
+        self.assertFalse(Assessment.objects.filter(topic='Questionário compacto').exists())
+        payload = self.payload(questions=[self.public.pk, self.private.pk], delivery_mode='printed')
+        response = self.client.post(reverse('assessments:questionnaire-create'), payload)
+        self.assertEqual(response.status_code, 302)
+        obj = Assessment.objects.get(topic='Questionário compacto')
+        run = ExamRun.objects.get(assessment=obj)
+        self.assertEqual([q['statement'] for q in run.questions], [self.public.statement, self.private.statement])
+        payload['questions'] = [self.private.pk, self.public.pk]
+        denied = self.client.post(response.url, payload)
+        self.assertContains(denied, 'já foi aplicado')
+        self.assertEqual(list(obj.questions.values_list('bank_item_id', flat=True)), [self.public.pk, self.private.pk])

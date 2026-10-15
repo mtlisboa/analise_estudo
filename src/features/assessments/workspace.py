@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -102,7 +102,8 @@ class QuestionnaireForm(forms.ModelForm):
             self.fields['instructions'].initial = pub.instructions if pub else ''
 
         selected_ids = (self.data.getlist('questions') if hasattr(self.data, 'getlist') else self.data.get('questions', [])) if self.is_bound else list(self.fields['questions'].initial or [])
-        selected_ids = [value for value in selected_ids if str(value).isdigit() and len(str(value)) <= 19]
+        selected_ids = [int(value) for value in selected_ids if str(value).isdigit() and len(str(value)) <= 19]
+        self.selection_ids = selected_ids
         copies = {q.bank_item_id: q for q in self.instance.questions.all()} if self.instance.pk else {}
         for item in self.fields['questions'].queryset.filter(pk__in=selected_ids):
             name = f'points_{item.pk}'
@@ -114,6 +115,10 @@ class QuestionnaireForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+        selected_items = {item.pk: item for item in data.get('questions', [])}
+        if len(self.selection_ids) != len(set(self.selection_ids)):
+            self.add_error('questions', 'Selecione cada questão apenas uma vez.')
+        data['ordered_questions'] = [selected_items[pk] for pk in self.selection_ids if pk in selected_items]
         data['kind'] = data.get('kind') or (self.instance.kind if self.instance.pk else 'ACTIVITY')
         subject = data.get('subject','').strip().upper()
         data['subject'] = subject
@@ -162,16 +167,19 @@ def questionnaire(request, pk=None):
         try:
             with transaction.atomic():
                 previous_shuffle = False
+                applied = False
                 if pk:
                     locked = Assessment.objects.select_for_update().get(pk=pk)
                     previous_shuffle = locked.shuffle_options
-                    old_ids = set(locked.questions.exclude(bank_item=None).values_list('bank_item_id', flat=True))
+                    old_order = list(locked.questions.exclude(bank_item=None).values_list('bank_item_id', flat=True))
+                    old_ids = set(old_order)
+                    order_changed = old_order != [q.pk for q in form.cleaned_data['ordered_questions']]
+                    applied = locked.examrun_set.exists() or Submission.objects.filter(publication__assessment=locked).exists()
                     new_ids = {q.pk for q in form.cleaned_data['questions']}
                     score_changed = any(q.points != form.cleaned_data.get(f'points_{q.bank_item_id}', q.points)
                         for q in locked.questions.exclude(bank_item=None) if f'points_{q.bank_item_id}' in request.POST)
-                    if (old_ids != new_ids or score_changed or locked.shuffle_options != form.cleaned_data['shuffle_options'] or locked.delivery_mode != form.cleaned_data['delivery_mode'] or locked.subject != form.cleaned_data['subject']) and (
-                            locked.examrun_set.exists() or Submission.objects.filter(publication__assessment=locked).exists()):
-                        raise ValidationError('Este questionário já foi aplicado. Crie outro para alterar questões, pontuação, alternativas, disciplina ou formato.')
+                    if (old_ids != new_ids or order_changed or score_changed or locked.shuffle_options != form.cleaned_data['shuffle_options'] or locked.delivery_mode != form.cleaned_data['delivery_mode'] or locked.subject != form.cleaned_data['subject']) and applied:
+                        raise ValidationError('Este questionário já foi aplicado. Crie outro para alterar questões, ordem, pontuação, alternativas, disciplina ou formato.')
                 obj = form.save(commit=False)
                 if not obj.technique_id:
                     obj.technique = AssessmentTechnique.objects.order_by('pk').first()
@@ -181,7 +189,12 @@ def questionnaire(request, pk=None):
                 obj.save()
                 selected_ids = {q.pk for q in form.cleaned_data['questions']}
                 obj.questions.filter(bank_item__isnull=False).exclude(bank_item_id__in=selected_ids).delete()
-                for item in form.cleaned_data['questions']:
+                if not applied:
+                    last_order = obj.questions.aggregate(value=Max('order'))['value'] or 0
+                    offset = last_order + len(form.cleaned_data['ordered_questions']) + obj.questions.filter(bank_item=None).count() + 1
+                    # Park rows outside the final range before swapping unique positions.
+                    obj.questions.update(order=F('order') + offset)
+                for position, item in enumerate(form.cleaned_data['ordered_questions'], 1):
                     existing_question = obj.questions.filter(bank_item=item).first()
                     question = add_bank_item_to_assessment(obj,item)
                     question.points = form.cleaned_data.get(f'points_{item.pk}') or question.points
@@ -190,7 +203,13 @@ def questionnaire(request, pk=None):
                         if obj.shuffle_options:
                             random.Random(f'{obj.pk}:{item.pk}').shuffle(options)
                         question.options = options if question.question_type == 'multiple_choice' else []
-                    question.save(update_fields=['points', 'options', 'updated_at'])
+                    if not applied:
+                        question.order = position
+                    question.save(update_fields=['points', 'options', 'order', 'updated_at'])
+                if not applied:
+                    for position, legacy in enumerate(obj.questions.filter(bank_item=None), len(form.cleaned_data['ordered_questions']) + 1):
+                        legacy.order = position
+                        legacy.save(update_fields=['order'])
                 obj.assembly_status = 'ready'
                 obj.save(update_fields=['assembly_status'])
                 offers = list(form.cleaned_data['offers'])
@@ -217,8 +236,8 @@ def questionnaire(request, pk=None):
         else:
             messages.success(request,'Questionário salvo. A visibilidade foi aplicada às turmas selecionadas.')
             return redirect('assessments:questionnaire-edit',pk=obj.pk)
-    selected = list(form.fields['questions'].queryset.filter(pk__in=request.POST.getlist('questions'))) if request.method=='POST' else (
-        list(form.fields['questions'].queryset.filter(pk__in=assessment.questions.values_list('bank_item_id',flat=True))) if pk else [])
+    available_selected = {item.pk: item for item in form.fields['questions'].queryset.filter(pk__in=form.selection_ids)}
+    selected = [available_selected[pk] for pk in dict.fromkeys(form.selection_ids) if pk in available_selected]
     for item in selected:
         item.points_field = form[f'points_{item.pk}']
     return render(request,'assessments/questionnaire_form.html',{'form':form,'assessment':assessment,'selected_questions':selected,

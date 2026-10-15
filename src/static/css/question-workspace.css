@@ -12,3 +12,12 @@
 
 .settings-field label { display:block;margin-bottom:10px; }
 @media(max-width:600px) { .questionnaire-settings { grid-template-columns:1fr; } }
+.picker-selection {padding:1rem;margin:1rem 0;border:1px solid var(--border);border-radius:.7rem;background:var(--bg-soft)}
+.picker-selection h3 {margin:0 0 .5rem}
+.selected-question {flex-wrap:wrap;min-width:0}
+.selected-question > span {flex:1;min-width:8rem}
+.selected-question-actions {display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.selected-question-actions label {max-width:7rem}
+.selected-question-actions input[type=number] {max-width:7rem}
+.question-order-handle {touch-action:none;cursor:grab!important;user-select:none}
+.selected-question.is-dragging {outline:2px solid var(--primary);border-radius:.4rem;opacity:.85}
