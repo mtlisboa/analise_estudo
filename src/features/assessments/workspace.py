@@ -79,9 +79,9 @@ class QuestionnaireForm(forms.ModelForm):
 
     class Meta:
         model = Assessment
-        fields = ['topic', 'subject', 'kind', 'shuffle_options']
-        labels = {'topic':'Título do questionário','subject':'Disciplina'}
-        widgets = {'due_at': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type':'datetime-local'})}
+        fields = ['topic', 'subject', 'content_topic', 'kind', 'description', 'instructions', 'shuffle_options']
+        labels = {'topic':'Título do questionário','subject':'Disciplina', 'content_topic': 'Assunto', 'kind': 'Tipo'}
+        widgets = {'description': forms.Textarea(attrs={'rows': 4}), 'instructions': forms.Textarea(attrs={'rows': 4})}
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)

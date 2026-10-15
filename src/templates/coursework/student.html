@@ -4,6 +4,7 @@
 <article class="dash-card manager-card full-card">
 <h2>{{ content.kind_label }} · {{ content.title }}</h2><p>{{ publication.subject }} · {{ publication.offer.name }}</p>
 {% if publication.visible_due_at %}<p>Prazo: {{ publication.visible_due_at|date:'d/m/Y H:i' }}</p>{% endif %}
+{% if content.content_topic %}<p><strong>Assunto:</strong> {{ content.content_topic }}</p>{% endif %}{{ content.description|linebreaks }}
 {{ content.instructions|linebreaks }}
 {% if content.delivery_mode == 'printed' %}<p>Questionário impresso. Responda na prova entregue pelo professor; a correção será registrada após o envio do gabarito.</p>
 {% elif submission %}

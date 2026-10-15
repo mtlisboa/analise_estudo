@@ -42,7 +42,7 @@ class OnlineFlowTests(TestCase):
         assessment = Assessment.objects.get(topic='Prova do banco')
         self.assertRedirects(response, reverse('coursework:apply', args=[assessment.pk]))
         url = reverse('coursework:apply', args=[assessment.pk])
-        payload = {'request_token': str(uuid.uuid4()), 'delivery_mode': 'online', 'due_at': (timezone.now()+timedelta(days=2)).isoformat(), 'offers':[self.offer.pk], 'kind':'EXAM', 'title':'Prova do banco'}
+        payload = {'request_token': str(uuid.uuid4()), 'is_visible': 'on', 'delivery_mode': 'online', 'due_at': (timezone.now()+timedelta(days=2)).isoformat(), 'offers':[self.offer.pk], 'kind':'EXAM', 'title':'Prova do banco'}
         self.assertRedirects(self.client.post(url, payload), url)
         self.client.post(url, payload)
         obj = Publication.objects.get(assessment=assessment)
@@ -103,7 +103,7 @@ class OnlineFlowTests(TestCase):
         offer = Offer.objects.create(period=self.period, classroom=room, name='B', grade='1', shift='MORNING', capacity=30,
             published_schedule=self.offer.published_schedule)
         url = reverse('coursework:apply', args=[self.assessment.pk])
-        data = {'request_token': str(uuid.uuid4()), 'delivery_mode': 'online', 'due_at': (timezone.now()+timedelta(days=2)).isoformat(), 'offers':[self.offer.pk, offer.pk], 'kind':'EXAM', 'title':'Duas salas'}
+        data = {'request_token': str(uuid.uuid4()), 'is_visible': 'on', 'delivery_mode': 'online', 'due_at': (timezone.now()+timedelta(days=2)).isoformat(), 'offers':[self.offer.pk, offer.pk], 'kind':'EXAM', 'title':'Duas salas'}
         self.assertEqual(self.client.post(url,data).status_code, 302)
         self.assertEqual(Publication.objects.filter(assessment=self.assessment, is_published=True).count(), 2)
         ClassroomMembership.objects.filter(classroom=room, user=self.teacher.user).delete()

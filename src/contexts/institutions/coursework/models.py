@@ -23,6 +23,7 @@ class Publication(models.Model):
     application_error = models.TextField(blank=True)
     finalized_at = models.DateTimeField(null=True, blank=True)
     exam_run = models.OneToOneField('paper_exams.ExamRun', null=True, blank=True, on_delete=models.PROTECT, related_name='publication')
+    release_visible = models.BooleanField('disponibilizar aos alunos', default=True)
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     public_snapshot = models.JSONField(default=dict, blank=True)

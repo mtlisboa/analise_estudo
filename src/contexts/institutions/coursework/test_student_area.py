@@ -80,7 +80,7 @@ class StudentAreaIntegrationTests(TestCase):
         self.assertFalse(Publication.objects.filter(title=data['topic']).exists())
         assessment = Assessment.objects.get(topic=data['topic'])
         self.assertEqual(self.client.post(reverse('coursework:apply', args=[assessment.pk]), {
-            'request_token': str(uuid.uuid4()), 'offers': [self.offer.pk], 'kind': 'EXAM',
+            'request_token': str(uuid.uuid4()), 'is_visible': 'on', 'offers': [self.offer.pk], 'kind': 'EXAM',
             'title': data['topic'], 'delivery_mode': 'online', 'due_at': data['due_at']}).status_code, 302)
         obj=Publication.objects.get(title=data['topic'])
         self.assertEqual(obj.kind,'EXAM')

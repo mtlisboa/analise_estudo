@@ -32,7 +32,7 @@ class QuestionnaireWorkspaceTests(TestCase):
             'is_visible':'on',**overrides}
 
     def apply_assessment(self, assessment, mode='online'):
-        data = {'request_token': str(uuid.uuid4()), 'offers': [self.offer.pk], 'kind': assessment.kind,
+        data = {'request_token': str(uuid.uuid4()), 'is_visible': 'on', 'offers': [self.offer.pk], 'kind': assessment.kind,
             'title': assessment.topic, 'delivery_mode': mode,
             'due_at': (timezone.now() + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M')}
         response = self.client.post(reverse('coursework:apply', args=[assessment.pk]), data)
@@ -224,3 +224,17 @@ class QuestionnaireWorkspaceTests(TestCase):
         denied = self.client.post(response.url, payload)
         self.assertContains(denied, 'já foi aplicado')
         self.assertEqual(list(obj.questions.values_list('bank_item_id', flat=True)), [self.public.pk, self.private.pk])
+
+    def test_creation_saves_title_subject_topic_type_description_and_instructions(self):
+        data = self.payload(topic='Título da avaliação', content_topic='Equivalência de frações',
+            kind='EXAM', description='Revisão de frações do semestre.', instructions='Leia cada comando com atenção.')
+        response = self.client.post(reverse('assessments:questionnaire-create'), data)
+        self.assertEqual(response.status_code, 302)
+        obj = Assessment.objects.get(topic=data['topic'])
+        for name in ('topic', 'subject', 'content_topic', 'kind', 'description', 'instructions'):
+            self.assertEqual(getattr(obj, name), data[name])
+        self.assertFalse(Publication.objects.filter(assessment=obj).exists())
+        page = self.client.get(response.url)
+        self.assertContains(page, 'Equivalência de frações')
+        self.assertContains(page, 'Revisão de frações do semestre.')
+        self.assertContains(page, 'Leia cada comando com atenção.')

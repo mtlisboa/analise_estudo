@@ -24,7 +24,7 @@ class AssessmentApplicationTests(TestCase):
         self.client.force_login(self.teacher.user)
 
     def payload(self, **changes):
-        return {'request_token': str(uuid.uuid4()), 'offers': [self.offer.pk], 'kind': 'EXAM',
+        return {'request_token': str(uuid.uuid4()), 'is_visible': 'on', 'offers': [self.offer.pk], 'kind': 'EXAM',
             'title': 'Aplicação independente', 'delivery_mode': 'online',
             'scheduled_at': (timezone.now()+timedelta(hours=1)).isoformat(),
             'due_at': (timezone.now()+timedelta(days=1)).isoformat(), **changes}
@@ -165,3 +165,87 @@ class AssessmentApplicationTests(TestCase):
         self.assertEqual([item['run'].pk for item in waiting], [done.exam_run_id])
         pending.refresh_from_db()
         self.assertIsNone(pending.finalized_at)
+
+    def test_application_starts_with_kind_and_prefills_instructions(self):
+        self.assessment.instructions = 'Instruções originais da montagem'
+        self.assessment.save()
+        page = self.client.get(reverse('coursework:apply', args=[self.assessment.pk]))
+        self.assertEqual(page.context['form']['instructions'].value(), self.assessment.instructions)
+        body = page.content.decode()
+        self.assertLess(body.index('name="kind"'), body.index('name="offers"'))
+        self.assertContains(page, 'Física')
+        self.assertContains(page, 'Virtual')
+        self.assertContains(page, 'Aberta até')
+        self.assertContains(page, 'data-virtual-settings')
+
+    def test_hidden_virtual_application_can_be_released_once_with_saved_instructions(self):
+        self.assessment.instructions = 'Instrução original'
+        self.assessment.description = 'Descrição da montagem'
+        self.assessment.content_topic = 'Frações equivalentes'
+        self.assessment.save()
+        data = self.payload(is_visible='', instructions='Instrução editada nesta aplicação', kind='ACTIVITY')
+        url = reverse('coursework:apply', args=[self.assessment.pk])
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        obj = Publication.objects.get(request_token=data['request_token'])
+        self.assertFalse(obj.is_published)
+        self.assertFalse(Notification.objects.exists())
+        self.assertEqual(obj.kind, 'ACTIVITY')
+        self.assertEqual(obj.public_snapshot['instructions'], data['instructions'])
+        self.assessment.refresh_from_db()
+        self.assertEqual(self.assessment.instructions, 'Instrução original')
+        self.client.force_login(self.student.user)
+        student_url = reverse('coursework:student-detail', args=[obj.pk])
+        self.assertEqual(self.client.get(student_url).status_code, 404)
+        release_url = reverse('coursework:application-make-visible', args=[obj.pk])
+        self.assertEqual(self.client.post(release_url).status_code, 403)
+        self.client.force_login(self.teacher.user)
+        self.question.statement = 'Texto da questão alterado após a configuração'
+        self.question.save()
+        self.client.post(release_url)
+        self.client.post(release_url)
+        obj.refresh_from_db()
+        self.assertTrue(obj.is_published)
+        self.assertNotEqual(obj.public_snapshot['questions'][0]['statement'], self.question.statement)
+        self.assertEqual(Notification.objects.filter(recipient=self.student.user).count(), 1)
+        self.client.force_login(self.student.user)
+        page = self.client.get(student_url)
+        for text in ('Instrução editada nesta aplicação', 'Descrição da montagem', 'Frações equivalentes'):
+            self.assertContains(page, text)
+
+    def test_hidden_virtual_application_cannot_be_released_after_deadline(self):
+        data = self.payload(is_visible='')
+        self.client.post(reverse('coursework:apply', args=[self.assessment.pk]), data)
+        obj = Publication.objects.get(request_token=data['request_token'])
+        Publication.objects.filter(pk=obj.pk).update(due_at=timezone.now()-timedelta(seconds=1))
+        self.client.post(reverse('coursework:application-make-visible', args=[obj.pk]))
+        obj.refresh_from_db()
+        self.assertFalse(obj.is_published)
+        self.assertFalse(obj.release_visible)
+        self.assertEqual(obj.application_status, 'completed')
+        self.assertFalse(Notification.objects.exists())
+
+    def test_physical_does_not_require_virtual_deadline_and_prints_application_instructions(self):
+        from io import BytesIO
+        from pypdf import PdfReader
+        from features.paper_exams.documents import exam_pdf
+        obj = self.schedule(delivery_mode='printed', due_at='', is_visible='', instructions='Use caneta azul.')
+        self.assertIsNone(obj.due_at)
+        self.assertTrue(obj.release_visible)
+        self.assertEqual(obj.exam_run.context['instructions'], 'Use caneta azul.')
+        pages = PdfReader(BytesIO(exam_pdf(obj.exam_run))).pages
+        self.assertIn('Use caneta azul.', '\n'.join(page.extract_text() for page in pages))
+
+    def test_schedule_respects_hidden_virtual_configuration(self):
+        obj = self.schedule(is_visible='')
+        self.make_due(obj)
+        self.assertEqual(run_due_applications(), 1)
+        obj.refresh_from_db()
+        self.assertEqual(obj.application_status, 'completed')
+        self.assertFalse(obj.is_published)
+        self.assertFalse(Notification.objects.exists())
+        started_at = obj.scheduled_at
+        self.client.post(reverse('coursework:application-make-visible', args=[obj.pk]))
+        obj.refresh_from_db()
+        self.assertTrue(obj.is_published)
+        self.assertEqual(obj.scheduled_at, started_at)
+        self.assertEqual(Notification.objects.filter(recipient=self.student.user).count(), 1)

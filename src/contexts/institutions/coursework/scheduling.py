@@ -31,7 +31,8 @@ def execute_application(pk):
     else:
         if publication.due_at and publication.due_at <= timezone.now():
             raise ValidationError('O prazo terminou antes da aplicação. Configure uma nova aplicação.')
-        activate_publication(publication.teacher, publication)
+        if publication.release_visible:
+            activate_publication(publication.teacher, publication)
     publication.application_status = 'completed'
     publication.application_error = ''
     publication.save(update_fields=['application_status', 'application_error'])

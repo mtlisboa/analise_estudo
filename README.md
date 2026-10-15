@@ -623,3 +623,14 @@ O agendador verifica o banco a cada 15 segundos e recupera aplicações pendente
 após reiniciar. Os horários usam o fuso configurado no Django, exibido no formulário.
 Se o serviço ficar indisponível até depois do prazo online, a aplicação falha
 em vez de publicar uma avaliação já vencida. Não é necessário haver usuário conectado.
+
+
+Na criação do questionário, título e assunto são campos distintos, junto com
+disciplina, tipo (prova/atividade), descrição, instruções e seleção de questões.
+As instruções são pré-preenchidas na aplicação e podem ser editadas sem alterar
+a montagem original. Nas aplicações virtuais, a visibilidade é opcional e o
+prazo **Aberta até** é obrigatório. Uma aplicação oculta não aparece ao aluno
+nem envia notificações; **Disponibilizar aos alunos** libera a cópia salva,
+se o prazo ainda estiver aberto. No agendamento, a opção de visibilidade vale
+para o horário agendado. Nas aplicações físicas, os campos exclusivos da
+versão virtual são ocultados e as instruções da aplicação constam no PDF.

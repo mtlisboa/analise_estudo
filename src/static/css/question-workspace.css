@@ -23,3 +23,5 @@
 .selected-question.is-dragging {outline:2px solid var(--primary);border-radius:.4rem;opacity:.85}
 
 .questionnaire-actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0}.questionnaire-row{flex-wrap:wrap;gap:16px}.questionnaire-actions .button{white-space:normal}
+
+.application-field{margin:20px 0}.questionnaire-section .settings-field + .settings-field{margin-top:20px}[data-virtual-settings][hidden]{display:none}
