@@ -230,6 +230,9 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionImagesMixin, f
         question.order = last_order + 1
         question.save()
         question.images.set(bank_item.images.all())
+        question.content_blocks = bank_item.content_blocks
+        question.support_text = bank_item.support_text
+        question.save(update_fields=["content_blocks", "support_text"])
         assessment.assembly_status = Assessment.AssemblyStatus.READY
         assessment.assembly_notes = "Questão adicionada manualmente."
         assessment.save(update_fields=("assembly_status", "assembly_notes", "updated_at"))
@@ -302,6 +305,9 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionImages
         item.save()
         if source is not None:
             item.images.set(source.images.all())
+            if "content_blocks" not in self.data:
+                item.content_blocks = source.content_blocks
+                item.save(update_fields=["content_blocks"])
         self.save_images(item, owner)
         return item
 

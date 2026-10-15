@@ -1,0 +1,10 @@
+.content-block {padding:1rem;margin:0 0 .8rem;border:1px solid var(--border-color,#d2d8df);border-radius:.65rem;background:var(--surface,#fff);color:inherit;min-width:0}
+.content-block-toolbar,.content-block-actions {display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.75rem}
+.content-block-toolbar strong {flex:1;min-width:7rem}
+.content-block-toolbar button,.content-block-actions button {padding:.45rem .7rem;border:1px solid currentColor;border-radius:.4rem;background:transparent;color:inherit;cursor:pointer}
+.content-block-handle {touch-action:none;cursor:grab!important;user-select:none}
+.content-block.is-dragging {outline:2px solid #218b87;opacity:.85}
+.content-block label {display:block;margin-top:.5rem}
+.content-block textarea,.content-block input {display:block;width:100%;box-sizing:border-box;margin-top:.4rem}
+.content-block-preview {display:block;max-width:100%;max-height:20rem;object-fit:contain;margin-top:.75rem}
+.content-block [hidden] {display:none}

@@ -154,3 +154,28 @@ class CourseworkTests(TestCase):
         self.assertEqual(self.client.get(reverse('coursework:edit', args=[self.publication.pk])).status_code, 403)
         self.client.force_login(self.student.user)
         self.assertEqual(self.client.get(reverse('coursework:student-detail', args=[self.publication.pk])).status_code, 404)
+
+    def test_published_content_keeps_interleaved_order_until_republished(self):
+        from features.assessments.models import QuestionImage
+        from features.assessments.tests.test_question_images import image_upload
+        import tempfile
+        from django.test import override_settings
+        with tempfile.TemporaryDirectory() as media, override_settings(MEDIA_ROOT=media):
+            image = QuestionImage.objects.create(owner=self.teacher.user, file=image_upload(), description='Figura intercalada')
+            self.question.images.add(image)
+            blocks = [{'type': 'text', 'text': 'Paragrafo antes'},
+                {'type': 'image', 'id': image.pk, 'description': image.description},
+                {'type': 'text', 'text': 'Paragrafo depois'}]
+            self.question.content_blocks = blocks
+            self.question.save()
+            publish(self.teacher, self.publication)
+            self.client.force_login(self.student.user)
+            url = reverse('coursework:student-detail', args=[self.publication.pk])
+            page = self.client.get(url, {'iniciar': '1'}).content.decode()
+            self.assertLess(page.index('Paragrafo antes'), page.index('Figura intercalada'))
+            self.assertLess(page.index('Figura intercalada'), page.index('Paragrafo depois'))
+            self.assertLess(page.index('Paragrafo depois'), page.index('Explique frações.'))
+            self.question.content_blocks = list(reversed(blocks))
+            self.question.save()
+            self.publication.refresh_from_db()
+            self.assertEqual(self.publication.public_snapshot['questions'][0]['content_blocks'], blocks)

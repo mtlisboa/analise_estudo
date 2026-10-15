@@ -172,6 +172,7 @@ class QuestionBankItem(models.Model):
     )
     subject = models.CharField("matéria", max_length=120)
     topic = models.CharField("assunto", max_length=160)
+    content_blocks = models.JSONField("Parágrafos e imagens", default=list, blank=True)
     support_text = models.TextField("texto de apoio", blank=True)
     images = models.ManyToManyField("QuestionImage", blank=True, related_name="bank_items")
     statement = models.TextField("comando / enunciado")
@@ -239,6 +240,11 @@ class QuestionBankItem(models.Model):
                     {"correct_answer": "O gabarito deve corresponder a uma das alternativas."}
                 )
 
+    @property
+    def ordered_content(self):
+        from .content_blocks import ordered_content
+        return ordered_content(self)
+
     def __str__(self) -> str:
         return f"{self.subject} · {self.topic} · {self.statement[:55]}"
 
@@ -263,6 +269,7 @@ class Question(models.Model):
         null=True,
         blank=True,
     )
+    content_blocks = models.JSONField("Parágrafos e imagens", default=list, blank=True)
     support_text = models.TextField("texto de apoio", blank=True)
     images = models.ManyToManyField("QuestionImage", blank=True, related_name="questions")
     statement = models.TextField("comando / enunciado")
@@ -285,6 +292,11 @@ class Question(models.Model):
     order = models.PositiveIntegerField("ordem", default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def ordered_content(self):
+        from .content_blocks import ordered_content
+        return ordered_content(self)
 
     class Meta:
         ordering = ("order", "pk")

@@ -61,8 +61,22 @@ class QuestionImagesMixin:
         index = order.index('statement')
         self.order_fields(order[:index] + ['new_images', 'image_description', 'remove_images'] + order[index:])
         self.existing_images = queryset
+        from .content_blocks import ContentBlocksWidget, ordered_content
+        self.fields['content_blocks'] = forms.JSONField(label='Parágrafos e imagens', required=False,
+            widget=ContentBlocksWidget(), initial=ordered_content(current) if current else [])
+        leading = [name for name in ('title', 'content_blocks', 'statement', 'question_type', 'options', 'correct_answer') if name in self.fields]
+        self.order_fields(leading + [name for name in self.fields if name not in leading])
 
     def validate_images(self, cleaned):
+        if 'content_blocks' in self.data:
+            blocks = cleaned.get('content_blocks')
+            if blocks is None:
+                blocks = []
+            try:
+                self.validate_blocks(blocks)
+            except forms.ValidationError as exc:
+                self.add_error('content_blocks', exc)
+            return cleaned
         uploads = cleaned.get('new_images', [])
         removed = cleaned.get('remove_images', [])
         remaining = self.fields['remove_images'].queryset.count() - len(removed)
@@ -72,7 +86,58 @@ class QuestionImagesMixin:
             self.add_error('image_description', 'Descreva as imagens adicionadas.')
         return cleaned
 
+    def validate_blocks(self, blocks):
+        import re
+        if not isinstance(blocks, list) or len(blocks) > 50:
+            raise forms.ValidationError('Use uma lista com até 50 blocos.')
+        allowed = {image.pk: image for image in self.fields['remove_images'].queryset}
+        self.block_uploads = {}
+        images = 0
+        for block in blocks:
+            if not isinstance(block, dict):
+                raise forms.ValidationError('Bloco inválido.')
+            if block.get('type') == 'text':
+                if not isinstance(block.get('text'), str) or not block['text'].strip() or len(block['text']) > 15000:
+                    raise forms.ValidationError('Preencha cada parágrafo com até 15.000 caracteres.')
+            elif block.get('type') == 'image':
+                images += 1
+                if images > MAX_IMAGES:
+                    raise forms.ValidationError('A questão pode conter no máximo cinco imagens.')
+                if 'upload' in block:
+                    key = block['upload']
+                    if not isinstance(key, str) or not re.fullmatch(r'block_image_[a-zA-Z0-9_-]{1,80}', key) or key in self.block_uploads:
+                        raise forms.ValidationError('Identificador de imagem inválido.')
+                    description = block.get('description', '')
+                    if not isinstance(description, str) or not description.strip() or len(description) > 300:
+                        raise forms.ValidationError('Descreva cada imagem em até 300 caracteres.')
+                    upload = self.files.get(key)
+                    if upload is None:
+                        raise forms.ValidationError('Selecione novamente o arquivo de cada imagem nova.')
+                    self.block_uploads[key] = MultipleImageField().clean(upload)[0]
+                elif not isinstance(block.get('id'), int) or block['id'] not in allowed:
+                    raise forms.ValidationError('A imagem não pertence a esta questão.')
+            else:
+                raise forms.ValidationError('Escolha parágrafo ou imagem.')
+        if images > MAX_IMAGES:
+            raise forms.ValidationError('A questão pode conter no máximo cinco imagens.')
+
     def save_images(self, item, owner):
+        if 'content_blocks' in self.data:
+            blocks, image_ids = [], []
+            allowed = {image.pk: image for image in self.fields['remove_images'].queryset}
+            for block in self.cleaned_data.get('content_blocks') or []:
+                if block['type'] == 'text':
+                    blocks.append({'type': 'text', 'text': block['text'].strip()})
+                else:
+                    image = (QuestionImage.objects.create(owner=owner, file=self.block_uploads[block['upload']],
+                        description=block['description'].strip()) if 'upload' in block else allowed[block['id']])
+                    image_ids.append(image.pk)
+                    blocks.append({'type': 'image', 'id': image.pk, 'description': image.description})
+            item.images.set(image_ids)
+            item.content_blocks = blocks
+            item.support_text = '\n\n'.join(block['text'] for block in blocks if block['type'] == 'text')
+            item.save(update_fields=['content_blocks', 'support_text'])
+            return
         item.images.remove(*self.cleaned_data.get('remove_images', []))
         for upload in self.cleaned_data.get('new_images', []):
             item.images.add(QuestionImage.objects.create(owner=owner, file=upload,
