@@ -1,6 +1,13 @@
 {% load static %}
 <div data-question-type-editor>
 <textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>{{ widget.value|default_if_none:"[]" }}</textarea>
-<div data-alternative-controls hidden><p>Adicione o texto de cada alternativa e marque a correta. A pontuação e a ordem serão definidas na avaliação.</p><div data-alternative-list></div><button type="button" data-add-alternative>Adicionar alternativa</button><p role="status" data-alternative-status></p></div>
+<div data-alternative-controls hidden>
+<p>Cada alternativa é um bloco independente. Adicione ou remova blocos e marque a resposta correta.</p>
+<div data-alternative-list class="alternative-block-list" role="group" aria-label="Lista de alternativas"></div>
+<div class="content-block-actions"><button type="button" data-add-alternative>Adicionar alternativa</button></div>
+<p role="status" aria-live="polite" data-alternative-status></p>
 </div>
-<script src="{% static 'js/question-types.js' %}?v=1" defer></script>
+<noscript>Ative o JavaScript para adicionar e editar os blocos de alternativas.</noscript>
+</div>
+<link rel="stylesheet" href="{% static 'css/question-blocks.css' %}?v=3">
+<script src="{% static 'js/question-types.js' %}?v=2" defer></script>
