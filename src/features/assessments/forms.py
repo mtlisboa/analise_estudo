@@ -147,6 +147,7 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMixin, Que
     class Meta:
         model = Question
         fields = (
+            "assessment_method",
             "question_type",
             "answer_lines",
             "support_text",
@@ -217,6 +218,8 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMixin, Que
             topic=assessment.topic,
             support_text=question.support_text,
             answer_lines=question.answer_lines,
+            assessment_method=question.assessment_method,
+            metadata_tags=question.metadata_tags,
             diagnostic_metadata=question.diagnostic_metadata,
             statement=question.statement,
             question_type=question.question_type,
@@ -255,6 +258,7 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMi
             "title",
             "subject",
             "topic",
+            "assessment_method",
             "question_type",
             "answer_lines",
             "support_text",
@@ -274,6 +278,9 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMi
         super().__init__(*args, **kwargs)
         self.configure_images(source)
         self.configure_question_type(source)
+        if source is not None and not self.is_bound:
+            self.initial.setdefault('assessment_method', source.assessment_method)
+            self.initial.setdefault('metadata_text', '; '.join(source.metadata_tags))
         if self.instance.pk and not self.is_bound:
             self.initial["options"] = "\n".join(self.instance.options)
 

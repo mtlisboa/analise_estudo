@@ -5,3 +5,6 @@
 {% if question.source_url %}<p><a href="{{ question.source_url }}" target="_blank" rel="noopener">Fonte da questão</a></p>{% endif %}
 <a href="{% url 'assessments:bank-question-derive' question.pk %}">Criar uma versão</a>
 {% if question.question_type == 'open_ended' %}<p>{{ question.answer_lines }} linhas para resposta na impressão (7 mm por linha).</p>{% endif %}
+
+{% if question.assessment_method %}<p>Método avaliativo: {{ question.assessment_method }}</p>{% endif %}
+{% if question.metadata_tags %}<p>Metadados: {{ question.metadata_tags|join:"; " }}</p>{% endif %}
