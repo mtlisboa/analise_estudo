@@ -10,7 +10,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, Count, F, Max
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -42,6 +42,12 @@ def bank_rows(user, params):
     subject = params.get('subject', '').strip()[:120]
     if subject:
         qs = qs.filter(subject__iexact=subject)
+    question_type = params.get('question_type', '')
+    if question_type in ('multiple_choice', 'open_ended'):
+        qs = qs.filter(question_type=question_type)
+    topic = params.get('topic', '').strip()[:160]
+    if topic:
+        qs = qs.filter(topic__icontains=topic)
     query = params.get('q', '').strip()[:150]
     if query:
         qs = qs.filter(Q(title__icontains=query) | Q(topic__icontains=query) | Q(subject__icontains=query) | Q(statement__icontains=query) | Q(metadata_tags__icontains=query) | Q(metadata_tags__icontains=json.dumps(query, ensure_ascii=True)[1:-1]) | Q(assessment_method__icontains=query))
@@ -55,6 +61,11 @@ def bank_rows(user, params):
 @never_cache
 @require_GET
 def bank(request):
+    if request.GET.get('assessment') and request.GET.get('fragment') != '1':
+        if not request.GET['assessment'].isdigit():
+            raise Http404
+        assessment = get_object_or_404(Assessment, pk=request.GET['assessment'], owner=request.user)
+        return redirect(reverse('assessments:questionnaire-edit', args=[assessment.pk]) + '?select=questions')
     rows = list(bank_rows(request.user, request.GET)[:31])
     more = len(rows) > 30
     rows = rows[:30]
@@ -207,6 +218,7 @@ def questionnaire(request, pk=None):
     for item in selected:
         item.points_field = form[f'points_{item.pk}']
     return render(request,'assessments/questionnaire_form.html',{'form':form,'assessment':assessment,'selected_questions':selected,
+        'open_question_picker': request.GET.get('select') == 'questions',
         'legacy_questions':assessment.questions.filter(bank_item=None) if pk else [],
         'runs':ExamRun.objects.filter(assessment=assessment,created_by=request.user) if pk else [],'workspace_page':'questionnaires'})
 

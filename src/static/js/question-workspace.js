@@ -86,6 +86,10 @@
         const url=new URL(list.dataset.url, location.origin);
         url.searchParams.set('fragment','1'); url.searchParams.set('scope',list.dataset.scope || 'public');
         url.searchParams.set('q',list.dataset.query || '');
+        if (list.hasAttribute('data-picker-list')) {
+            url.searchParams.set('topic', list.dataset.topic || '');
+            url.searchParams.set('question_type', list.dataset.questionType || '');
+        }
         if (state.cursor) url.searchParams.set('before',state.cursor);
         if (list.hasAttribute('data-picker-list')) { url.searchParams.set('select','1'); url.searchParams.set('subject',document.getElementById('id_subject').value); }
         try {
@@ -104,7 +108,17 @@
             if (state.controller === controller) { state.loading=false; button.disabled=false; }
         }
     }
+    function filterPicker() {
+        const form=picker.querySelector('[data-picker-search]');
+        const list=picker.querySelector('[data-picker-list]');
+        list.dataset.query=form.elements.q.value;
+        list.dataset.scope=form.elements.scope.value;
+        list.dataset.topic=form.elements.topic.value;
+        list.dataset.questionType=form.elements.question_type.value;
+        return load(list,true);
+    }
     root.addEventListener('click', async event => {
+        if(event.target.closest('[data-clear-picker-filters]')) {picker.querySelector('[data-picker-search]').reset();await filterPicker();return;}
         const close=event.target.closest('[data-close-dialog]');
         if (close) { close.closest('dialog').close(); return; }
         const remove=event.target.closest('[data-remove-question]');
@@ -113,7 +127,7 @@
             renderSelection();
             const subject=document.getElementById('id_subject').value.trim();
             if (!subject) { document.getElementById('id_subject').reportValidity(); document.getElementById('id_subject').focus(); return; }
-            picker.showModal(); await load(picker.querySelector('[data-picker-list]'),true); return;
+            picker.showModal(); await filterPicker(); return;
         }
         const more=event.target.closest('[data-load-more]');
         if (more) { await load(more.parentElement.querySelector('[data-infinite-list]')); return; }
@@ -130,7 +144,7 @@
         }
     });
     root.addEventListener('change',event => {
-        if(event.target.matches('[data-picker-search] select[name=scope]')) {const list=picker.querySelector('[data-picker-list]');list.dataset.scope=event.target.value;list.dataset.query=picker.querySelector('[name=q]').value;load(list,true);return;}
+        if(event.target.matches('[data-picker-search] select')) {filterPicker();return;}
         if (!event.target.matches('[data-select-question]')) return;
         const row=event.target.closest('[data-question-id]');
         if (event.target.checked) selected.set(event.target.value,row.dataset.title); else selected.delete(event.target.value);
@@ -138,12 +152,10 @@
     });
     root.querySelector('[data-picker-search]')?.addEventListener('submit',event => {
         event.preventDefault();
-        const list=picker.querySelector('[data-picker-list]');
-        list.dataset.query=event.target.elements.q.value;
-        list.dataset.scope=event.target.elements.scope.value;
-        load(list,true);
+        filterPicker();
     });
     if(selectedRoot) renderSelection();
+    if(root.hasAttribute('data-picker-auto-open') && document.getElementById('id_subject')?.value.trim()) root.querySelector('[data-open-picker]')?.click();
     if ('IntersectionObserver' in window) {
         states.forEach((state,list) => {
             const button=list.parentElement.querySelector('[data-load-more]');

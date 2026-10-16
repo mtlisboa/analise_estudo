@@ -25,3 +25,5 @@
 .questionnaire-actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0}.questionnaire-row{flex-wrap:wrap;gap:16px}.questionnaire-actions .button{white-space:normal}
 
 .application-field{margin:20px 0}.questionnaire-section .settings-field + .settings-field{margin-top:20px}[data-virtual-settings][hidden]{display:none}
+
+[data-picker-search] .settings-field{flex:1 1 180px;min-width:0}[data-picker-search] input,[data-picker-search] select{width:100%;box-sizing:border-box}

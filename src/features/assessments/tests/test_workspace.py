@@ -238,3 +238,41 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertContains(page, 'Equivalência de frações')
         self.assertContains(page, 'Revisão de frações do semestre.')
         self.assertContains(page, 'Leia cada comando com atenção.')
+
+    def test_all_question_search_controls_are_inside_selection_modal(self):
+        page = self.client.get(reverse('assessments:questionnaire-edit', args=[self.assessment.pk]))
+        body = page.content.decode()
+        outside, modal = body.split('<dialog id="question-picker-dialog"', 1)
+        modal = modal.split('</dialog>', 1)[0]
+        for control in ('data-picker-search', 'id="picker-search"', 'id="picker-scope"', 'id="picker-topic"', 'id="picker-type"'):
+            self.assertNotIn(control, outside)
+            self.assertIn(control, modal)
+        self.assertIn('data-open-picker', outside)
+        self.assertIn('data-clear-picker-filters', modal)
+
+    def test_legacy_question_selection_links_open_editor_modal_instead_of_bank(self):
+        target = reverse('assessments:questionnaire-edit', args=[self.assessment.pk]) + '?select=questions'
+        for url in (reverse('assessments:question-bank')+f'?assessment={self.assessment.pk}',
+                    reverse('assessments:bank-questions-add', args=[self.assessment.pk])):
+            self.assertRedirects(self.client.get(url), target)
+        page = self.client.get(target)
+        self.assertContains(page, 'data-picker-auto-open')
+        self.assertRedirects(self.client.get(reverse('assessments:bank-questions-add-generic')),
+                            reverse('assessments:questionnaire-create'))
+        self.assertEqual(self.client.get(reverse('assessments:question-bank')+'?assessment=invalid').status_code, 404)
+        self.client.force_login(self.student.user)
+        self.assertEqual(self.client.get(reverse('assessments:question-bank')+f'?assessment={self.assessment.pk}').status_code, 404)
+
+    def test_modal_combines_scope_topic_type_and_query_filters(self):
+        item = QuestionBankItem.objects.create(owner=self.teacher.user, title='Dissertativa de geometria',
+            subject='MATEMÁTICA', topic='Geometria espacial', question_type='open_ended', statement='Explique o volume.')
+        url = reverse('assessments:question-bank')
+        params = {'fragment': '1', 'select': '1', 'scope': 'private', 'topic': 'espacial',
+                  'question_type': 'open_ended', 'q': 'volume', 'subject': 'MATEMÁTICA'}
+        data = self.client.get(url, params).json()
+        self.assertIn(item.title, data['html'])
+        self.assertNotIn(self.private.title, data['html'])
+        self.assertNotIn(self.public.title, data['html'])
+        self.assertIsNone(data['next'])
+        for changed in ({'scope':'public'}, {'question_type':'multiple_choice'}, {'topic':'frações'}):
+            self.assertNotIn(item.title, self.client.get(url, {**params, **changed}).json()['html'])
