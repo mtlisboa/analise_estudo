@@ -29,31 +29,28 @@ class ApplicationForm(forms.Form):
     offers = forms.ModelMultipleChoiceField(label='Turmas para aplicar', queryset=Offer.objects.none(), widget=forms.CheckboxSelectMultiple)
     title = forms.CharField(label='Título', max_length=160)
     delivery_mode = forms.ChoiceField(label='Formato de aplicação', choices=[('printed', 'Física'), ('online', 'Virtual')])
-    instructions = forms.CharField(label='Instruções desta aplicação', required=False, max_length=3000, widget=forms.Textarea)
-    scheduled_at = forms.DateTimeField(label='Aplicar em (horário local)', required=False, widget=forms.DateTimeInput(attrs={'type':'datetime-local'}))
+    instructions = forms.CharField(label='Instruções desta aplicação', required=False, max_length=3000,
+        help_text='Preenchido com as instruções do questionário. Você pode editar o texto para esta aplicação.',
+        widget=forms.Textarea(attrs={'rows': 4}))
+    scheduled_at = forms.DateTimeField(label='Data e hora de início da aplicação', required=False, help_text='Horário local. Deixe vazio para iniciar ao confirmar; uma data futura programa o início.', widget=forms.DateTimeInput(attrs={'type':'datetime-local'}))
     is_visible = forms.BooleanField(label='Disponibilizar aos alunos', required=False, initial=True, help_text='Desmarcada: a aplicação virtual permanece oculta até você disponibilizá-la.')
     due_at = forms.DateTimeField(label='Aberta até', required=False, widget=forms.DateTimeInput(attrs={'type':'datetime-local'}))
 
-    def __init__(self, account, assessment, *args, scheduling=False, **kwargs):
+    def __init__(self, account, assessment, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.scheduling = scheduling
         ids = [r['offer'].pk for r in teacher_disciplines(account) if r['subject'].casefold() == assessment.subject.casefold()]
         self.fields['offers'].queryset = Offer.objects.filter(pk__in=ids).select_related('period', 'classroom')
         self.fields['offers'].label_from_instance = lambda offer: f'{offer.name} · {offer.grade} · {offer.get_shift_display()} · {offer.period.name}'
         self.fields['title'].initial = assessment.topic
         self.fields['kind'].initial = assessment.kind
-        self.fields['instructions'].initial = assessment.instructions
+        self.initial.setdefault('instructions', assessment.instructions or '')
         self.fields['delivery_mode'].initial = 'online'
-        self.fields['scheduled_at'].required = scheduling
-        if scheduling:
-            self.fields['is_visible'].label = 'Disponibilizar aos alunos no horário agendado'
-        if not scheduling:
-            del self.fields['scheduled_at']
+        self.fields['is_visible'].label = 'Disponibilizar aos alunos no início da aplicação'
 
     def clean(self):
         data = super().clean()
         start = data.get('scheduled_at') or timezone.now()
-        if self.scheduling and start <= timezone.now():
+        if data.get('scheduled_at') and start <= timezone.now():
             self.add_error('scheduled_at', 'Escolha uma data e horário futuros.')
         if data.get('delivery_mode') != 'printed' or data.get('kind') != 'EXAM':
             data['shuffle_questions'] = False
@@ -71,10 +68,10 @@ class ApplicationForm(forms.Form):
 @login_required
 @never_cache
 @require_http_methods(['GET', 'POST'])
-def apply(request, assessment_pk, scheduling=False):
+def apply(request, assessment_pk):
     account = teacher_identity(request)
     assessment = get_object_or_404(Assessment, pk=assessment_pk, owner=request.user)
-    form = ApplicationForm(account, assessment, request.POST if request.method == 'POST' else None, scheduling=scheduling)
+    form = ApplicationForm(account, assessment, request.POST if request.method == 'POST' else None)
     if request.method == 'GET' and request.GET.get('delivery_mode') in ('online', 'printed'):
         form.initial['delivery_mode'] = request.GET['delivery_mode']
     if request.method == 'POST' and form.is_valid():
@@ -105,16 +102,16 @@ def apply(request, assessment_pk, scheduling=False):
                         obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic)
                         obj.exam_run.save(update_fields=['title', 'context'])
                         obj.save(update_fields=['exam_run'])
-                    if not scheduling:
+                    if not form.cleaned_data.get('scheduled_at'):
                         execute_application(obj.pk)
         except ValidationError as exc:
             form.add_error(None, exc)
         else:
-            messages.success(request, 'Aplicação agendada com a configuração salva.' if scheduling else ('Aplicação realizada.' if form.cleaned_data['is_visible'] else 'Aplicação salva e oculta aos alunos.'))
+            messages.success(request, 'Aplicação salva para iniciar na data e hora definidas.' if form.cleaned_data.get('scheduled_at') else ('Aplicação realizada.' if form.cleaned_data['is_visible'] else 'Aplicação salva e oculta aos alunos.'))
             return redirect('coursework:apply', assessment_pk=assessment.pk)
     applications = Publication.objects.filter(assessment=assessment, teacher=account).select_related('offer', 'exam_run').order_by('-created_at')
     return render(request, 'coursework/apply.html', {**base_data(account), 'assessment': assessment, 'form': form,
-        'scheduling': scheduling, 'applications': applications, 'application_timezone': timezone.get_current_timezone_name()})
+        'applications': applications, 'application_timezone': timezone.get_current_timezone_name()})
 
 
 @login_required
@@ -126,7 +123,7 @@ def cancel(request, pk):
         if obj.application_status in ('scheduled', 'failed'):
             obj.application_status = 'cancelled'
             obj.save(update_fields=['application_status'])
-            messages.success(request, 'Agendamento cancelado.')
+            messages.success(request, 'Aplicação cancelada.')
     return redirect('coursework:apply', assessment_pk=obj.assessment_id)
 
 
@@ -166,3 +163,17 @@ def make_visible(request, pk):
             else:
                 messages.success(request, 'Aplicação disponibilizada aos alunos.')
     return redirect('coursework:apply', assessment_pk=obj.assessment_id)
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def legacy_schedule(request, assessment_pk):
+    """Old links enter the unified application flow."""
+    if request.method == 'POST':
+        return apply(request, assessment_pk)
+    from django.urls import reverse
+    url = reverse('coursework:apply', kwargs={'assessment_pk': assessment_pk})
+    mode = request.GET.get('delivery_mode')
+    if mode in ('online', 'printed'):
+        url += '?delivery_mode=' + mode
+    return redirect(url)

@@ -26,12 +26,12 @@ class AssessmentApplicationTests(TestCase):
     def payload(self, **changes):
         return {'request_token': str(uuid.uuid4()), 'is_visible': 'on', 'offers': [self.offer.pk], 'kind': 'EXAM',
             'title': 'Aplicação independente', 'delivery_mode': 'online',
-            'scheduled_at': (timezone.now()+timedelta(hours=1)).isoformat(),
+            'scheduled_at': '',
             'due_at': (timezone.now()+timedelta(days=1)).isoformat(), **changes}
 
     def schedule(self, **changes):
-        data = self.payload(**changes)
-        response = self.client.post(reverse('coursework:schedule', args=[self.assessment.pk]), data)
+        data = self.payload(**{'scheduled_at': (timezone.now()+timedelta(hours=1)).isoformat(), **changes})
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]), data)
         self.assertEqual(response.status_code, 302, response.context['form'].errors if response.context else '')
         return Publication.objects.get(request_token=data['request_token'])
 
@@ -40,7 +40,7 @@ class AssessmentApplicationTests(TestCase):
 
     def test_three_actions_and_authoring_has_no_application_controls(self):
         page = self.client.get(reverse('assessments:index'))
-        for text in ('Editar', 'Aplicar avaliação', 'Agendar aplicação'):
+        for text in ('Editar', 'Aplicar avaliação'):
             self.assertContains(page, text)
         page = self.client.get(reverse('assessments:questionnaire-edit', args=[self.assessment.pk]))
         for name in ('offers', 'due_at', 'delivery_mode', 'is_visible'):
@@ -115,8 +115,8 @@ class AssessmentApplicationTests(TestCase):
         self.assertEqual(Notification.objects.filter(recipient=self.teacher.user).count(), 1)
 
     def test_invalid_times_and_delivery_and_no_questions_leave_no_jobs(self):
-        url = reverse('coursework:schedule', args=[self.assessment.pk])
-        for changes in ({'scheduled_at': ''}, {'scheduled_at': (timezone.now()-timedelta(hours=1)).isoformat()},
+        url = reverse('coursework:apply', args=[self.assessment.pk])
+        for changes in ({'scheduled_at': (timezone.now()-timedelta(hours=1)).isoformat()},
                         {'due_at': (timezone.now()-timedelta(hours=1)).isoformat()}, {'delivery_mode': 'other'}, {'due_at': ''}):
             self.assertEqual(self.client.post(url, self.payload(**changes)).status_code, 200)
         self.assessment.questions.all().delete()
@@ -252,7 +252,7 @@ class AssessmentApplicationTests(TestCase):
 
 
     def test_offer_picker_on_immediate_and_scheduled_application(self):
-        for route in ('coursework:apply', 'coursework:schedule'):
+        for route in ('coursework:apply',):
             page = self.client.get(reverse(route, args=[self.assessment.pk]))
             self.assertContains(page, 'id="application-offer-dialog"', count=1)
             self.assertContains(page, 'Pesquisar minhas turmas')
@@ -293,3 +293,48 @@ class AssessmentApplicationTests(TestCase):
             self.payload(shuffle_questions='on', shuffle_options='on'))
         self.assertEqual(response.status_code, 302)
         self.assertIsNone(Publication.objects.get(title='Aplicação independente').exam_run_id)
+
+    def test_unified_start_time_field_and_removed_schedule_action(self):
+        for url in (reverse('assessments:index'), reverse('assessments:questionnaire-edit', args=[self.assessment.pk])):
+            page = self.client.get(url)
+            self.assertNotContains(page, 'Agendar aplicação')
+            self.assertNotContains(page, reverse('coursework:schedule', args=[self.assessment.pk]))
+        page = self.client.get(reverse('coursework:apply', args=[self.assessment.pk]))
+        self.assertContains(page, 'Data e hora de início da aplicação')
+        self.assertContains(page, 'name="scheduled_at"')
+        self.assertFalse(page.context['form'].fields['scheduled_at'].required)
+
+    def test_future_start_on_apply_route_is_not_released_early(self):
+        data = self.payload(scheduled_at=(timezone.now()+timedelta(hours=2)).isoformat())
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]), data)
+        self.assertEqual(response.status_code, 302)
+        obj = Publication.objects.get(request_token=data['request_token'])
+        self.assertEqual(obj.application_status, 'scheduled')
+        self.assertFalse(obj.is_published)
+        self.assertFalse(Notification.objects.exists())
+        self.make_due(obj)
+        self.assertEqual(run_due_applications(), 1)
+        obj.refresh_from_db()
+        self.assertTrue(obj.is_published)
+
+    def test_legacy_schedule_link_redirects_to_application(self):
+        self.assertRedirects(self.client.get(reverse('coursework:schedule', args=[self.assessment.pk])),
+            reverse('coursework:apply', args=[self.assessment.pk]))
+
+    def test_questionnaire_instructions_are_textarea_content_and_edits_survive_errors(self):
+        from html import unescape
+        import re
+        original = 'Leia com atenção.\nJustifique suas respostas abertas.'
+        self.assessment.instructions = original
+        self.assessment.save(update_fields=['instructions'])
+        url = reverse('coursework:apply', args=[self.assessment.pk])
+        response = self.client.get(url)
+        textarea = re.search(r'<textarea[^>]*name="instructions"[^>]*>(.*?)</textarea>', response.content.decode(), re.S)
+        self.assertIsNotNone(textarea)
+        self.assertEqual(unescape(textarea.group(1)).strip(), original)
+        edited = 'Instruções editadas apenas para esta turma.'
+        response = self.client.post(url, self.payload(title='', instructions=edited))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['form']['instructions'].value(), edited)
+        self.assessment.refresh_from_db()
+        self.assertEqual(self.assessment.instructions, original)
