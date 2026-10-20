@@ -7,6 +7,8 @@
     const kind = form.querySelector('[name="kind"]');
     const physicalSettings = form.querySelector('[data-physical-exam-settings]');
     const sync = () => {
+        const action = form.querySelector('[data-confirm-application]');
+        if (action) action.textContent = mode.value === 'printed' ? 'Imprimir' : 'Confirmar aplicação';
         const virtual = mode.value === 'online';
         settings.hidden = !virtual;
         settings.disabled = !virtual;

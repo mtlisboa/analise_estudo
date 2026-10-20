@@ -102,9 +102,9 @@ def detail(request, pk):
         'sheets': run.sheets.select_related('result'), 'batches': run.imports.all()[:20]})
 
 
-def download_response(data, content_type, filename):
+def download_response(data, content_type, filename, *, inline=False):
     response = HttpResponse(data, content_type=content_type)
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = f'{"inline" if inline else "attachment"}; filename="{filename}"'
     response['Cache-Control'] = 'private, no-store'
     response['X-Content-Type-Options'] = 'nosniff'
     return response
@@ -119,9 +119,9 @@ def download(request, pk, kind):
         sheet = get_object_or_404(sheets, student_id=request.GET['student'])
         sheets = [sheet]
     if kind == 'folhas':
-        return download_response(answer_sheets_pdf(run, sheets), 'application/pdf', 'folhas-de-respostas.pdf')
+        return download_response(answer_sheets_pdf(run, sheets), 'application/pdf', 'folhas-de-respostas.pdf', inline=request.GET.get('inline') == '1')
     if kind == 'provas':
-        return download_response(exam_pdf(run, sheets), 'application/pdf', 'provas.pdf')
+        return download_response(exam_pdf(run, sheets), 'application/pdf', 'provas.pdf', inline=request.GET.get('inline') == '1')
     if kind == 'gabaritos' and run.variants:
         from .documents import variant_keys_pdf
         return download_response(variant_keys_pdf(run), 'application/pdf', 'gabaritos-ABC.pdf')
@@ -229,4 +229,28 @@ def scan_evidence(request, page_pk):
     response = HttpResponse(bytes(page.evidence), content_type='image/png')
     response['Cache-Control'] = 'private, no-store'
     response['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
+@login_required
+@require_GET
+def print_application(request, request_token):
+    """Open already persisted booklets for printing without issuing new sheets."""
+    from contexts.institutions.coursework.models import Publication
+    from pypdf import PdfReader, PdfWriter
+    publications = list(Publication.objects.filter(request_token=request_token, teacher__user=request.user,
+        delivery_mode='printed', exam_run__isnull=False).select_related('exam_run').order_by('offer_id'))
+    if not publications:
+        from django.http import Http404
+        raise Http404
+    writer = PdfWriter()
+    for publication in publications:
+        run = permitted_run(request.user, publication.exam_run_id)
+        writer.append(PdfReader(io.BytesIO(exam_pdf(run))))
+    output = io.BytesIO()
+    writer.write(output)
+    response = HttpResponse(output.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="provas-para-impressao.pdf"'
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['Cache-Control'] = 'private, no-store'
     return response

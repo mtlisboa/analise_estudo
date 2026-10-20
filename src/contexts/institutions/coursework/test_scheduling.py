@@ -350,3 +350,44 @@ class AssessmentApplicationTests(TestCase):
             self.assertIsNotNone(hidden)
             self.assertIn('type="hidden"', hidden.group())
             self.assertIn(f'value="{mode}"', hidden.group())
+
+    def test_print_action_persists_metadata_and_reprinting_reuses_issue(self):
+        from features.paper_exams.models import ExamRun, AnswerSheet
+        self.assessment.metadata_tags = ['frações', 'avaliação bimestral']
+        self.assessment.save(update_fields=['metadata_tags'])
+        data = self.payload(delivery_mode='printed', due_at='', instructions='Use caneta azul.')
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]), data)
+        self.assertEqual(response.status_code, 302)
+        obj = Publication.objects.get(request_token=data['request_token'])
+        self.assertEqual(response.url, reverse('paper-exams:print-application', args=[obj.request_token]))
+        self.assertEqual(obj.exam_run.context['application_metadata']['assessment_metadata'], self.assessment.metadata_tags)
+        before = (ExamRun.objects.count(), AnswerSheet.objects.count())
+        questions = obj.exam_run.questions
+        variants = obj.exam_run.variants
+        sheets = list(obj.exam_run.sheets.values_list('pk', 'variant'))
+        for _ in range(2):
+            page = self.client.get(response.url)
+            self.assertEqual(page.status_code, 200)
+            self.assertTrue(page.content.startswith(b'%PDF'))
+            self.assertIn('inline', page['Content-Disposition'])
+        self.assertEqual((ExamRun.objects.count(), AnswerSheet.objects.count()), before)
+        obj.exam_run.refresh_from_db()
+        self.assertEqual(obj.exam_run.questions, questions)
+        self.assertEqual(obj.exam_run.variants, variants)
+        self.assertEqual(list(obj.exam_run.sheets.values_list('pk', 'variant')), sheets)
+        detail = self.client.get(reverse('paper-exams:detail', args=[obj.exam_run_id]))
+        self.assertContains(detail, 'Reimprimir prova')
+        self.assertContains(detail, 'Reimprimir folha de respostas')
+        self.client.force_login(self.student.user)
+        self.assertEqual(self.client.get(response.url).status_code, 404)
+
+    def test_virtual_shuffle_configuration_is_saved_separately_from_physical(self):
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]), self.payload(
+            virtual_shuffle_questions='on', virtual_shuffle_options='on', shuffle_questions='on', shuffle_options='on'))
+        self.assertEqual(response.status_code, 302)
+        obj = Publication.objects.get(title='Aplicação independente')
+        self.assertTrue(obj.application_metadata['virtual_shuffle_questions'])
+        self.assertTrue(obj.application_metadata['virtual_shuffle_options'])
+        self.assertFalse(obj.application_metadata['physical_shuffle_questions'])
+        self.assertFalse(obj.application_metadata['physical_shuffle_options'])
+        self.assertIsNone(obj.exam_run_id)

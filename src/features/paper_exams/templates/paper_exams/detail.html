@@ -6,8 +6,8 @@
     <p>{{ run.classroom_name }} · {{ run.created_at|date:'d/m/Y H:i' }}</p>
     <h2>1. Imprimir</h2>
     {% if run.variants %}<p>Cadernos A, B e C: distribuição alternada entre os alunos. Cada QR code identifica a versão e seu gabarito.</p><a class="button" href="{% url 'paper-exams:download' run.pk 'gabaritos' %}">Baixar gabaritos A, B e C</a>{% endif %}
-    <p><a class="button" href="{% url 'paper-exams:download' run.pk 'provas' %}">Baixar provas completas da turma</a> <a class="button" href="{% url 'paper-exams:download' run.pk 'folhas' %}">Baixar folhas de respostas</a></p>
-    <p>Imprima em A4, tamanho real (100%). Cada folha contém nome, registro e ID do aluno, turma e QR code. Preserve os quatro marcadores nos cantos.</p>
+    <p><a class="button" href="{% url 'paper-exams:download' run.pk 'provas' %}?inline=1">Imprimir / reimprimir provas da turma</a> <a class="button" href="{% url 'paper-exams:download' run.pk 'folhas' %}?inline=1">Imprimir / reimprimir folhas de respostas</a></p>
+    <p>Imprima em A4, tamanho real (100%). Cada folha contém nome, registro e ID do aluno, turma e QR code. Preserve os quatro marcadores nos cantos. Em caso de rasura, reimprima por esta emissão: o aluno mantém a versão, o QR code e o gabarito já salvos.</p>
 </section>
 <section class="panel">
     <h2>2. Fotografar ou importar respostas</h2><p><a class="button" href="{% url 'paper-exams:scan' %}">Abrir câmera / fotografar prova</a></p>
@@ -22,7 +22,7 @@
     <div style="overflow-x:auto"><table><thead><tr><th>Aluno</th><th>ID</th><th>Estado</th><th>Nota</th><th>Revisão</th><th>Imprimir aluno</th></tr></thead><tbody>
     {% for sheet in sheets %}<tr><td>{{ sheet.student_name }}{% if sheet.variant %} · Prova {{ sheet.variant }}{% endif %}</td><td>{{ sheet.student_id }}</td>
         {% if sheet.result %}<td>{{ sheet.result.get_status_display }}</td><td>{{ sheet.result.score|default_if_none:'Pendente' }} / {{ sheet.result.maximum_score }}</td><td><a href="{% url 'paper-exams:review' sheet.result.pk %}">{% if sheet.result.reviewed_at %}Ver revisão{% else %}Conferir{% endif %}</a></td>
-        {% else %}<td>Não importado</td><td>—</td><td>—</td>{% endif %}<td><a href="{% url 'paper-exams:download' run.pk 'provas' %}?student={{ sheet.student_id }}">Prova individual</a>{% for page in sheet.scan_pages.all %}<br><a href="{% url 'paper-exams:scan-evidence' page.pk %}" target="_blank" rel="noopener">Página {{ page.page }} anexada</a>{% endfor %}</td></tr>{% endfor %}
+        {% else %}<td>Não importado</td><td>—</td><td>—</td>{% endif %}<td><a href="{% url 'paper-exams:download' run.pk 'provas' %}?student={{ sheet.student_id }}&amp;inline=1">Reimprimir prova</a> <a href="{% url 'paper-exams:download' run.pk 'folhas' %}?student={{ sheet.student_id }}&amp;inline=1">Reimprimir folha de respostas</a>{% for page in sheet.scan_pages.all %}<br><a href="{% url 'paper-exams:scan-evidence' page.pk %}" target="_blank" rel="noopener">Página {{ page.page }} anexada</a>{% endfor %}</td></tr>{% endfor %}
     </tbody></table></div>
 </section>
 <section class="panel"><h2>Últimos lotes</h2>

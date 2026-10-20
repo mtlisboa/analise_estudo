@@ -21,6 +21,9 @@ from .views import teacher_identity, base_data
 
 
 class ApplicationForm(forms.Form):
+    virtual_shuffle_questions = forms.BooleanField(label='Embaralhar questões para cada aluno', required=False)
+    virtual_shuffle_options = forms.BooleanField(label='Embaralhar alternativas para cada aluno', required=False)
+
     shuffle_questions = forms.BooleanField(label='Embaralhar questões', required=False, initial=True)
     shuffle_options = forms.BooleanField(label='Embaralhar alternativas', required=False, initial=True)
 
@@ -52,6 +55,9 @@ class ApplicationForm(forms.Form):
         start = data.get('scheduled_at') or timezone.now()
         if data.get('scheduled_at') and start <= timezone.now():
             self.add_error('scheduled_at', 'Escolha uma data e horário futuros.')
+        if data.get('delivery_mode') != 'online':
+            data['virtual_shuffle_questions'] = False
+            data['virtual_shuffle_options'] = False
         if data.get('delivery_mode') != 'printed' or data.get('kind') != 'EXAM':
             data['shuffle_questions'] = False
             data['shuffle_options'] = False
@@ -89,7 +95,15 @@ def apply(request, assessment_pk):
                     obj = Publication(teacher=account, assessment=assessment, offer=offer, subject=subject,
                         request_token=form.cleaned_data['request_token'], application_status='scheduled',
                         scheduled_at=form.cleaned_data.get('scheduled_at') or timezone.now(),
-                        release_visible=form.cleaned_data['is_visible'])
+                        release_visible=form.cleaned_data['is_visible'],
+                        application_metadata={
+                            'virtual_shuffle_questions': form.cleaned_data['virtual_shuffle_questions'],
+                            'virtual_shuffle_options': form.cleaned_data['virtual_shuffle_options'],
+                            'physical_shuffle_questions': form.cleaned_data['shuffle_questions'],
+                            'physical_shuffle_options': form.cleaned_data['shuffle_options'],
+                            'assessment_metadata': list(assessment.metadata_tags),
+                            'selected_offer_ids': [offer.pk for offer in form.cleaned_data['offers']],
+                        })
                     for key in ('kind', 'title', 'instructions', 'due_at', 'delivery_mode'):
                         setattr(obj, key, form.cleaned_data[key])
                     obj.save()
@@ -99,7 +113,9 @@ def apply(request, assessment_pk):
                             shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
                             variant_seed=str(form.cleaned_data['request_token']))
                         obj.exam_run.title = obj.title
-                        obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic)
+                        obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic,
+                            application_metadata=obj.application_metadata, application_id=obj.pk, kind=obj.kind,
+                            starts_at=obj.scheduled_at.isoformat(), due_at=obj.due_at.isoformat() if obj.due_at else None)
                         obj.exam_run.save(update_fields=['title', 'context'])
                         obj.save(update_fields=['exam_run'])
                     if not form.cleaned_data.get('scheduled_at'):
@@ -108,6 +124,8 @@ def apply(request, assessment_pk):
             form.add_error(None, exc)
         else:
             messages.success(request, 'Aplicação salva para iniciar na data e hora definidas.' if form.cleaned_data.get('scheduled_at') else ('Aplicação realizada.' if form.cleaned_data['is_visible'] else 'Aplicação salva e oculta aos alunos.'))
+            if form.cleaned_data['delivery_mode'] == 'printed':
+                return redirect('paper-exams:print-application', request_token=form.cleaned_data['request_token'])
             return redirect('coursework:apply', assessment_pk=assessment.pk)
     applications = Publication.objects.filter(assessment=assessment, teacher=account).select_related('offer', 'exam_run').order_by('-created_at')
     return render(request, 'coursework/apply.html', {**base_data(account), 'assessment': assessment, 'form': form,
