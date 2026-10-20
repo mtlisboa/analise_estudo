@@ -293,3 +293,23 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertFalse(assessment.shuffle_options)
         self.assertFalse(Publication.objects.filter(assessment=assessment).exists())
         self.assertEqual(self.client.get(response.url).context['form']['metadata_text'].value(), 'frações; revisão')
+
+    def test_application_mode_dialog_on_list_and_editor(self):
+        for url in (reverse('assessments:index'), reverse('assessments:questionnaire-edit', args=[self.assessment.pk])):
+            page = self.client.get(url)
+            self.assertContains(page, 'id="application-mode-dialog"', count=1)
+            self.assertContains(page, 'data-choose-application-mode')
+            self.assertContains(page, 'data-application-mode="online"')
+            self.assertContains(page, 'data-application-mode="printed"')
+            self.assertContains(page, 'application-mode-dialog.js')
+
+    def test_application_mode_choice_initializes_form_without_applying(self):
+        url = reverse('coursework:apply', args=[self.assessment.pk])
+        before = Publication.objects.filter(assessment=self.assessment).count()
+        for mode in ('online', 'printed'):
+            response = self.client.get(url, {'delivery_mode': mode})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context['form']['delivery_mode'].value(), mode)
+        response = self.client.get(url, {'delivery_mode': 'invalid'})
+        self.assertEqual(response.context['form']['delivery_mode'].value(), 'online')
+        self.assertEqual(Publication.objects.filter(assessment=self.assessment).count(), before)

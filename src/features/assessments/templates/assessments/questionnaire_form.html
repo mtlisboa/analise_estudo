@@ -8,7 +8,7 @@
 <button class="button button-secondary" type="button" data-open-picker>Selecionar questões</button></div>
 <div class="questionnaire-section">{{ form.metadata_text.as_field_group }}</div>
 <button class="button" type="submit">Salvar questionário</button></form>
-{% if assessment.pk %}<section class="questionnaire-section"><h2>Aplicações</h2><a class="button" href="{% url 'coursework:apply' assessment.pk %}">Aplicar avaliação</a> <a class="button button-secondary" href="{% url 'coursework:schedule' assessment.pk %}">Agendar aplicação</a><p><a href="{% url 'coursework:apply' assessment.pk %}">Consultar aplicações e agendamentos</a></p></section>{% endif %}
+{% if assessment.pk %}<section class="questionnaire-section"><h2>Aplicações</h2><a class="button" href="{% url 'coursework:apply' assessment.pk %}" data-choose-application-mode>Aplicar avaliação</a> <a class="button button-secondary" href="{% url 'coursework:schedule' assessment.pk %}">Agendar aplicação</a><p><a href="{% url 'coursework:apply' assessment.pk %}">Consultar aplicações e agendamentos</a></p></section>{% endif %}
 <dialog id="question-picker-dialog" class="question-dialog" aria-labelledby="question-picker-title"><div class="dialog-toolbar"><h2 id="question-picker-title">Selecionar questões</h2><button type="button" data-close-dialog>Concluir seleção</button></div><p>As questões selecionadas ficam vinculadas ao salvar o questionário.</p>
 <section class="picker-selection"><h3>Questões selecionadas · ordem no questionário</h3><p>Arraste pela alça ou use Subir e Descer. A seleção permanece ao trocar os filtros.</p><div data-picker-selected></div><p data-selection-status role="status" aria-live="polite"></p></section>
 <form class="bank-filter" data-picker-search aria-label="Filtros de questões">
@@ -18,5 +18,5 @@
 <div class="settings-field"><label for="picker-type">Tipo de questão</label><select id="picker-type" name="question_type"><option value="">Todos os tipos</option><option value="multiple_choice">Fechada</option><option value="open_ended">Aberta</option></select></div>
 <button class="button button-secondary" type="submit">Buscar</button><button type="button" data-clear-picker-filters>Limpar filtros</button></form>
 <div data-infinite-list data-picker-list data-url="{% url 'assessments:question-bank' %}" data-scope="all"></div><button type="button" data-load-more class="bank-load">Carregar mais</button><p data-list-status role="status"></p></dialog>
-{% include 'assessments/preview_dialog.html' %}</section>{% endblock %}
-{% block scripts %}<script src="{% static 'js/question-workspace.js' %}?v=4" defer></script>{% endblock %}
+{% include 'assessments/application_mode_dialog.html' %}{% include 'assessments/preview_dialog.html' %}</section>{% endblock %}
+{% block scripts %}<script src="{% static 'js/application-mode-dialog.js' %}" defer></script><script src="{% static 'js/question-workspace.js' %}?v=4" defer></script>{% endblock %}

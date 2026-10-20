@@ -68,6 +68,8 @@ def apply(request, assessment_pk, scheduling=False):
     account = teacher_identity(request)
     assessment = get_object_or_404(Assessment, pk=assessment_pk, owner=request.user)
     form = ApplicationForm(account, assessment, request.POST if request.method == 'POST' else None, scheduling=scheduling)
+    if request.method == 'GET' and request.GET.get('delivery_mode') in ('online', 'printed'):
+        form.initial['delivery_mode'] = request.GET['delivery_mode']
     if request.method == 'POST' and form.is_valid():
         try:
             with transaction.atomic():
