@@ -391,3 +391,28 @@ class AssessmentApplicationTests(TestCase):
         self.assertFalse(obj.application_metadata['physical_shuffle_questions'])
         self.assertFalse(obj.application_metadata['physical_shuffle_options'])
         self.assertIsNone(obj.exam_run_id)
+
+    def test_explicit_physical_shuffle_button_is_in_physical_section(self):
+        page = self.client.get(reverse('coursework:apply', args=[self.assessment.pk]), {'delivery_mode': 'printed'})
+        body = page.content.decode()
+        physical = body.split('<fieldset data-physical-exam-settings>', 1)[1].split('</fieldset>', 1)[0]
+        self.assertIn('data-shuffle-physical', physical)
+        self.assertIn('Embaralhar físico — A, B e C', physical)
+        self.assertIn('name="shuffle_questions"', physical)
+        self.assertIn('name="shuffle_options"', physical)
+        self.assertContains(page, 'assessment-application.js?v=5')
+
+    def test_physical_activity_can_use_same_abc_algorithm(self):
+        from features.assessments.models import Question
+        for order in (3, 4):
+            Question.objects.create(assessment=self.assessment, order=order, statement=f'Questão extra {order}',
+                options=['A', 'B', 'C'], correct_answer='A', points=1)
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]),
+            self.payload(kind='ACTIVITY', delivery_mode='printed', due_at='', shuffle_questions='on', shuffle_options='on'))
+        self.assertEqual(response.status_code, 302)
+        obj = Publication.objects.get(title='Aplicação independente')
+        self.assertEqual(set(obj.exam_run.variants), set('ABC'))
+        self.assertTrue(obj.exam_run.context['shuffle_questions'])
+        self.assertTrue(obj.exam_run.context['shuffle_options'])
+        for questions in obj.exam_run.variants.values():
+            self.assertEqual(questions[-1]['type'], 'open_ended')

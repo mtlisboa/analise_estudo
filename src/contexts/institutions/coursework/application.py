@@ -58,7 +58,7 @@ class ApplicationForm(forms.Form):
         if data.get('delivery_mode') != 'online':
             data['virtual_shuffle_questions'] = False
             data['virtual_shuffle_options'] = False
-        if data.get('delivery_mode') != 'printed' or data.get('kind') != 'EXAM':
+        if data.get('delivery_mode') != 'printed':
             data['shuffle_questions'] = False
             data['shuffle_options'] = False
         if data.get('delivery_mode') == 'printed':
@@ -109,7 +109,7 @@ def apply(request, assessment_pk):
                     obj.save()
                     publish(account, obj, prepare_only=True)
                     if obj.delivery_mode == 'printed':
-                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=obj.kind == 'EXAM',
+                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=obj.kind == 'EXAM' or form.cleaned_data['shuffle_questions'] or form.cleaned_data['shuffle_options'],
                             shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
                             variant_seed=str(form.cleaned_data['request_token']))
                         obj.exam_run.title = obj.title
