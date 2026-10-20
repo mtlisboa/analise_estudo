@@ -13,6 +13,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from .models import Publication, Submission, SubmissionReview
+from .digital import presentation
 from .services import student_publications, enable_legacy_submission
 from .views import base_data, owned_publication
 from ..views import institutional_identity
@@ -25,14 +26,25 @@ def revision(publication):
 class AnswerForm(forms.Form):
     revision = forms.CharField(widget=forms.HiddenInput)
 
-    def __init__(self, publication, *args, **kwargs):
+    def __init__(self, publication, *args, student_id=None, **kwargs):
+        # Numeric values from the former form are translated into frozen option IDs.
+        if args and args[0] is not None:
+            data = args[0].copy()
+            for index, question in enumerate(publication.public_snapshot.get('questions', [])):
+                name = f'q{index + 1}'
+                value = data.get(name, '')
+                ids = question.get('option_ids', [])
+                if ids and str(value).isdigit() and 0 <= int(value) < len(ids):
+                    data[name] = ids[int(value)]
+            args = (data, *args[1:])
         super().__init__(*args, **kwargs)
+        self.content = presentation(publication, student_id)
         self.fields['revision'].initial = revision(publication)
-        for index, question in enumerate(publication.public_snapshot.get('questions', [])):
-            name = f'q{index+1}'
+        for index, question in enumerate(self.content.get('questions', [])):
+            name = question['_field']
             if question.get('type') == 'multiple_choice' or question.get('options'):
                 self.fields[name] = forms.ChoiceField(label=f'Resposta da questão {index+1}',
-                    choices=[(str(i), option) for i, option in enumerate(question['options'])], widget=forms.RadioSelect)
+                    choices=question['_choices'], widget=forms.RadioSelect(attrs={'data-question-id': question.get('id', name)}))
             else:
                 self.fields[name] = forms.CharField(label=f'Resposta da questão {index+1}', max_length=15000,
                     widget=forms.Textarea(attrs={'rows': 5}))
@@ -54,7 +66,7 @@ def student_detail(request, pk):
         raise PermissionDenied('Este questionário é respondido em papel.')
     obj = enable_legacy_submission(obj)
     submission = Submission.objects.filter(publication=obj, student=request.user).first()
-    form = AnswerForm(obj, request.POST if request.method == 'POST' else None)
+    form = AnswerForm(obj, request.POST if request.method == 'POST' else None, student_id=request.user.pk)
     if request.method == 'POST' and not submission and form.is_valid():
         with transaction.atomic():
             obj = Publication.objects.select_for_update().get(pk=pk)
@@ -72,6 +84,13 @@ def student_detail(request, pk):
                 form.add_error(None, 'O professor precisa republicar esta atividade para habilitar o envio.')
             else:
                 answers = {k: v for k, v in form.cleaned_data.items() if k != 'revision'}
+                answer_ids = {}
+                for index, question in enumerate(obj.public_snapshot.get('questions', [])):
+                    name = f'q{index+1}'
+                    if question.get('id'):
+                        answer_ids[question['id']] = answers[name]
+                    if question.get('option_ids') and question.get('options'):
+                        answers[name] = str(question['option_ids'].index(answers[name]))
                 score = Decimal('0')
                 maximum = Decimal('0')
                 pending = not obj.grading_snapshot
@@ -79,15 +98,18 @@ def student_detail(request, pk):
                     maximum += Decimal(key['points'])
                     if key['type'] == 'open_ended' or key.get('manual'):
                         pending = True
+                    elif key.get('correct_option_id') is not None:
+                        if answer_ids.get(key['question_id']) == key['correct_option_id']:
+                            score += Decimal(key['points'])
                     elif obj.public_snapshot['questions'][i]['options'][int(answers[f'q{i+1}'])] == key['answer']:
                         score += Decimal(key['points'])
-                Submission.objects.create(publication=obj, student=request.user, answers=answers,
+                Submission.objects.create(publication=obj, student=request.user, answers=answers, answer_ids=answer_ids,
                     automatic_score=score, maximum_score=maximum, score=None if pending else score)
                 messages.success(request, 'Respostas enviadas. Sua entrega foi registrada.')
                 return redirect('coursework:student-detail', pk=pk)
-    rows = [(q, form[f'q{i+1}']) for i, q in enumerate(obj.public_snapshot.get('questions', []))]
+    rows = [(q, form[q['_field']]) for q in form.content.get('questions', [])]
     return render(request, 'coursework/student.html', {**base_data(account), 'publication': obj,
-        'content': obj.public_snapshot, 'form': form, 'answer_rows': rows, 'submission': submission,
+        'content': form.content, 'form': form, 'answer_rows': rows, 'submission': submission,
         'activity_started': request.GET.get('iniciar') == '1' or request.method == 'POST',
         'deadline_passed': bool(obj.visible_due_at and timezone.now() > obj.visible_due_at),
         'ready_for_submission': len(obj.grading_snapshot) == len(obj.public_snapshot.get('questions', []))})

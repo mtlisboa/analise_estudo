@@ -49,13 +49,14 @@ def publish(account, publication, *, prepare_only=False):
         raise ValidationError('Uma prova precisa de questões. Uma atividade precisa de questões ou instruções.')
     for question in questions:
         question.full_clean()
+    from .digital import option_ids
     # Only these public fields cross into the student-facing snapshot.
     snapshot = {'delivery_mode': (publication.delivery_mode or publication.assessment.delivery_mode), 'title': publication.title, 'kind_label': publication.get_kind_display(),
         'description': publication.assessment.description, 'content_topic': publication.assessment.content_topic,
         'instructions': publication.instructions, 'due_at': publication.due_at.isoformat() if publication.due_at else None,
-        'questions': [{'answer_lines': q.answer_lines, 'content_blocks': q.ordered_content, 'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(), 'type': q.question_type,
+        'questions': [{'id': str(q.pk), 'option_ids': option_ids(q), 'answer_lines': q.answer_lines, 'content_blocks': q.ordered_content, 'support_text': q.support_text, 'images': [{'id': image.pk, 'description': image.description} for image in q.images.all()], 'statement': q.statement, 'question_type': q.get_question_type_display(), 'type': q.question_type,
                        'options': q.options, 'points': str(q.points)} for q in questions]}
-    grading = [{'type': q.question_type, 'answer': q.correct_answer, 'points': str(q.points)} for q in questions]
+    grading = [{'question_id': str(q.pk), 'correct_option_id': option_ids(q)[q.options.index(q.correct_answer)] if q.question_type == 'multiple_choice' else None, 'type': q.question_type, 'answer': q.correct_answer, 'points': str(q.points)} for q in questions]
     if publication.public_snapshot == snapshot and publication.grading_snapshot == grading:
         if publication.is_published:
             return publication
