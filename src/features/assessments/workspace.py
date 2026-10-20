@@ -133,8 +133,6 @@ class QuestionnaireForm(forms.ModelForm):
         self.instance.metadata_tags = tags
         subject = data.get('subject','').strip().upper()
         data['subject'] = subject
-        if any(item.subject.strip().upper() != subject for item in data.get('questions', [])):
-            self.add_error('questions','Selecione questões da disciplina do questionário.')
         if not data.get('questions') and not (self.instance.pk and self.instance.questions.filter(bank_item=None).exists()):
             self.add_error('questions','Selecione pelo menos uma questão.')
         return data
@@ -229,6 +227,7 @@ def questionnaire(request, pk=None):
         item.points_field = form[f'points_{item.pk}']
     return render(request,'assessments/questionnaire_form.html',{'form':form,'assessment':assessment,'selected_questions':selected,
         'open_question_picker': request.GET.get('select') == 'questions',
+        'picker_subjects': available_questions(request.user).exclude(subject='').order_by('subject').values_list('subject', flat=True).distinct(),
         'legacy_questions':assessment.questions.filter(bank_item=None) if pk else [],
         'runs':ExamRun.objects.filter(assessment=assessment,created_by=request.user) if pk else [],'workspace_page':'questionnaires'})
 
