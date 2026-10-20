@@ -86,21 +86,25 @@ def preview(request, pk):
 
 
 class QuestionnaireForm(forms.ModelForm):
+    metadata_text = forms.CharField(label='Metadados', required=False, max_length=20000,
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'frações; revisão; primeiro bimestre'}),
+        help_text='Use palavras-chave ou pequenos trechos indicativos, separados por ponto e vírgula (;).')
+
     questions = forms.ModelMultipleChoiceField(queryset=QuestionBankItem.objects.none(), required=False)
 
     class Meta:
         model = Assessment
-        fields = ['topic', 'subject', 'content_topic', 'kind', 'description', 'instructions', 'shuffle_options']
+        fields = ['topic', 'subject', 'content_topic', 'description', 'instructions', 'has_open_questions']
         labels = {'topic':'Título do questionário','subject':'Disciplina', 'content_topic': 'Assunto', 'kind': 'Tipo'}
         widgets = {'description': forms.Textarea(attrs={'rows': 4}), 'instructions': forms.Textarea(attrs={'rows': 4})}
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        self.fields['kind'].required = False
         self.fields['questions'].queryset = available_questions(user)
         if self.instance.pk:
             self.fields['questions'].initial = self.instance.questions.exclude(bank_item=None).values_list('bank_item_id', flat=True)
+            self.fields['metadata_text'].initial = '; '.join(self.instance.metadata_tags)
 
         selected_ids = (self.data.getlist('questions') if hasattr(self.data, 'getlist') else self.data.get('questions', [])) if self.is_bound else list(self.fields['questions'].initial or [])
         selected_ids = [int(value) for value in selected_ids if str(value).isdigit() and len(str(value)) <= 19]
@@ -120,7 +124,13 @@ class QuestionnaireForm(forms.ModelForm):
         if len(self.selection_ids) != len(set(self.selection_ids)):
             self.add_error('questions', 'Selecione cada questão apenas uma vez.')
         data['ordered_questions'] = [selected_items[pk] for pk in self.selection_ids if pk in selected_items]
-        data['kind'] = data.get('kind') or (self.instance.kind if self.instance.pk else 'ACTIVITY')
+        from .diagnostics import validate_tags
+        tags = list(dict.fromkeys(text.strip() for text in data.get('metadata_text', '').split(';') if text.strip()))
+        try:
+            validate_tags(tags)
+        except ValidationError as exc:
+            self.add_error('metadata_text', exc)
+        self.instance.metadata_tags = tags
         subject = data.get('subject','').strip().upper()
         data['subject'] = subject
         if any(item.subject.strip().upper() != subject for item in data.get('questions', [])):
@@ -137,7 +147,7 @@ def questionnaires(request):
     qs = Assessment.objects.filter(owner=request.user).annotate(question_total=Count('questions')).order_by('-updated_at')
     query = request.GET.get('q','').strip()[:100]
     if query:
-        qs = qs.filter(Q(topic__icontains=query)|Q(subject__icontains=query))
+        qs = qs.filter(Q(topic__icontains=query)|Q(subject__icontains=query)|Q(metadata_tags__icontains=query))
     return render(request,'assessments/questionnaires.html',{'questionnaire_page':Paginator(qs,20).get_page(request.GET.get('page')),
         'query':query,'workspace_page':'questionnaires'})
 
@@ -174,7 +184,7 @@ def questionnaire(request, pk=None):
                     new_ids = {q.pk for q in form.cleaned_data['questions']}
                     score_changed = any(q.points != form.cleaned_data.get(f'points_{q.bank_item_id}', q.points)
                         for q in locked.questions.exclude(bank_item=None) if f'points_{q.bank_item_id}' in request.POST)
-                    if (old_ids != new_ids or order_changed or score_changed or locked.shuffle_options != form.cleaned_data['shuffle_options'] or locked.subject != form.cleaned_data['subject']) and applied:
+                    if (old_ids != new_ids or order_changed or score_changed or locked.subject != form.cleaned_data['subject']) and applied:
                         raise ValidationError('Este questionário já foi aplicado. Crie outro para alterar questões, ordem, pontuação, alternativas, disciplina ou formato.')
                 obj = form.save(commit=False)
                 if not obj.technique_id:

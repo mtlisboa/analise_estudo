@@ -42,6 +42,9 @@ class AssessmentType(models.Model):
 
 
 class Assessment(models.Model):
+    has_open_questions = models.BooleanField('Contém questões abertas', default=False)
+    metadata_tags = models.JSONField('Metadados', default=list, blank=True, validators=[validate_tags])
+
     class Delivery(models.TextChoices):
         ONLINE = 'online', 'Área do aluno'
         PRINTED = 'printed', 'Impressa'
