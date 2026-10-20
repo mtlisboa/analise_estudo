@@ -10,12 +10,16 @@
         const action = form.querySelector('[data-confirm-application]');
         if (action) action.textContent = mode.value === 'printed' ? 'Imprimir' : 'Confirmar aplicação';
         const virtual = mode.value === 'online';
-        settings.hidden = !virtual;
-        settings.disabled = !virtual;
-        deadline.required = virtual;
-        const physicalExam = !virtual;
-        physicalSettings.hidden = !physicalExam;
-        physicalSettings.disabled = !physicalExam;
+        if (settings) {
+            settings.hidden = !virtual;
+            settings.disabled = !virtual;
+        }
+        if (deadline) deadline.required = virtual;
+        const physicalExam = mode.value === 'printed';
+        if (physicalSettings) {
+            physicalSettings.hidden = !physicalExam;
+            physicalSettings.disabled = !physicalExam;
+        }
     };
     mode.addEventListener('change', sync);
     kind.addEventListener('change', sync);
