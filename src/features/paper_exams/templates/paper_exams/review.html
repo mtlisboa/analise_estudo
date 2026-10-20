@@ -3,7 +3,7 @@
 <section class="panel">
 <a href="{% url 'paper-exams:detail' run.pk %}">← Resultados</a>
 <h1>Conferir folha de {{ result.sheet.student_name }}</h1>
-<p>{{ result.source_name }} · {{ result.get_status_display }}</p>
+<p>{% if result.sheet.variant %}Prova {{ result.sheet.variant }} · {% endif %}{{ result.source_name }} · {{ result.get_status_display }}</p>
 <ul>{% for issue in result.issues %}<li>{{ issue }}</li>{% endfor %}</ul>
 <p>Leitura original: {{ result.detected|join:', ' }}</p>
 {% if result.evidence %}<a href="{% url 'paper-exams:evidence' result.pk %}" target="_blank" rel="noopener">Abrir imagem em tamanho completo</a><img src="{% url 'paper-exams:evidence' result.pk %}" alt="Folha digitalizada do aluno para conferir as marcações" style="width:100%;max-width:720px;height:auto;display:block">{% endif %}

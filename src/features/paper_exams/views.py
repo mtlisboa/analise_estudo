@@ -59,7 +59,7 @@ class ReviewForm(forms.Form):
 
     def __init__(self, result, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for i, question in enumerate(result.sheet.run.questions):
+        for i, question in enumerate(result.sheet.questions):
             if question.get('type') == 'open_ended':
                 from decimal import Decimal
                 self.fields[f'open{i+1}'] = forms.DecimalField(label=f'Questão {i+1}: {question["statement"]} — nota (máximo {question["points"]})',
@@ -122,18 +122,21 @@ def download(request, pk, kind):
         return download_response(answer_sheets_pdf(run, sheets), 'application/pdf', 'folhas-de-respostas.pdf')
     if kind == 'provas':
         return download_response(exam_pdf(run, sheets), 'application/pdf', 'provas.pdf')
+    if kind == 'gabaritos' and run.variants:
+        from .documents import variant_keys_pdf
+        return download_response(variant_keys_pdf(run), 'application/pdf', 'gabaritos-ABC.pdf')
     if kind == 'modelo':
         return download_response(csv_template(run), 'text/csv; charset=utf-8', 'modelo-respostas.csv')
     if kind == 'resultados':
         stream = io.StringIO(newline='')
         writer = csv.writer(stream)
-        writer.writerow(['student_id', 'aluno', 'estado', 'nota', 'total'] + [f'q{i+1}' for i in range(len(run.questions))])
+        writer.writerow(['student_id', 'aluno'] + (['versao'] if run.variants else []) + ['estado', 'nota', 'total'] + [f'q{i+1}' for i in range(len(run.questions))])
         for sheet in run.sheets.select_related('result'):
             result = getattr(sheet, 'result', None)
             name = sheet.student_name
             if name.startswith(('=', '+', '-', '@', '\t', '\r', '\n')):
                 name = "'" + name
-            writer.writerow([sheet.student_id, name, result.get_status_display() if result else 'Não importado',
+            writer.writerow([sheet.student_id, name] + ([sheet.variant] if run.variants else []) + [result.get_status_display() if result else 'Não importado',
                              result.score if result and result.score is not None else '',
                              result.maximum_score if result else ''] + (result.answers if result else ['']*len(run.questions)))
         return download_response('\ufeff'+stream.getvalue(), 'text/csv; charset=utf-8', 'resultados.csv')
@@ -151,8 +154,8 @@ def review(request, result_pk):
         with transaction.atomic():
             locked = SheetResult.objects.select_for_update().get(pk=result.pk)
             answers = [locked.answers[i] if q.get('type') == 'open_ended' else form.cleaned_data[f'q{i+1}'].replace('-', '')
-                       for i, q in enumerate(run.questions)]
-            open_scores = {str(i+1): str(form.cleaned_data[f'open{i+1}']) for i, q in enumerate(run.questions)
+                       for i, q in enumerate(result.sheet.questions)]
+            open_scores = {str(i+1): str(form.cleaned_data[f'open{i+1}']) for i, q in enumerate(result.sheet.questions)
                            if q.get('type') == 'open_ended'}
             ResultReview.objects.create(result=locked, reviewer=request.user,
                 previous_answers=locked.answers, answers=answers, note=form.cleaned_data['note'],
@@ -160,7 +163,7 @@ def review(request, result_pk):
             locked.answers = answers
             locked.open_scores = open_scores
             from contexts.institutions.analysis.services import effective_questions
-            locked.score, locked.maximum_score = grade(effective_questions(run), locked.answers, open_scores)
+            locked.score, locked.maximum_score = grade(effective_questions(run, result.sheet), locked.answers, open_scores)
             locked.status = 'graded'
             locked.reviewed_by = request.user
             locked.reviewed_at = timezone.now()

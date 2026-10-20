@@ -34,7 +34,7 @@ def answer_sheets_pdf(run, sheets=None):
         for x, y in MARKERS:
             pdf.rect(x - 5, HEIGHT - y - 5, 10, 10, fill=1, stroke=0)
         pdf.setFont('Helvetica-Bold', 16)
-        pdf.drawString(50, HEIGHT - 66, 'Folha de respostas')
+        pdf.drawString(50, HEIGHT - 66, 'Folha de respostas' + (f' - Prova {sheet.variant}' if sheet.variant else ''))
         styles = getSampleStyleSheet()
         title = Paragraph(escape(run.title), styles['Normal'])
         frame = KeepInFrame(355, 38, [title], mode='shrink')
@@ -55,7 +55,7 @@ def answer_sheets_pdf(run, sheets=None):
         pdf.drawImage(ImageReader(qr), 438, HEIGHT - 187, 110, 110)
         pdf.setFont('Helvetica', 9)
         pdf.drawString(50, HEIGHT - 220, 'Preencha toda a bolinha com caneta preta ou azul. Marque uma alternativa por questão.')
-        for i, question in enumerate(run.questions):
+        for i, question in enumerate(sheet.questions):
             if question.get('type') == 'open_ended':
                 continue
             x, y = bubble_position(i, 0)
@@ -91,7 +91,7 @@ def exam_pdf(run, sheets=None):
         for key, heading in [('content_topic', 'Assunto'), ('description', 'Descrição'), ('instructions', 'Instruções')]:
             if run.context.get(key):
                 story.extend([paragraph(heading, 'Heading3'), paragraph(run.context[key]), Spacer(1, 8)])
-        for index, question in enumerate(run.questions):
+        for index, question in enumerate(sheet.questions):
             story.append(paragraph(f'Questão {index + 1} - {question["points"]} pontos', 'Heading3'))
             blocks = question.get('content_blocks')
             if blocks is None:
@@ -122,7 +122,7 @@ def exam_pdf(run, sheets=None):
             payload = signing.Signer(salt=SALT).sign(f'2:{sheet.student_id}:{sheet.pk.hex}:{doc.page}')
             qr = qrcode.make(payload).get_image()
             pdf.drawImage(ImageReader(qr), 438, HEIGHT - 165, 110, 110)
-            fields = [run.title, f'Aluno: {sheet.student_name}', f'Registro: {sheet.student_registration} | ID: {sheet.student_id}',
+            fields = [run.title + (f' | Prova {sheet.variant}' if sheet.variant else ''), f'Aluno: {sheet.student_name}', f'Registro: {sheet.student_registration} | ID: {sheet.student_id}',
                       f'Turma: {run.classroom_name}', f'Turno: {run.context.get("shift", "")} | Sala: {run.context.get("room", "")}',
                       f'Oferta: {run.context.get("offer", "")}']
             block = KeepInFrame(375, 130, [paragraph(v) for v in fields], mode='shrink')
@@ -135,3 +135,22 @@ def exam_pdf(run, sheets=None):
         writer.append(PdfReader(body))
     writer.write(output)
     return output.getvalue()
+
+
+def variant_keys_pdf(run):
+    from contexts.institutions.analysis.services import effective_questions
+    from types import SimpleNamespace
+    stream = BytesIO()
+    styles = getSampleStyleSheet()
+    story = []
+    for version in run.variants:
+        if story:
+            story.append(PageBreak())
+        story.append(Paragraph(escape(f'{run.title} - Gabarito {version}'), styles['Heading1']))
+        for index, question in enumerate(effective_questions(run, SimpleNamespace(variant=version))):
+            answer = 'Correção manual' if question.get('type') == 'open_ended' else question['correct']
+            if question.get('annulled'):
+                answer = 'Anulada'
+            story.append(Paragraph(escape(f'{index + 1:02}. {answer}'), styles['Normal']))
+    SimpleDocTemplate(stream, pagesize=A4).build(story)
+    return stream.getvalue()

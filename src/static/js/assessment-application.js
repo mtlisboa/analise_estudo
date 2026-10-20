@@ -4,13 +4,19 @@
     const mode = form.querySelector('[name="delivery_mode"]');
     const settings = form.querySelector('[data-virtual-settings]');
     const deadline = form.querySelector('[name="due_at"]');
+    const kind = form.querySelector('[name="kind"]');
+    const physicalSettings = form.querySelector('[data-physical-exam-settings]');
     const sync = () => {
         const virtual = mode.value === 'online';
         settings.hidden = !virtual;
         settings.disabled = !virtual;
         deadline.required = virtual;
+        const physicalExam = !virtual && kind.value === 'EXAM';
+        physicalSettings.hidden = !physicalExam;
+        physicalSettings.disabled = !physicalExam;
     };
     mode.addEventListener('change', sync);
+    kind.addEventListener('change', sync);
     sync();
 
     const picker = form.querySelector('#application-offer-dialog');

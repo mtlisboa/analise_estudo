@@ -21,6 +21,9 @@ from .views import teacher_identity, base_data
 
 
 class ApplicationForm(forms.Form):
+    shuffle_questions = forms.BooleanField(label='Embaralhar questões', required=False, initial=True)
+    shuffle_options = forms.BooleanField(label='Embaralhar alternativas', required=False, initial=True)
+
     request_token = forms.UUIDField(widget=forms.HiddenInput, initial=uuid.uuid4)
     kind = forms.ChoiceField(label='Tipo de aplicação', choices=[('EXAM', 'Prova'), ('ACTIVITY', 'Atividade')])
     offers = forms.ModelMultipleChoiceField(label='Turmas para aplicar', queryset=Offer.objects.none(), widget=forms.CheckboxSelectMultiple)
@@ -52,6 +55,9 @@ class ApplicationForm(forms.Form):
         start = data.get('scheduled_at') or timezone.now()
         if self.scheduling and start <= timezone.now():
             self.add_error('scheduled_at', 'Escolha uma data e horário futuros.')
+        if data.get('delivery_mode') != 'printed' or data.get('kind') != 'EXAM':
+            data['shuffle_questions'] = False
+            data['shuffle_options'] = False
         if data.get('delivery_mode') == 'printed':
             data['due_at'] = None
             data['is_visible'] = True
@@ -92,7 +98,9 @@ def apply(request, assessment_pk, scheduling=False):
                     obj.save()
                     publish(account, obj, prepare_only=True)
                     if obj.delivery_mode == 'printed':
-                        obj.exam_run = issue_run(assessment, offer.classroom, request.user)
+                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=obj.kind == 'EXAM',
+                            shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
+                            variant_seed=str(form.cleaned_data['request_token']))
                         obj.exam_run.title = obj.title
                         obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic)
                         obj.exam_run.save(update_fields=['title', 'context'])

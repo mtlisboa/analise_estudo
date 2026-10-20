@@ -96,6 +96,8 @@ def read_marks(aligned, questions):
 
 def read_page(image, questions):
     aligned, identity = align(image)
+    if callable(questions):
+        questions = questions(identity)
     answers, issues = read_marks(aligned, questions)
     ok, png = cv2.imencode('.png', aligned)
     if not ok:

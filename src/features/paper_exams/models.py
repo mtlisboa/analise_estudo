@@ -15,6 +15,7 @@ class ExamRun(models.Model):
     classroom_name = models.CharField(max_length=300)
     context = models.JSONField(default=dict, blank=True)
     questions = models.JSONField()
+    variants = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -27,6 +28,11 @@ class AnswerSheet(models.Model):
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     student_name = models.CharField(max_length=300)
     student_registration = models.CharField(max_length=150)
+    variant = models.CharField(max_length=1, blank=True, choices=[('A', 'A'), ('B', 'B'), ('C', 'C')])
+
+    @property
+    def questions(self):
+        return self.run.variants.get(self.variant, self.run.questions)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['run', 'student'], name='one_sheet_per_student_run')]

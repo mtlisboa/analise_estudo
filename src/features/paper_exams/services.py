@@ -23,7 +23,7 @@ MAX_PAGES = 100
 
 
 @transaction.atomic
-def issue_run(assessment, classroom, user, student_ids=None):
+def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None):
     if assessment.owner_id != user.pk or not can_manage_classroom(user, classroom):
         raise ValidationError('Você não pode emitir provas para esta avaliação ou turma.')
     account = getattr(user, 'institutional_account', None)
@@ -80,8 +80,15 @@ def issue_run(assessment, classroom, user, student_ids=None):
                'offer': str(offer.code) if offer else '', 'period': str(offer.period) if offer else ''}
     run = ExamRun.objects.create(assessment=assessment, classroom=classroom, created_by=user,
             title=str(assessment), classroom_name=str(classroom), questions=snapshot, context=context, subject=assessment.subject.strip().upper())
-    AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user,
-            student_name=m.user.get_full_name() or m.user.username, student_registration=getattr(getattr(m.user, 'institutional_account', None), 'registration', m.user.username)) for m in members])
+    if versioned:
+        from .variants import make_variants
+        run.questions = sorted(snapshot, key=lambda q: q.get('type') == 'open_ended')
+        run.variants = make_variants(run.questions, variant_seed or run.pk, shuffle_questions, shuffle_options)
+        run.context.update(shuffle_questions=shuffle_questions, shuffle_options=shuffle_options)
+        run.save(update_fields=['questions', 'variants', 'context'])
+    members.sort(key=lambda m: ((m.user.get_full_name() or m.user.username).casefold(), m.user_id))
+    AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user, variant='ABC'[index % 3] if versioned else '',
+            student_name=m.user.get_full_name() or m.user.username, student_registration=getattr(getattr(m.user, 'institutional_account', None), 'registration', m.user.username)) for index, m in enumerate(members)])
     return run
 
 
@@ -108,9 +115,9 @@ def save_result(batch, identity, answers, issues, source, evidence=None):
     if len(answers) != len(batch.run.questions):
         raise ReadError('Quantidade de respostas diferente da prova.')
     from contexts.institutions.analysis.services import effective_questions
-    score, maximum = grade(effective_questions(batch.run), answers)
+    score, maximum = grade(effective_questions(batch.run, sheet), answers)
     issues = list(issues)
-    if any(q.get('type') == 'open_ended' for q in batch.run.questions):
+    if any(q.get('type') == 'open_ended' for q in sheet.questions):
         issues.append('Questões abertas aguardam correção do professor.')
     result, created = SheetResult.objects.get_or_create(sheet=sheet, defaults={
         'batch': batch, 'source_name': source[:255], 'detected': answers, 'answers': answers,
@@ -148,12 +155,17 @@ def import_csv(batch, data):
         try:
             if None in row or any(v is None for v in row.values()):
                 raise ReadError('Quantidade de colunas inválida.')
+            try:
+                sheet = batch.run.sheets.get(pk=row['sheet_id'].strip(), student_id=row['student_id'].strip())
+            except (AnswerSheet.DoesNotExist, ValidationError, ValueError, TypeError):
+                raise ReadError('Aluno ou folha não corresponde à emissão selecionada.')
+            questions = sheet.questions
             answers = [row[f'q{i+1}'].strip().upper() for i in range(len(batch.run.questions))]
             for index, answer in enumerate(answers):
-                if batch.run.questions[index].get('type') == 'open_ended':
+                if questions[index].get('type') == 'open_ended':
                     answers[index] = row[f'q{index+1}'].strip()[:15000]
                     continue
-                if answer and answer not in list(LETTERS[:len(batch.run.questions[index]['options'])]):
+                if answer and answer not in list(LETTERS[:len(questions[index]['options'])]):
                     raise ReadError(f'Questão {index+1}: alternativa inválida. Use uma letra ou deixe vazio.')
             save_result(batch, {'sheet': row['sheet_id'].strip(), 'student': row['student_id'].strip(),
                         'run': str(batch.run_id)}, answers, [], f'{batch.filename}: linha {line}')
@@ -214,7 +226,7 @@ def import_scans(batch, files):
                     if identity and identity.get('v') == 2:
                         save_scan_page(batch, identity, image)
                         continue
-                    identity, answers, issues, evidence = read_page(image, batch.run.questions)
+                    identity, answers, issues, evidence = read_page(image, lambda identity: questions_for_identity(batch, identity))
                     save_result(batch, identity, answers, issues, source, evidence)
                 except ReadError as exc:
                     batch.errors.append(f'{source}: {exc}')
@@ -282,3 +294,10 @@ def save_scan_page(batch, identity, image):
         defaults={'evidence': png.tobytes(), 'uploaded_by': batch.created_by})
     if not created:
         raise ReadError('Página já anexada. A imagem original foi preservada.')
+
+
+def questions_for_identity(batch, identity):
+    try:
+        return batch.run.sheets.get(pk=identity.get('sheet'), student_id=identity.get('student')).questions
+    except (AnswerSheet.DoesNotExist, ValidationError, ValueError, TypeError):
+        raise ReadError('Aluno ou folha não corresponde à emissão selecionada.')
