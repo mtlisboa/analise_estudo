@@ -338,3 +338,15 @@ class AssessmentApplicationTests(TestCase):
         self.assertEqual(response.context['form']['instructions'].value(), edited)
         self.assessment.refresh_from_db()
         self.assertEqual(self.assessment.instructions, original)
+
+    def test_format_is_hidden_and_keeps_initial_modal_choice(self):
+        import re
+        url = reverse('coursework:apply', args=[self.assessment.pk])
+        for mode in ('online', 'printed'):
+            response = self.client.get(url, {'delivery_mode': mode})
+            self.assertNotContains(response, 'Formato de aplicação')
+            self.assertNotContains(response, '<select name="delivery_mode"')
+            hidden = re.search(r'<input[^>]*name="delivery_mode"[^>]*>', response.content.decode())
+            self.assertIsNotNone(hidden)
+            self.assertIn('type="hidden"', hidden.group())
+            self.assertIn(f'value="{mode}"', hidden.group())

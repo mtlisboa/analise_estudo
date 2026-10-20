@@ -28,7 +28,7 @@ class ApplicationForm(forms.Form):
     kind = forms.ChoiceField(label='Tipo de aplicação', choices=[('EXAM', 'Prova'), ('ACTIVITY', 'Atividade')])
     offers = forms.ModelMultipleChoiceField(label='Turmas para aplicar', queryset=Offer.objects.none(), widget=forms.CheckboxSelectMultiple)
     title = forms.CharField(label='Título', max_length=160)
-    delivery_mode = forms.ChoiceField(label='Formato de aplicação', choices=[('printed', 'Física'), ('online', 'Virtual')])
+    delivery_mode = forms.ChoiceField(choices=[('printed', 'Física'), ('online', 'Virtual')], widget=forms.HiddenInput)
     instructions = forms.CharField(label='Instruções desta aplicação', required=False, max_length=3000,
         help_text='Preenchido com as instruções do questionário. Você pode editar o texto para esta aplicação.',
         widget=forms.Textarea(attrs={'rows': 4}))
