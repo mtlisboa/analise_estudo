@@ -1,0 +1,22 @@
+{% extends 'institutions/base.html' %}{% load static %}
+{% block workspace_content %}
+<section class="dash-card full-card">
+<h1>Meus alunos</h1>
+<p>Selecione um aluno para reemitir os documentos das suas aplicações. A versão da prova e o QR Code são preservados.</p>
+<form method="get"><label for="student-search">Pesquisar aluno por nome ou registro</label><input id="student-search" name="q" value="{{ query }}" type="search"><button type="submit" class="button">Pesquisar</button></form>
+<p>Até 50 resultados. Refine a pesquisa para localizar o aluno.</p>
+{% for student in students %}<p><a href="?student={{ student.pk }}">{{ student.get_full_name|default:student.username }} · {{ student.institutional_account.registration }}</a></p>{% empty %}<p>Nenhum aluno encontrado nas suas turmas.</p>{% endfor %}
+</section>
+{% if selected_student %}<section class="dash-card full-card"><h2>{{ selected_student.get_full_name|default:selected_student.username }}</h2>
+{% for sheet in sheets %}<article><h3>{{ sheet.run.title }} · {{ sheet.run.classroom_name }}</h3><p>{{ sheet.run.created_at|date:'d/m/Y H:i' }} · Prova {{ sheet.variant|default:'original' }}</p>
+<a class="button" data-preview-pdf href="{% url 'paper-exams:download' sheet.run_id 'folhas' %}?student={{ selected_student.pk }}&amp;inline=1">Reemitir gabarito</a>
+<a class="button" data-preview-pdf href="{% url 'paper-exams:download' sheet.run_id 'provas' %}?student={{ selected_student.pk }}&amp;inline=1">Reemitir prova</a>
+</article>{% empty %}<p>Nenhuma prova emitida por você para este aluno.</p>{% endfor %}</section>{% endif %}
+<dialog data-print-dialog aria-labelledby="print-preview-title" style="width: min(1100px, 95vw); max-width: 95vw;">
+<div class="dialog-toolbar"><h2 id="print-preview-title">PDF para impressão</h2><button type="button" data-close-print>Fechar</button></div>
+<p data-print-status role="status" aria-live="polite"></p>
+<p><a data-print-open target="_blank" rel="noopener" hidden>Abrir PDF em nova guia / imprimir</a></p>
+<iframe data-print-frame title="Documento para impressão" style="width:100%;height:75vh;border:0" hidden></iframe>
+</dialog>
+{% endblock %}
+{% block scripts %}{{ block.super }}<script src="{% static 'js/student-print-preview.js' %}" defer></script>{% endblock %}

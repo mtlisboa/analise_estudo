@@ -3,6 +3,7 @@ from . import views
 
 app_name = 'paper-exams'
 urlpatterns = [
+    path('alunos/', views.students, name='students'),
     path('aplicacao/<uuid:request_token>/imprimir/', views.print_application, name='print-application'),
     path('fotografar/', views.scan, name='scan'),
     path('pagina/<int:page_pk>/', views.scan_evidence, name='scan-evidence'),

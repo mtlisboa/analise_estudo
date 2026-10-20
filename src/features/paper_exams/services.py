@@ -23,15 +23,14 @@ MAX_PAGES = 100
 
 
 @transaction.atomic
-def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None):
+def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None, variant_offset=0):
     if assessment.owner_id != user.pk or not can_manage_classroom(user, classroom):
         raise ValidationError('Você não pode emitir provas para esta avaliação ou turma.')
     account = getattr(user, 'institutional_account', None)
     if account:
-        from contexts.institutions.coursework.services import teacher_disciplines
-        if not any(r['offer'].classroom_id == classroom.pk and r['subject'].casefold() == assessment.subject.casefold()
-                   for r in teacher_disciplines(account)):
-            raise ValidationError('Selecione uma turma em que você leciona esta disciplina.')
+        from contexts.institutions.coursework.services import teacher_offers
+        if not teacher_offers(account).filter(classroom_id=classroom.pk).exists():
+            raise ValidationError('Selecione uma turma da instituição com vínculo ativo de professor.')
     questions = list(assessment.questions.prefetch_related('images'))
     if not 1 <= len(questions) <= 50:
         raise ValidationError('A emissão aceita de 1 a 50 questões por prova.')
@@ -76,7 +75,8 @@ def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False,
     if len(members) > 100:
         raise ValidationError('A emissão está limitada a 100 alunos por turma.')
     offer = getattr(classroom, 'planning_offer', None)
-    context = {'shift': classroom.get_shift_display(), 'room': classroom.name,
+    context = {'teacher': user.get_full_name() or user.username,
+               'shift': classroom.get_shift_display(), 'room': classroom.name,
                'offer': str(offer.code) if offer else '', 'period': str(offer.period) if offer else ''}
     run = ExamRun.objects.create(assessment=assessment, classroom=classroom, created_by=user,
             title=str(assessment), classroom_name=str(classroom), questions=snapshot, context=context, subject=assessment.subject.strip().upper())
@@ -87,7 +87,7 @@ def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False,
         run.context.update(shuffle_questions=shuffle_questions, shuffle_options=shuffle_options)
         run.save(update_fields=['questions', 'variants', 'context'])
     members.sort(key=lambda m: ((m.user.get_full_name() or m.user.username).casefold(), m.user_id))
-    AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user, variant='ABC'[index % 3] if versioned else '',
+    AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user, variant='ABC'[(index + variant_offset) % 3] if versioned else '',
             student_name=m.user.get_full_name() or m.user.username, student_registration=getattr(getattr(m.user, 'institutional_account', None), 'registration', m.user.username)) for index, m in enumerate(members)])
     return run
 

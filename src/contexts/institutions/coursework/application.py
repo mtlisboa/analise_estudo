@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.http import JsonResponse
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
@@ -85,9 +87,13 @@ def apply(request, assessment_pk):
                 Assessment.objects.select_for_update().get(pk=assessment.pk)
                 if not assessment.questions.exists():
                     raise ValidationError('Selecione as questões antes de aplicar a avaliação.')
+                variant_offset = 0
                 for offer in form.cleaned_data['offers']:
                     # A double click or repeated POST cannot issue a second application.
-                    if Publication.objects.filter(request_token=form.cleaned_data['request_token'], offer=offer).exists():
+                    existing = Publication.objects.filter(request_token=form.cleaned_data['request_token'], offer=offer).select_related('exam_run').first()
+                    if existing:
+                        if existing.exam_run_id:
+                            variant_offset += existing.exam_run.sheets.count()
                         continue
                     subject = assessment.subject
                     obj = Publication(teacher=account, assessment=assessment, offer=offer, subject=subject,
@@ -107,12 +113,14 @@ def apply(request, assessment_pk):
                     obj.save()
                     publish(account, obj, prepare_only=True)
                     if obj.delivery_mode == 'printed':
-                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=obj.kind == 'EXAM' or form.cleaned_data['shuffle_questions'] or form.cleaned_data['shuffle_options'],
+                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=True,
                             shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
-                            variant_seed=str(form.cleaned_data['request_token']))
+                            variant_seed=str(form.cleaned_data['request_token']), variant_offset=variant_offset)
+                        variant_offset += obj.exam_run.sheets.count()
                         obj.exam_run.title = obj.title
                         obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic,
                             application_metadata=obj.application_metadata, application_id=obj.pk, kind=obj.kind,
+                            print_layout='answer_sheets_then_ABC_with_trailing_covers',
                             starts_at=obj.scheduled_at.isoformat(), due_at=obj.due_at.isoformat() if obj.due_at else None)
                         obj.exam_run.save(update_fields=['title', 'context'])
                         obj.save(update_fields=['exam_run'])
@@ -123,8 +131,13 @@ def apply(request, assessment_pk):
         else:
             messages.success(request, 'Aplicação salva para iniciar na data e hora definidas.' if form.cleaned_data.get('scheduled_at') else ('Aplicação realizada.' if form.cleaned_data['is_visible'] else 'Aplicação salva e oculta aos alunos.'))
             if form.cleaned_data['delivery_mode'] == 'printed':
+                if request.headers.get('Accept') == 'application/json':
+                    return JsonResponse({'pdf_url': reverse('paper-exams:print-application',
+                        kwargs={'request_token': form.cleaned_data['request_token']})})
                 return redirect('paper-exams:print-application', request_token=form.cleaned_data['request_token'])
             return redirect('coursework:apply', assessment_pk=assessment.pk)
+    if request.method == 'POST' and request.headers.get('Accept') == 'application/json':
+        return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
     applications = Publication.objects.filter(assessment=assessment, teacher=account).select_related('offer', 'exam_run').order_by('-created_at')
     return render(request, 'coursework/apply.html', {**base_data(account), 'assessment': assessment, 'form': form,
         'applications': applications, 'application_timezone': timezone.get_current_timezone_name()})
