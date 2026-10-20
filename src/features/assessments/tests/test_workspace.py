@@ -137,7 +137,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         response = self.client.post(reverse('assessments:questionnaire-create'), payload)
         self.assertEqual(response.status_code, 302)
         assessment = Assessment.objects.get(topic='Questionário compacto')
-        self.assertTrue(assessment.shuffle_options)
+        self.assertFalse(assessment.shuffle_options)
         self.assertEqual(assessment.questions.get(bank_item=self.private).points, Decimal('2.50'))
         self.assertEqual(assessment.questions.get(bank_item=self.public).points, Decimal('7.00'))
         self.private.refresh_from_db()
@@ -184,7 +184,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         payload[f'points_{self.private.pk}'] = '2'
         payload['shuffle_options'] = 'on'
         denied = self.client.post(response.url, payload)
-        self.assertContains(denied, 'já foi aplicado')
+        self.assertEqual(denied.status_code, 302)
         assessment.refresh_from_db()
         self.assertFalse(assessment.shuffle_options)
 
@@ -231,7 +231,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         response = self.client.post(reverse('assessments:questionnaire-create'), data)
         self.assertEqual(response.status_code, 302)
         obj = Assessment.objects.get(topic=data['topic'])
-        for name in ('topic', 'subject', 'content_topic', 'kind', 'description', 'instructions'):
+        for name in ('topic', 'subject', 'content_topic', 'description', 'instructions'):
             self.assertEqual(getattr(obj, name), data[name])
         self.assertFalse(Publication.objects.filter(assessment=obj).exists())
         page = self.client.get(response.url)
@@ -276,3 +276,20 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertIsNone(data['next'])
         for changed in ({'scope':'public'}, {'question_type':'multiple_choice'}, {'topic':'frações'}):
             self.assertNotIn(item.title, self.client.get(url, {**params, **changed}).json()['html'])
+
+    def test_questionnaire_configuration_fields_and_metadata(self):
+        page = self.client.get(reverse('assessments:questionnaire-create'))
+        for field in ('kind', 'delivery_mode', 'shuffle_options', 'offers', 'due_at', 'is_visible'):
+            self.assertNotContains(page, 'name="' + field + '"')
+        self.assertContains(page, 'name="has_open_questions"')
+        self.assertContains(page, 'name="metadata_text"')
+        response = self.client.post(reverse('assessments:questionnaire-create'), self.payload(
+            has_open_questions='on', metadata_text='frações; revisão; frações; ', kind='EXAM', shuffle_options='on'))
+        self.assertEqual(response.status_code, 302)
+        assessment = Assessment.objects.get(topic='Questionário compacto')
+        self.assertTrue(assessment.has_open_questions)
+        self.assertEqual(assessment.metadata_tags, ['frações', 'revisão'])
+        self.assertEqual(assessment.kind, 'ACTIVITY')
+        self.assertFalse(assessment.shuffle_options)
+        self.assertFalse(Publication.objects.filter(assessment=assessment).exists())
+        self.assertEqual(self.client.get(response.url).context['form']['metadata_text'].value(), 'frações; revisão')
