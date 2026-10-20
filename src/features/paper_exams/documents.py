@@ -177,8 +177,11 @@ def application_print_pdf(runs):
     runs = list(runs)
     writer = PdfWriter()
     batches = [(run, list(run.sheets.all())) for run in runs]
-    for run, sheets in batches:
-        writer.append(PdfReader(BytesIO(answer_sheets_pdf(run, sheets))))
+    from .variants import alphabetical_key
+    ordered_sheets = sorted(((run, sheet) for run, sheets in batches for sheet in sheets),
+        key=lambda item: (alphabetical_key(item[1].student_name), item[1].student_id, str(item[0].classroom_name)))
+    for run, sheet in ordered_sheets:
+        writer.append(PdfReader(BytesIO(answer_sheets_pdf(run, [sheet]))))
     for version in 'ABC':
         count = 0
         for run, sheets in batches:
