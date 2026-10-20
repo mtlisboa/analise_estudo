@@ -1,6 +1,39 @@
 (() => {
     const form = document.querySelector('[data-application-form]');
     if (!form) return;
+    const totalPoints = form.querySelector('[data-total-points]');
+    const questionPoints = [...form.querySelectorAll('[data-question-points]')];
+    const pointsStatus = form.querySelector('[data-points-status]');
+    const toCents = value => {
+        if (!/^\d+(\.\d{1,2})?$/.test(value)) return null;
+        const [whole, fraction = ''] = value.split('.');
+        const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+        return Number.isSafeInteger(cents) ? cents : null;
+    };
+    if (totalPoints && questionPoints.length) {
+        totalPoints.addEventListener('change', () => {
+            const cents = toCents(totalPoints.value);
+            if (cents === null || cents < questionPoints.length) {
+                totalPoints.setCustomValidity('Informe um total que permita pelo menos 0,01 ponto por questão.');
+                pointsStatus.textContent = totalPoints.validationMessage;
+                return;
+            }
+            totalPoints.setCustomValidity('');
+            const each = Math.floor(cents / questionPoints.length);
+            const remainder = cents % questionPoints.length;
+            questionPoints.forEach((input, index) => {
+                input.value = ((each + (index < remainder ? 1 : 0)) / 100).toFixed(2);
+            });
+            pointsStatus.textContent = 'Total distribuído entre as questões. Você pode ajustar cada valor.';
+        });
+        questionPoints.forEach(input => input.addEventListener('input', () => {
+            const values = questionPoints.map(field => toCents(field.value));
+            if (values.some(value => value === null || value < 1)) return;
+            totalPoints.setCustomValidity('');
+            totalPoints.value = (values.reduce((sum, value) => sum + value, 0) / 100).toFixed(2);
+            pointsStatus.textContent = 'Pontuação total atualizada pela soma das questões.';
+        }));
+    }
     const mode = form.querySelector('[name="delivery_mode"]');
     const settings = form.querySelector('[data-virtual-settings]');
     const deadline = form.querySelector('[name="due_at"]');

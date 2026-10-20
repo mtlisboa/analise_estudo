@@ -23,7 +23,7 @@ MAX_PAGES = 100
 
 
 @transaction.atomic
-def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None, variant_offset=0, student_variants=None):
+def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None, variant_offset=0, student_variants=None, question_points=None):
     if assessment.owner_id != user.pk or not can_manage_classroom(user, classroom):
         raise ValidationError('Você não pode emitir provas para esta avaliação ou turma.')
     account = getattr(user, 'institutional_account', None)
@@ -34,6 +34,8 @@ def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False,
     questions = list(assessment.questions.prefetch_related('images'))
     if not 1 <= len(questions) <= 50:
         raise ValidationError('A emissão aceita de 1 a 50 questões por prova.')
+    from features.assessments.application_scoring import application_points
+    points = application_points(questions, question_points)
     snapshot = []
     image_bytes = 0
     for question in questions:
@@ -62,7 +64,7 @@ def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False,
         snapshot.append({'assessment_method': question.assessment_method, 'metadata_tags': question.metadata_tags, 'answer_lines': question.answer_lines, 'content_blocks': blocks, 'id': question.pk, 'version': question.updated_at.isoformat(), 'diagnostic_metadata': question.diagnostic_metadata, 'support_text': question.support_text, 'images': images,
                          'statement': question.statement, 'type': question.question_type, 'options': options,
                          'expected_answer': question.correct_answer if question.question_type == 'open_ended' else '',
-                         'correct': LETTERS[options.index(question.correct_answer)] if question.question_type == 'multiple_choice' else '', 'points': str(question.points)})
+                         'correct': LETTERS[options.index(question.correct_answer)] if question.question_type == 'multiple_choice' else '', 'points': points[str(question.pk)]})
     members = list(classroom.memberships.filter(role=ClassroomMembership.Role.STUDENT,
                    status=MembershipStatus.ACTIVE, user__is_active=True).select_related('user'))
     if student_ids is not None:
