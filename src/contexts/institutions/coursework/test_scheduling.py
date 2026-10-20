@@ -249,3 +249,24 @@ class AssessmentApplicationTests(TestCase):
         self.assertTrue(obj.is_published)
         self.assertEqual(obj.scheduled_at, started_at)
         self.assertEqual(Notification.objects.filter(recipient=self.student.user).count(), 1)
+
+
+    def test_offer_picker_on_immediate_and_scheduled_application(self):
+        for route in ('coursework:apply', 'coursework:schedule'):
+            page = self.client.get(reverse(route, args=[self.assessment.pk]))
+            self.assertContains(page, 'id="application-offer-dialog"', count=1)
+            self.assertContains(page, 'Pesquisar minhas turmas')
+            self.assertContains(page, 'Selecionar todas')
+            self.assertContains(page, 'data-offer-choice')
+            self.assertContains(page, self.offer.name)
+            self.assertContains(page, 'name="offers"')
+            form = page.context['form']
+            self.assertIn(self.offer, form.fields['offers'].queryset)
+            self.assertIn(self.offer.period.name, form.fields['offers'].label_from_instance(self.offer))
+
+    def test_offer_selection_is_preserved_after_validation_error(self):
+        data = self.payload(title='')
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['form']['offers'].value(), [str(self.offer.pk)])
+        self.assertContains(response, 'checked')

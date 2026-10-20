@@ -35,7 +35,8 @@ class ApplicationForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.scheduling = scheduling
         ids = [r['offer'].pk for r in teacher_disciplines(account) if r['subject'].casefold() == assessment.subject.casefold()]
-        self.fields['offers'].queryset = Offer.objects.filter(pk__in=ids)
+        self.fields['offers'].queryset = Offer.objects.filter(pk__in=ids).select_related('period', 'classroom')
+        self.fields['offers'].label_from_instance = lambda offer: f'{offer.name} · {offer.grade} · {offer.get_shift_display()} · {offer.period.name}'
         self.fields['title'].initial = assessment.topic
         self.fields['kind'].initial = assessment.kind
         self.fields['instructions'].initial = assessment.instructions

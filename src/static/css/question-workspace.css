@@ -31,3 +31,10 @@
 .application-mode-dialog { width:min(520px,calc(100vw - 32px)); }
 .application-mode-options { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px; }
 .application-mode-options .button { justify-content:center; }
+
+.offer-picker-actions { display:flex;flex-wrap:wrap;gap:8px;margin:16px 0; }
+.offer-picker-list { display:grid;gap:8px;max-height:45dvh;overflow-y:auto; }
+.offer-picker-row { display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--border);border-radius:8px;cursor:pointer; }
+.offer-picker-row:has(input:checked) { background:var(--bg);outline:2px solid var(--accent, #5079dd);outline-offset:-2px; }
+.offer-picker-row[hidden] { display:none; }
+.offer-picker-row input { flex:none;width:18px;height:18px; }
