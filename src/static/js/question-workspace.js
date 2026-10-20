@@ -3,6 +3,7 @@
     if (!root) return;
     const preview = root.querySelector('#question-preview-dialog');
     const picker = root.querySelector('#question-picker-dialog');
+    picker?.addEventListener('close', () => { picker.hidden = true; });
     const selectedRoot = root.querySelector('[data-selected-questions]');
     let selected = new Map();
     const pickerSelected = root.querySelector('[data-picker-selected]');
@@ -72,6 +73,7 @@
         syncChecks();
     }
     async function load(list, reset=false) {
+        if (list.hasAttribute('data-picker-list') && !picker?.open) return;
         const state = states.get(list);
         const container = list.parentElement;
         const button = container.querySelector('[data-load-more]');
@@ -127,7 +129,10 @@
             renderSelection();
             const subject=document.getElementById('id_subject').value.trim();
             if (!subject) { document.getElementById('id_subject').reportValidity(); document.getElementById('id_subject').focus(); return; }
-            picker.showModal(); await filterPicker(); return;
+            picker.hidden = false;
+            picker.showModal();
+            picker.querySelector('#picker-search').focus();
+            await filterPicker(); return;
         }
         const more=event.target.closest('[data-load-more]');
         if (more) { await load(more.parentElement.querySelector('[data-infinite-list]')); return; }

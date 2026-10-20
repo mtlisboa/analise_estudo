@@ -1,5 +1,6 @@
 """Assessment applications are independent of assessment authoring."""
 import uuid
+from decimal import Decimal
 
 from django import forms
 from django.contrib import messages
@@ -29,6 +30,11 @@ class ApplicationForm(forms.Form):
     shuffle_questions = forms.BooleanField(label='Embaralhar questões', required=False, initial=True)
     shuffle_options = forms.BooleanField(label='Embaralhar alternativas', required=False, initial=True)
 
+    total_points = forms.DecimalField(label='Pontuação total desta aplicação',
+        min_value=Decimal('0.01'), max_digits=10, decimal_places=2,
+        help_text='Ao alterar o total, os pontos são distribuídos igualmente. Você também pode editar cada questão.',
+        widget=forms.NumberInput(attrs={'step': '0.01', 'data-total-points': ''}))
+
     request_token = forms.UUIDField(widget=forms.HiddenInput, initial=uuid.uuid4)
     kind = forms.ChoiceField(label='Tipo de aplicação', choices=[('EXAM', 'Prova'), ('ACTIVITY', 'Atividade')])
     offers = forms.ModelMultipleChoiceField(label='Turmas para aplicar', queryset=Offer.objects.none(), widget=forms.CheckboxSelectMultiple)
@@ -43,6 +49,17 @@ class ApplicationForm(forms.Form):
 
     def __init__(self, account, assessment, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.scored_questions = list(assessment.questions.all())
+        self.fields['total_points'].initial = sum((q.points for q in self.scored_questions), Decimal('0'))
+        self.question_point_fields = []
+        for index, question in enumerate(self.scored_questions, 1):
+            name = f'points_{question.pk}'
+            self.fields[name] = forms.DecimalField(
+                label=f'Questão {index}: {question.statement[:120]}',
+                initial=question.points, min_value=Decimal('0.01'),
+                max_digits=8, decimal_places=2,
+                widget=forms.NumberInput(attrs={'step': '0.01', 'data-question-points': ''}))
+            self.question_point_fields.append(self[name])
         self.fields['offers'].queryset = teacher_offers(account)
         self.fields['offers'].label_from_instance = lambda offer: f'{offer.name} · {offer.grade} · {offer.get_shift_display()} · {offer.period.name}'
         self.fields['title'].initial = assessment.topic
@@ -53,6 +70,12 @@ class ApplicationForm(forms.Form):
 
     def clean(self):
         data = super().clean()
+        names = [f'points_{q.pk}' for q in self.scored_questions]
+        if all(name in data for name in names) and data.get('total_points') is not None:
+            total = sum((data[name] for name in names), Decimal('0'))
+            if total != data['total_points']:
+                self.add_error('total_points', f'A soma das questões é {total}. Ajuste os valores para corresponder ao total.')
+            data['question_points'] = {str(q.pk): str(data[f'points_{q.pk}']) for q in self.scored_questions}
         start = data.get('scheduled_at') or timezone.now()
         if data.get('scheduled_at') and start <= timezone.now():
             self.add_error('scheduled_at', 'Escolha uma data e horário futuros.')
@@ -114,6 +137,8 @@ def apply(request, assessment_pk):
                             'physical_shuffle_questions': form.cleaned_data['shuffle_questions'],
                             'physical_shuffle_options': form.cleaned_data['shuffle_options'],
                             'assessment_metadata': list(assessment.metadata_tags),
+                            'total_points': str(form.cleaned_data['total_points']),
+                            'question_points': form.cleaned_data['question_points'],
                             'selected_offer_ids': [offer.pk for offer in form.cleaned_data['offers']],
                         })
                     for key in ('kind', 'title', 'instructions', 'due_at', 'delivery_mode'):
@@ -122,6 +147,7 @@ def apply(request, assessment_pk):
                     publish(account, obj, prepare_only=True)
                     if obj.delivery_mode == 'printed':
                         obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=True,
+                            question_points=form.cleaned_data['question_points'],
                             shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
                             variant_seed=str(form.cleaned_data['request_token']), variant_offset=variant_offset,
                             student_variants={student_id: version for (classroom_id, student_id), version
@@ -131,6 +157,7 @@ def apply(request, assessment_pk):
                         obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic,
                             application_metadata=obj.application_metadata, application_id=obj.pk, kind=obj.kind,
                             print_layout='answer_sheets_then_ABC_with_trailing_covers',
+                            total_points=str(form.cleaned_data['total_points']),
                             starts_at=obj.scheduled_at.isoformat(), due_at=obj.due_at.isoformat() if obj.due_at else None)
                         obj.exam_run.save(update_fields=['title', 'context'])
                         obj.save(update_fields=['exam_run'])

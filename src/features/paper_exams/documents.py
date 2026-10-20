@@ -1,5 +1,6 @@
 """Layout v1: fixed A4 coordinates shared by printing and optical recognition."""
 import base64
+from decimal import Decimal
 from io import BytesIO
 from xml.sax.saxutils import escape
 
@@ -122,6 +123,7 @@ def exam_pdf(run, sheets=None, *, include_answer_sheet=True, generic=False):
                     story.append(paragraph(f'{letter}) {option}'))
             story.append(Spacer(1, 16))
         def header(pdf, doc):
+            total_points = sum((Decimal(q['points']) for q in sheet.questions), Decimal('0'))
             if generic:
                 fields = [run.title + f' | Prova {sheet.variant}',
                           'Aluno: __________________________________________________',
@@ -138,7 +140,7 @@ def exam_pdf(run, sheets=None, *, include_answer_sheet=True, generic=False):
             pdf.drawImage(ImageReader(qr), 438, HEIGHT - 165, 110, 110)
             fields = [run.title + (f' | Prova {sheet.variant}' if sheet.variant else ''), f'Aluno: {sheet.student_name}', f'Registro: {sheet.student_registration} | ID: {sheet.student_id}',
                       f'Turma: {run.classroom_name}', f'Turno: {run.context.get("shift", "")} | Sala: {run.context.get("room", "")}',
-                      f'Oferta: {run.context.get("offer", "")}']
+                      f'Oferta: {run.context.get("offer", "")} | Total: {total_points} pontos']
             block = KeepInFrame(375, 130, [paragraph(v) for v in fields], mode='shrink')
             _, height = block.wrapOn(pdf, 375, 130)
             block.drawOn(pdf, 42, HEIGHT - 50 - height)

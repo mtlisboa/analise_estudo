@@ -5,11 +5,11 @@
 <div class="questionnaire-section"><div class="settings-field">{{ form.description.as_field_group }}</div><div class="settings-field">{{ form.instructions.as_field_group }}</div></div>
 <div class="questionnaire-section"><h2>Questões</h2>{{ form.questions.errors }}<div data-selected-questions>{% for question in selected_questions %}<div class="selected-question" data-selected-id="{{ question.pk }}"><input type="hidden" name="questions" value="{{ question.pk }}"><strong data-question-position>{{ forloop.counter }}.</strong><span>{{ question.display_title }}</span>{{ question.points_field.as_field_group }}<button type="button" data-remove-question="{{ question.pk }}">Remover</button></div>{% endfor %}</div>
 {% for question in legacy_questions %}<p>{{ question.statement|truncatechars:120 }} <small>Questão já vinculada</small></p>{% endfor %}
-<button class="button button-secondary" type="button" data-open-picker>Selecionar questões</button></div>
+<button class="button button-secondary" type="button" data-open-picker aria-haspopup="dialog" aria-controls="question-picker-dialog">Selecionar questões</button></div>
 <div class="questionnaire-section">{{ form.metadata_text.as_field_group }}</div>
 <button class="button" type="submit">Salvar questionário</button></form>
 {% if assessment.pk %}<section class="questionnaire-section"><h2>Aplicações</h2><a class="button" href="{% url 'coursework:apply' assessment.pk %}" data-choose-application-mode>Aplicar avaliação</a> <p><a href="{% url 'coursework:apply' assessment.pk %}">Consultar aplicações</a></p></section>{% endif %}
-<dialog id="question-picker-dialog" class="question-dialog" aria-labelledby="question-picker-title"><div class="dialog-toolbar"><h2 id="question-picker-title">Selecionar questões</h2><button type="button" data-close-dialog>Concluir seleção</button></div><p>As questões selecionadas ficam vinculadas ao salvar o questionário.</p>
+<dialog hidden id="question-picker-dialog" class="question-dialog" aria-labelledby="question-picker-title"><div class="dialog-toolbar"><h2 id="question-picker-title">Selecionar questões</h2><button type="button" data-close-dialog>Concluir seleção</button></div><p>As questões selecionadas ficam vinculadas ao salvar o questionário.</p>
 <section class="picker-selection"><h3>Questões selecionadas · ordem no questionário</h3><p>Arraste pela alça ou use Subir e Descer. A seleção permanece ao trocar os filtros.</p><div data-picker-selected></div><p data-selection-status role="status" aria-live="polite"></p></section>
 <form class="bank-filter" data-picker-search aria-label="Filtros de questões">
 <div class="settings-field"><label for="picker-search">Buscar questões</label><input type="search" id="picker-search" name="q" placeholder="Título, comando ou metadados"></div>
@@ -19,4 +19,4 @@
 <button class="button button-secondary" type="submit">Buscar</button><button type="button" data-clear-picker-filters>Limpar filtros</button></form>
 <div data-infinite-list data-picker-list data-url="{% url 'assessments:question-bank' %}" data-scope="all"></div><button type="button" data-load-more class="bank-load">Carregar mais</button><p data-list-status role="status"></p></dialog>
 {% include 'assessments/application_mode_dialog.html' %}{% include 'assessments/preview_dialog.html' %}</section>{% endblock %}
-{% block scripts %}<script src="{% static 'js/application-mode-dialog.js' %}" defer></script><script src="{% static 'js/question-workspace.js' %}?v=4" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/application-mode-dialog.js' %}" defer></script><script src="{% static 'js/question-workspace.js' %}?v=5" defer></script>{% endblock %}
