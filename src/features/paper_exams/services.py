@@ -23,7 +23,7 @@ MAX_PAGES = 100
 
 
 @transaction.atomic
-def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None, variant_offset=0):
+def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None, variant_offset=0, student_variants=None):
     if assessment.owner_id != user.pk or not can_manage_classroom(user, classroom):
         raise ValidationError('Você não pode emitir provas para esta avaliação ou turma.')
     account = getattr(user, 'institutional_account', None)
@@ -86,8 +86,9 @@ def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False,
         run.variants = make_variants(run.questions, variant_seed or run.pk, shuffle_questions, shuffle_options)
         run.context.update(shuffle_questions=shuffle_questions, shuffle_options=shuffle_options)
         run.save(update_fields=['questions', 'variants', 'context'])
-    members.sort(key=lambda m: ((m.user.get_full_name() or m.user.username).casefold(), m.user_id))
-    AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user, variant='ABC'[(index + variant_offset) % 3] if versioned else '',
+    from .variants import alphabetical_key
+    members.sort(key=lambda m: (alphabetical_key(m.user.get_full_name() or m.user.username), m.user_id))
+    AnswerSheet.objects.bulk_create([AnswerSheet(run=run, student=m.user, variant=(student_variants[m.user_id] if student_variants is not None else 'ABC'[(index + variant_offset) % 3]) if versioned else '',
             student_name=m.user.get_full_name() or m.user.username, student_registration=getattr(getattr(m.user, 'institutional_account', None), 'registration', m.user.username)) for index, m in enumerate(members)])
     return run
 

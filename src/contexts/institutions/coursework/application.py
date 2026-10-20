@@ -87,6 +87,14 @@ def apply(request, assessment_pk):
                 Assessment.objects.select_for_update().get(pk=assessment.pk)
                 if not assessment.questions.exists():
                     raise ValidationError('Selecione as questões antes de aplicar a avaliação.')
+                student_variants = {}
+                if form.cleaned_data['delivery_mode'] == 'printed':
+                    from features.users_manager.models import ClassroomMembership
+                    from features.paper_exams.variants import assign_student_variants
+                    members = ClassroomMembership.objects.filter(
+                        classroom_id__in=form.cleaned_data['offers'].values_list('classroom_id', flat=True),
+                        role='STUDENT', status='ACTIVE', user__is_active=True).select_related('user')
+                    student_variants = assign_student_variants(members)
                 variant_offset = 0
                 for offer in form.cleaned_data['offers']:
                     # A double click or repeated POST cannot issue a second application.
@@ -115,7 +123,9 @@ def apply(request, assessment_pk):
                     if obj.delivery_mode == 'printed':
                         obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=True,
                             shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
-                            variant_seed=str(form.cleaned_data['request_token']), variant_offset=variant_offset)
+                            variant_seed=str(form.cleaned_data['request_token']), variant_offset=variant_offset,
+                            student_variants={student_id: version for (classroom_id, student_id), version
+                                in student_variants.items() if classroom_id == offer.classroom_id})
                         variant_offset += obj.exam_run.sheets.count()
                         obj.exam_run.title = obj.title
                         obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic,
