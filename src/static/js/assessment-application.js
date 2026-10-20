@@ -13,13 +13,21 @@
         settings.hidden = !virtual;
         settings.disabled = !virtual;
         deadline.required = virtual;
-        const physicalExam = !virtual && kind.value === 'EXAM';
+        const physicalExam = !virtual;
         physicalSettings.hidden = !physicalExam;
         physicalSettings.disabled = !physicalExam;
     };
     mode.addEventListener('change', sync);
     kind.addEventListener('change', sync);
     sync();
+    const shufflePhysical = form.querySelector('[data-shuffle-physical]');
+    shufflePhysical?.addEventListener('click', () => {
+        if (mode.value !== 'printed') return;
+        form.querySelector('[name="shuffle_questions"]').checked = true;
+        form.querySelector('[name="shuffle_options"]').checked = true;
+        physicalSettings.querySelector('[data-physical-shuffle-status]').textContent =
+            'Embaralhamento físico ativado: questões e alternativas serão organizadas em A, B e C, com questões abertas no final. Clique em Imprimir para gerar e salvar as versões e os gabaritos.';
+    });
 
     const picker = form.querySelector('#application-offer-dialog');
     if (!picker) return;
