@@ -9,8 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Count
-from django.http import JsonResponse
+from django.db.models import Q, Count, F, Max
+from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -21,11 +21,10 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from .bank_access import available_questions
 from .models import Assessment, AssessmentTechnique, QuestionBankItem
 from .services import add_bank_item_to_assessment
-from contexts.institutions.coursework.models import Publication, Submission
-from contexts.institutions.coursework.services import teacher_disciplines, publish, authorize_teacher
+from contexts.institutions.coursework.models import Submission
+from contexts.institutions.coursework.services import teacher_disciplines
 from contexts.institutions.planning.models import Offer
 from features.paper_exams.models import ExamRun, SheetResult
-from features.paper_exams.services import issue_run
 from features.users_manager.models import InstitutionalAccount
 
 
@@ -43,6 +42,12 @@ def bank_rows(user, params):
     subject = params.get('subject', '').strip()[:120]
     if subject:
         qs = qs.filter(subject__iexact=subject)
+    question_type = params.get('question_type', '')
+    if question_type in ('multiple_choice', 'open_ended'):
+        qs = qs.filter(question_type=question_type)
+    topic = params.get('topic', '').strip()[:160]
+    if topic:
+        qs = qs.filter(topic__icontains=topic)
     query = params.get('q', '').strip()[:150]
     if query:
         qs = qs.filter(Q(title__icontains=query) | Q(topic__icontains=query) | Q(subject__icontains=query) | Q(statement__icontains=query) | Q(metadata_tags__icontains=query) | Q(metadata_tags__icontains=json.dumps(query, ensure_ascii=True)[1:-1]) | Q(assessment_method__icontains=query))
@@ -56,6 +61,11 @@ def bank_rows(user, params):
 @never_cache
 @require_GET
 def bank(request):
+    if request.GET.get('assessment') and request.GET.get('fragment') != '1':
+        if not request.GET['assessment'].isdigit():
+            raise Http404
+        assessment = get_object_or_404(Assessment, pk=request.GET['assessment'], owner=request.user)
+        return redirect(reverse('assessments:questionnaire-edit', args=[assessment.pk]) + '?select=questions')
     rows = list(bank_rows(request.user, request.GET)[:31])
     more = len(rows) > 30
     rows = rows[:30]
@@ -77,32 +87,24 @@ def preview(request, pk):
 
 class QuestionnaireForm(forms.ModelForm):
     questions = forms.ModelMultipleChoiceField(queryset=QuestionBankItem.objects.none(), required=False)
-    offers = forms.ModelMultipleChoiceField(label='Turmas', queryset=Offer.objects.none(), required=False, widget=forms.CheckboxSelectMultiple)
-    instructions = forms.CharField(label='Instruções', required=False, max_length=3000, widget=forms.Textarea(attrs={'rows':3}))
 
     class Meta:
         model = Assessment
-        fields = ['topic', 'subject', 'kind', 'delivery_mode', 'due_at', 'is_visible', 'shuffle_options']
-        labels = {'topic':'Título do questionário','subject':'Disciplina'}
-        widgets = {'due_at': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type':'datetime-local'})}
+        fields = ['topic', 'subject', 'content_topic', 'kind', 'description', 'instructions', 'shuffle_options']
+        labels = {'topic':'Título do questionário','subject':'Disciplina', 'content_topic': 'Assunto', 'kind': 'Tipo'}
+        widgets = {'description': forms.Textarea(attrs={'rows': 4}), 'instructions': forms.Textarea(attrs={'rows': 4})}
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
         self.fields['kind'].required = False
-        self.fields['due_at'].required = True
         self.fields['questions'].queryset = available_questions(user)
-        self.account = account_for(user)
-        self.courses = teacher_disciplines(self.account) if self.account else []
-        self.fields['offers'].queryset = Offer.objects.filter(pk__in=[r['offer'].pk for r in self.courses]).select_related('period')
         if self.instance.pk:
             self.fields['questions'].initial = self.instance.questions.exclude(bank_item=None).values_list('bank_item_id', flat=True)
-            self.fields['offers'].initial = Publication.objects.filter(assessment=self.instance, teacher=self.account).values_list('offer_id', flat=True) if self.account else []
-            pub = Publication.objects.filter(assessment=self.instance).first()
-            self.fields['instructions'].initial = pub.instructions if pub else ''
 
         selected_ids = (self.data.getlist('questions') if hasattr(self.data, 'getlist') else self.data.get('questions', [])) if self.is_bound else list(self.fields['questions'].initial or [])
-        selected_ids = [value for value in selected_ids if str(value).isdigit() and len(str(value)) <= 19]
+        selected_ids = [int(value) for value in selected_ids if str(value).isdigit() and len(str(value)) <= 19]
+        self.selection_ids = selected_ids
         copies = {q.bank_item_id: q for q in self.instance.questions.all()} if self.instance.pk else {}
         for item in self.fields['questions'].queryset.filter(pk__in=selected_ids):
             name = f'points_{item.pk}'
@@ -114,16 +116,15 @@ class QuestionnaireForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+        selected_items = {item.pk: item for item in data.get('questions', [])}
+        if len(self.selection_ids) != len(set(self.selection_ids)):
+            self.add_error('questions', 'Selecione cada questão apenas uma vez.')
+        data['ordered_questions'] = [selected_items[pk] for pk in self.selection_ids if pk in selected_items]
         data['kind'] = data.get('kind') or (self.instance.kind if self.instance.pk else 'ACTIVITY')
         subject = data.get('subject','').strip().upper()
         data['subject'] = subject
         if any(item.subject.strip().upper() != subject for item in data.get('questions', [])):
             self.add_error('questions','Selecione questões da disciplina do questionário.')
-        allowed = {r['offer'].pk for r in self.courses if r['subject'].casefold() == subject.casefold()}
-        if any(o.pk not in allowed for o in data.get('offers', [])):
-            self.add_error('offers','Selecione somente turmas em que você leciona essa disciplina.')
-        if data.get('is_visible') and not data.get('offers'):
-            self.add_error('offers','Selecione as turmas para disponibilizar o questionário.')
         if not data.get('questions') and not (self.instance.pk and self.instance.questions.filter(bank_item=None).exists()):
             self.add_error('questions','Selecione pelo menos uma questão.')
         return data
@@ -156,22 +157,25 @@ def questionnaire(request, pk=None):
         rows = [r for r in teacher_disciplines(account) if r['offer'].pk == int(context_offer)
             and r['subject'].casefold() == initial['subject'].casefold()]
         if rows:
-            initial.update(subject=rows[0]['subject'], offers=[int(context_offer)], is_visible=True)
+            initial.update(subject=rows[0]['subject'])
     form = QuestionnaireForm(request.user, request.POST if request.method=='POST' else None, instance=assessment, initial=initial)
     if request.method=='POST' and form.is_valid():
         try:
             with transaction.atomic():
                 previous_shuffle = False
+                applied = False
                 if pk:
                     locked = Assessment.objects.select_for_update().get(pk=pk)
                     previous_shuffle = locked.shuffle_options
-                    old_ids = set(locked.questions.exclude(bank_item=None).values_list('bank_item_id', flat=True))
+                    old_order = list(locked.questions.exclude(bank_item=None).values_list('bank_item_id', flat=True))
+                    old_ids = set(old_order)
+                    order_changed = old_order != [q.pk for q in form.cleaned_data['ordered_questions']]
+                    applied = locked.examrun_set.exists() or Submission.objects.filter(publication__assessment=locked).exists()
                     new_ids = {q.pk for q in form.cleaned_data['questions']}
                     score_changed = any(q.points != form.cleaned_data.get(f'points_{q.bank_item_id}', q.points)
                         for q in locked.questions.exclude(bank_item=None) if f'points_{q.bank_item_id}' in request.POST)
-                    if (old_ids != new_ids or score_changed or locked.shuffle_options != form.cleaned_data['shuffle_options'] or locked.delivery_mode != form.cleaned_data['delivery_mode'] or locked.subject != form.cleaned_data['subject']) and (
-                            locked.examrun_set.exists() or Submission.objects.filter(publication__assessment=locked).exists()):
-                        raise ValidationError('Este questionário já foi aplicado. Crie outro para alterar questões, pontuação, alternativas, disciplina ou formato.')
+                    if (old_ids != new_ids or order_changed or score_changed or locked.shuffle_options != form.cleaned_data['shuffle_options'] or locked.subject != form.cleaned_data['subject']) and applied:
+                        raise ValidationError('Este questionário já foi aplicado. Crie outro para alterar questões, ordem, pontuação, alternativas, disciplina ou formato.')
                 obj = form.save(commit=False)
                 if not obj.technique_id:
                     obj.technique = AssessmentTechnique.objects.order_by('pk').first()
@@ -181,7 +185,12 @@ def questionnaire(request, pk=None):
                 obj.save()
                 selected_ids = {q.pk for q in form.cleaned_data['questions']}
                 obj.questions.filter(bank_item__isnull=False).exclude(bank_item_id__in=selected_ids).delete()
-                for item in form.cleaned_data['questions']:
+                if not applied:
+                    last_order = obj.questions.aggregate(value=Max('order'))['value'] or 0
+                    offset = last_order + len(form.cleaned_data['ordered_questions']) + obj.questions.filter(bank_item=None).count() + 1
+                    # Park rows outside the final range before swapping unique positions.
+                    obj.questions.update(order=F('order') + offset)
+                for position, item in enumerate(form.cleaned_data['ordered_questions'], 1):
                     existing_question = obj.questions.filter(bank_item=item).first()
                     question = add_bank_item_to_assessment(obj,item)
                     question.points = form.cleaned_data.get(f'points_{item.pk}') or question.points
@@ -190,38 +199,26 @@ def questionnaire(request, pk=None):
                         if obj.shuffle_options:
                             random.Random(f'{obj.pk}:{item.pk}').shuffle(options)
                         question.options = options if question.question_type == 'multiple_choice' else []
-                    question.save(update_fields=['points', 'options', 'updated_at'])
+                    if not applied:
+                        question.order = position
+                    question.save(update_fields=['points', 'options', 'order', 'updated_at'])
+                if not applied:
+                    for position, legacy in enumerate(obj.questions.filter(bank_item=None), len(form.cleaned_data['ordered_questions']) + 1):
+                        legacy.order = position
+                        legacy.save(update_fields=['order'])
                 obj.assembly_status = 'ready'
                 obj.save(update_fields=['assembly_status'])
-                offers = list(form.cleaned_data['offers'])
-                pubs = Publication.objects.filter(assessment=obj, teacher=form.account) if form.account else Publication.objects.none()
-                pubs.exclude(offer__in=offers).update(is_published=False)
-                if form.account:
-                    for offer in offers:
-                        subject = next(r['subject'] for r in form.courses if r['offer'].pk==offer.pk and r['subject'].casefold()==obj.subject.casefold())
-                        pub = pubs.filter(offer=offer,subject=subject).order_by('pk').first() or Publication(teacher=form.account,offer=offer,subject=subject,assessment=obj)
-                        pub.title = obj.topic
-                        pub.instructions = form.cleaned_data['instructions']
-                        pub.due_at = obj.due_at
-                        pub.kind = obj.kind
-                        pub.save()
-                        if obj.is_visible:
-                            publish(form.account,pub)
-                            if obj.delivery_mode=='printed' and not ExamRun.objects.filter(assessment=obj,classroom=offer.classroom,created_by=request.user).exists():
-                                issue_run(obj,offer.classroom,request.user)
-                        else:
-                            pub.is_published=False
-                            pub.save(update_fields=['is_published'])
         except ValidationError as exc:
             form.add_error(None, exc)
         else:
-            messages.success(request,'Questionário salvo. A visibilidade foi aplicada às turmas selecionadas.')
+            messages.success(request,'Avaliação salva. Use Aplicar avaliação ou Agendar aplicação para disponibilizá-la.')
             return redirect('assessments:questionnaire-edit',pk=obj.pk)
-    selected = list(form.fields['questions'].queryset.filter(pk__in=request.POST.getlist('questions'))) if request.method=='POST' else (
-        list(form.fields['questions'].queryset.filter(pk__in=assessment.questions.values_list('bank_item_id',flat=True))) if pk else [])
+    available_selected = {item.pk: item for item in form.fields['questions'].queryset.filter(pk__in=form.selection_ids)}
+    selected = [available_selected[pk] for pk in dict.fromkeys(form.selection_ids) if pk in available_selected]
     for item in selected:
         item.points_field = form[f'points_{item.pk}']
     return render(request,'assessments/questionnaire_form.html',{'form':form,'assessment':assessment,'selected_questions':selected,
+        'open_question_picker': request.GET.get('select') == 'questions',
         'legacy_questions':assessment.questions.filter(bank_item=None) if pk else [],
         'runs':ExamRun.objects.filter(assessment=assessment,created_by=request.user) if pk else [],'workspace_page':'questionnaires'})
 
@@ -229,7 +226,7 @@ def questionnaire(request, pk=None):
 @login_required
 @require_POST
 def finalize(request, pk):
-    obj=get_object_or_404(Assessment,pk=pk,owner=request.user,delivery_mode='printed')
+    obj=get_object_or_404(Assessment,pk=pk,owner=request.user)
     if not obj.examrun_set.filter(created_by=request.user).exists():
         messages.error(request,'Emita a prova para uma turma antes de finalizar a aplicação.')
     else:
@@ -265,7 +262,8 @@ def corrections(request):
     run_ids=[r.pk for r in runs if (r.classroom_id,(r.subject or r.assessment.subject).casefold()) in pairs]
     physical=SheetResult.objects.filter(sheet__run_id__in=run_ids,status='review').select_related('sheet__run')
     waiting=[]
-    for run in runs.filter(pk__in=run_ids).filter(Q(assessment__is_finalized=True)|Q(assessment__due_at__lt=timezone.now())).select_related('assessment'):
+    pending = (Q(publication__application_status='completed') & (Q(publication__finalized_at__isnull=False) | Q(publication__due_at__lt=timezone.now()))) | (Q(publication__isnull=True) & (Q(assessment__is_finalized=True) | Q(assessment__due_at__lt=timezone.now())))
+    for run in runs.filter(pk__in=run_ids).filter(pending).select_related('assessment'):
         missing=run.sheets.filter(result__isnull=True).count()
         if missing:
             waiting.append({'run':run,'missing':missing})

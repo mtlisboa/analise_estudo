@@ -73,6 +73,9 @@ class Assessment(models.Model):
     )
     subject = models.CharField("matéria", max_length=120)
     topic = models.CharField("assunto", max_length=160)
+    content_topic = models.CharField('assunto do questionário', max_length=160, blank=True)
+    description = models.TextField('descrição', max_length=5000, blank=True)
+    instructions = models.TextField('instruções', max_length=3000, blank=True)
     observations = models.JSONField("observações e restrições", default=list, blank=True)
     assessment_types = models.ManyToManyField(
         AssessmentType,

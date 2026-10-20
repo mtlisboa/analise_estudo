@@ -55,7 +55,7 @@
             <div class="assessment-item-actions">
                 <small>Atualizada em {{ assessment.updated_at|date:"d/m/Y H:i" }}</small>
                 {% if request.user.institutional_account.role == 'TEACHER' %}<a class="button" href="{% url 'coursework:apply' assessment.pk %}">Aplicar nas turmas</a>{% endif %}
-                <a class="button" href="{% url 'assessments:question-bank' %}?assessment={{ assessment.pk }}">Selecionar questões</a>
+                <a class="button" href="{% url 'assessments:questionnaire-edit' assessment.pk %}?select=questions">Selecionar questões</a>
                 <a class="button" href="{% url 'paper-exams:index' assessment.pk %}">Imprimir e corrigir</a>
                 <button
                     class="button button-small add-question"

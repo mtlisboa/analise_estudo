@@ -7,6 +7,7 @@ from django.db.models import Q, TextField
 from django.db.models.functions import Cast
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from .forms import (
     AddBankQuestionsForm,
@@ -272,7 +273,10 @@ def edit_bank_question_with_ai(request: HttpRequest, pk: int) -> HttpResponse:
 @transaction.atomic
 def add_bank_questions(request: HttpRequest, assessment_pk: int | None = None) -> HttpResponse:
     if request.method != "POST":
-        return redirect("assessments:question-bank")
+        if assessment_pk is not None:
+            assessment = get_object_or_404(Assessment, pk=assessment_pk, owner=request.user)
+            return redirect(reverse('assessments:questionnaire-edit', args=[assessment.pk]) + '?select=questions')
+        return redirect('assessments:questionnaire-create')
     form = AddBankQuestionsForm(request.POST, owner=request.user)
     if form.is_valid():
         assessment = form.cleaned_data["assessment"]

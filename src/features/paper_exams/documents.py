@@ -88,6 +88,9 @@ def exam_pdf(run, sheets=None):
         writer.append(PdfReader(cover))
         body = BytesIO()
         story = []
+        for key, heading in [('content_topic', 'Assunto'), ('description', 'Descrição'), ('instructions', 'Instruções')]:
+            if run.context.get(key):
+                story.extend([paragraph(heading, 'Heading3'), paragraph(run.context[key]), Spacer(1, 8)])
         for index, question in enumerate(run.questions):
             story.append(paragraph(f'Questão {index + 1} - {question["points"]} pontos', 'Heading3'))
             blocks = question.get('content_blocks')

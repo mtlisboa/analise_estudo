@@ -1,4 +1,5 @@
 import re
+import uuid
 from datetime import timedelta
 
 from django.test import TestCase
@@ -29,6 +30,13 @@ class QuestionnaireWorkspaceTests(TestCase):
         return {'topic':'Questionário compacto','subject':'MATEMÁTICA','questions':[self.private.pk,self.public.pk],
             'offers':[self.offer.pk],'delivery_mode':'online','due_at':(timezone.now()+timedelta(days=7)).strftime('%Y-%m-%dT%H:%M'),
             'is_visible':'on',**overrides}
+
+    def apply_assessment(self, assessment, mode='online'):
+        data = {'request_token': str(uuid.uuid4()), 'is_visible': 'on', 'offers': [self.offer.pk], 'kind': assessment.kind,
+            'title': assessment.topic, 'delivery_mode': mode,
+            'due_at': (timezone.now() + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M')}
+        response = self.client.post(reverse('coursework:apply', args=[assessment.pk]), data)
+        self.assertEqual(response.status_code, 302, response.context['form'].errors if response.context else '')
 
     def test_two_sidebar_entries_and_bank_visibility_preview_permissions(self):
         response=self.client.get(reverse('assessments:index'))
@@ -67,6 +75,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         response=self.client.post(reverse('assessments:questionnaire-create'),self.payload())
         self.assertEqual(response.status_code,302)
         assessment=Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment)
         publication=Publication.objects.get(assessment=assessment)
         self.assertTrue(publication.is_published)
         self.assertEqual(assessment.questions.count(),2)
@@ -80,19 +89,20 @@ class QuestionnaireWorkspaceTests(TestCase):
     def test_hidden_questionnaire_and_validation(self):
         response=self.client.post(reverse('assessments:questionnaire-create'),self.payload(is_visible=''))
         self.assertEqual(response.status_code,302)
-        self.assertFalse(Publication.objects.get(assessment__topic='Questionário compacto').is_published)
+        self.assertFalse(Publication.objects.filter(assessment__topic='Questionário compacto').exists())
         self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(topic='Inválido',questions=[])).status_code,200)
         self.assertFalse(Assessment.objects.filter(topic='Inválido').exists())
-        self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(topic='Sem prazo',due_at='')).status_code,200)
-        self.assertFalse(Assessment.objects.filter(topic='Sem prazo').exists())
+        self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(topic='Sem prazo',due_at='')).status_code,302)
+        self.assertTrue(Assessment.objects.filter(topic='Sem prazo').exists())
 
     def test_printed_questionnaire_finalization_requests_missing_answer_sheets(self):
         self.assertEqual(self.client.post(reverse('assessments:questionnaire-create'),self.payload(delivery_mode='printed')).status_code,302)
         assessment=Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment, 'printed')
         run=ExamRun.objects.get(assessment=assessment)
         self.assertEqual(run.sheets.count(),1)
-        self.assertContains(self.client.get(reverse('assessments:questionnaire-edit',args=[assessment.pk])), 'Finalizar aplicação física')
-        self.assertRedirects(self.client.post(reverse('assessments:questionnaire-finalize',args=[assessment.pk])),reverse('assessments:corrections'))
+        self.assertContains(self.client.get(reverse('coursework:apply',args=[assessment.pk])), 'Finalizar aplicação física')
+        self.assertRedirects(self.client.post(reverse('coursework:application-finalize',args=[Publication.objects.get(assessment=assessment).pk])),reverse('assessments:corrections'))
         response=self.client.get(reverse('assessments:corrections'))
         self.assertEqual(len(response.context['waiting']),1)
         self.assertEqual(response.context['waiting'][0]['missing'],1)
@@ -106,6 +116,7 @@ class QuestionnaireWorkspaceTests(TestCase):
     def test_issued_questions_are_preserved_and_revoked_teachers_lose_corrections(self):
         self.client.post(reverse('assessments:questionnaire-create'),self.payload(delivery_mode='printed'))
         assessment=Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment, 'printed')
         response=self.client.post(reverse('assessments:questionnaire-edit',args=[assessment.pk]),self.payload(delivery_mode='printed',questions=[self.private.pk]))
         self.assertContains(response,'já foi aplicado')
         self.assertEqual(assessment.questions.count(),2)
@@ -133,6 +144,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertEqual(self.private.default_points, 1)
         page = self.client.get(response.url)
         self.assertContains(page, f'name="points_{self.private.pk}"')
+        self.apply_assessment(assessment)
         publication = Publication.objects.get(assessment=assessment)
         self.assertEqual({q['points'] for q in publication.public_snapshot['questions']}, {'2.50', '7.00'})
         self.client.force_login(self.student.user)
@@ -162,6 +174,7 @@ class QuestionnaireWorkspaceTests(TestCase):
         response = self.client.post(reverse('assessments:questionnaire-create'), payload)
         self.assertEqual(response.status_code, 302)
         assessment = Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(assessment)
         publication = Publication.objects.get(assessment=assessment)
         Submission.objects.create(publication=publication, student=self.student.user, answers={}, maximum_score=5)
         payload[f'points_{self.private.pk}'] = '9'
@@ -174,3 +187,92 @@ class QuestionnaireWorkspaceTests(TestCase):
         self.assertContains(denied, 'já foi aplicado')
         assessment.refresh_from_db()
         self.assertFalse(assessment.shuffle_options)
+
+    def test_modal_question_order_is_saved_reopened_and_used_in_publication(self):
+        ordered = [self.public.pk, self.private.pk]
+        payload = self.payload(questions=ordered)
+        response = self.client.post(reverse('assessments:questionnaire-create'), payload)
+        self.assertEqual(response.status_code, 302)
+        obj = Assessment.objects.get(topic='Questionário compacto')
+        self.assertEqual(list(obj.questions.values_list('bank_item_id', flat=True)), ordered)
+        page = self.client.get(response.url)
+        self.assertEqual([item.pk for item in page.context['selected_questions']], ordered)
+        self.assertContains(page, 'data-picker-selected')
+        self.assertContains(page, 'Públicas e privadas')
+        self.apply_assessment(obj)
+        publication = Publication.objects.get(assessment=obj)
+        self.assertEqual([q['statement'] for q in publication.public_snapshot['questions']],
+            [self.public.statement, self.private.statement])
+        payload['questions'] = list(reversed(ordered))
+        self.assertEqual(self.client.post(response.url, payload).status_code, 302)
+        self.assertEqual(list(obj.questions.values_list('bank_item_id', flat=True)), list(reversed(ordered)))
+        self.assertEqual(list(obj.questions.values_list('order', flat=True)), [1, 2])
+
+    def test_duplicate_selection_is_rejected_and_applied_order_is_immutable(self):
+        duplicate = self.client.post(reverse('assessments:questionnaire-create'), self.payload(questions=[self.private.pk, self.private.pk]))
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertContains(duplicate, 'cada questão apenas uma vez')
+        self.assertFalse(Assessment.objects.filter(topic='Questionário compacto').exists())
+        payload = self.payload(questions=[self.public.pk, self.private.pk], delivery_mode='printed')
+        response = self.client.post(reverse('assessments:questionnaire-create'), payload)
+        self.assertEqual(response.status_code, 302)
+        obj = Assessment.objects.get(topic='Questionário compacto')
+        self.apply_assessment(obj, 'printed')
+        run = ExamRun.objects.get(assessment=obj)
+        self.assertEqual([q['statement'] for q in run.questions], [self.public.statement, self.private.statement])
+        payload['questions'] = [self.private.pk, self.public.pk]
+        denied = self.client.post(response.url, payload)
+        self.assertContains(denied, 'já foi aplicado')
+        self.assertEqual(list(obj.questions.values_list('bank_item_id', flat=True)), [self.public.pk, self.private.pk])
+
+    def test_creation_saves_title_subject_topic_type_description_and_instructions(self):
+        data = self.payload(topic='Título da avaliação', content_topic='Equivalência de frações',
+            kind='EXAM', description='Revisão de frações do semestre.', instructions='Leia cada comando com atenção.')
+        response = self.client.post(reverse('assessments:questionnaire-create'), data)
+        self.assertEqual(response.status_code, 302)
+        obj = Assessment.objects.get(topic=data['topic'])
+        for name in ('topic', 'subject', 'content_topic', 'kind', 'description', 'instructions'):
+            self.assertEqual(getattr(obj, name), data[name])
+        self.assertFalse(Publication.objects.filter(assessment=obj).exists())
+        page = self.client.get(response.url)
+        self.assertContains(page, 'Equivalência de frações')
+        self.assertContains(page, 'Revisão de frações do semestre.')
+        self.assertContains(page, 'Leia cada comando com atenção.')
+
+    def test_all_question_search_controls_are_inside_selection_modal(self):
+        page = self.client.get(reverse('assessments:questionnaire-edit', args=[self.assessment.pk]))
+        body = page.content.decode()
+        outside, modal = body.split('<dialog id="question-picker-dialog"', 1)
+        modal = modal.split('</dialog>', 1)[0]
+        for control in ('data-picker-search', 'id="picker-search"', 'id="picker-scope"', 'id="picker-topic"', 'id="picker-type"'):
+            self.assertNotIn(control, outside)
+            self.assertIn(control, modal)
+        self.assertIn('data-open-picker', outside)
+        self.assertIn('data-clear-picker-filters', modal)
+
+    def test_legacy_question_selection_links_open_editor_modal_instead_of_bank(self):
+        target = reverse('assessments:questionnaire-edit', args=[self.assessment.pk]) + '?select=questions'
+        for url in (reverse('assessments:question-bank')+f'?assessment={self.assessment.pk}',
+                    reverse('assessments:bank-questions-add', args=[self.assessment.pk])):
+            self.assertRedirects(self.client.get(url), target)
+        page = self.client.get(target)
+        self.assertContains(page, 'data-picker-auto-open')
+        self.assertRedirects(self.client.get(reverse('assessments:bank-questions-add-generic')),
+                            reverse('assessments:questionnaire-create'))
+        self.assertEqual(self.client.get(reverse('assessments:question-bank')+'?assessment=invalid').status_code, 404)
+        self.client.force_login(self.student.user)
+        self.assertEqual(self.client.get(reverse('assessments:question-bank')+f'?assessment={self.assessment.pk}').status_code, 404)
+
+    def test_modal_combines_scope_topic_type_and_query_filters(self):
+        item = QuestionBankItem.objects.create(owner=self.teacher.user, title='Dissertativa de geometria',
+            subject='MATEMÁTICA', topic='Geometria espacial', question_type='open_ended', statement='Explique o volume.')
+        url = reverse('assessments:question-bank')
+        params = {'fragment': '1', 'select': '1', 'scope': 'private', 'topic': 'espacial',
+                  'question_type': 'open_ended', 'q': 'volume', 'subject': 'MATEMÁTICA'}
+        data = self.client.get(url, params).json()
+        self.assertIn(item.title, data['html'])
+        self.assertNotIn(self.private.title, data['html'])
+        self.assertNotIn(self.public.title, data['html'])
+        self.assertIsNone(data['next'])
+        for changed in ({'scope':'public'}, {'question_type':'multiple_choice'}, {'topic':'frações'}):
+            self.assertNotIn(item.title, self.client.get(url, {**params, **changed}).json()['html'])
