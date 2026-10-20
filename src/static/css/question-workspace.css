@@ -38,3 +38,6 @@
 .offer-picker-row:has(input:checked) { background:var(--bg);outline:2px solid var(--accent, #5079dd);outline-offset:-2px; }
 .offer-picker-row[hidden] { display:none; }
 .offer-picker-row input { flex:none;width:18px;height:18px; }
+
+/* Keep selection search and filters exclusively inside the open modal. */
+#question-picker-dialog[hidden], #question-picker-dialog:not([open]) { display:none !important; }
