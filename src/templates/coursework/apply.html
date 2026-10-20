@@ -4,7 +4,7 @@
 <form method="post" class="assessment-flow-form" data-application-form>{% csrf_token %}{{ form.non_field_errors }}{{ form.request_token }}{{ form.request_token.errors }}
 <div class="settings-field application-field">{{ form.kind.as_field_group }}</div><div class="settings-field application-field">{{ form.title.as_field_group }}</div><div class="settings-field application-field">{{ form.instructions.as_field_group }}</div><section class="settings-field application-field" aria-labelledby="application-offers-title">
 <h3 id="application-offers-title">Turmas para aplicar</h3>
-<p>Selecione todas ou pesquise turmas em que você leciona {{ assessment.subject }}.</p>
+<p>Selecione todas ou pesquise as turmas da sua instituição em que você está vinculado como professor.</p>
 {{ form.offers.errors }}<p data-offers-summary role="status" aria-live="polite">Nenhuma turma selecionada.</p>
 <div data-selected-offers></div><button class="button button-secondary" type="button" data-open-offer-picker>Selecionar turmas</button>
 <dialog id="application-offer-dialog" class="question-dialog" aria-labelledby="application-offer-dialog-title">
@@ -12,7 +12,7 @@
 <label for="application-offer-search">Pesquisar minhas turmas</label><input id="application-offer-search" type="search" placeholder="Nome, série, turno ou período" autocomplete="off" data-offer-search>
 <div class="offer-picker-actions"><button type="button" class="button button-secondary" data-select-all-offers>Selecionar todas</button><button type="button" class="button button-secondary" data-select-matching-offers>Selecionar resultados</button><button type="button" class="button button-secondary" data-clear-offers>Limpar seleção</button></div>
 <p data-offer-search-status role="status" aria-live="polite"></p><div class="offer-picker-list">
-{% for choice in form.offers %}<label class="offer-picker-row" data-offer-choice>{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>{% empty %}<p>Você não possui turmas disponíveis para esta disciplina.</p>{% endfor %}
+{% for choice in form.offers %}<label class="offer-picker-row" data-offer-choice>{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>{% empty %}<p>Você não possui turmas disponíveis com vínculo ativo de professor nesta instituição.</p>{% endfor %}
 </div></dialog></section>{{ form.delivery_mode }}{{ form.delivery_mode.errors }}
 <div class="settings-field application-field">{{ form.scheduled_at.as_field_group }}</div>
 {% if form.delivery_mode.value == 'printed' %}

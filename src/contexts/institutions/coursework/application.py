@@ -15,7 +15,7 @@ from features.assessments.models import Assessment
 from features.paper_exams.services import issue_run
 from ..planning.models import Offer
 from .models import Publication
-from .services import teacher_disciplines, publish
+from .services import teacher_offers, publish
 from .scheduling import execute_application
 from .views import teacher_identity, base_data
 
@@ -41,8 +41,7 @@ class ApplicationForm(forms.Form):
 
     def __init__(self, account, assessment, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        ids = [r['offer'].pk for r in teacher_disciplines(account) if r['subject'].casefold() == assessment.subject.casefold()]
-        self.fields['offers'].queryset = Offer.objects.filter(pk__in=ids).select_related('period', 'classroom')
+        self.fields['offers'].queryset = teacher_offers(account)
         self.fields['offers'].label_from_instance = lambda offer: f'{offer.name} · {offer.grade} · {offer.get_shift_display()} · {offer.period.name}'
         self.fields['title'].initial = assessment.topic
         self.fields['kind'].initial = assessment.kind
@@ -90,8 +89,7 @@ def apply(request, assessment_pk):
                     # A double click or repeated POST cannot issue a second application.
                     if Publication.objects.filter(request_token=form.cleaned_data['request_token'], offer=offer).exists():
                         continue
-                    subject = next(r['subject'] for r in teacher_disciplines(account)
-                        if r['offer'].pk == offer.pk and r['subject'].casefold() == assessment.subject.casefold())
+                    subject = assessment.subject
                     obj = Publication(teacher=account, assessment=assessment, offer=offer, subject=subject,
                         request_token=form.cleaned_data['request_token'], application_status='scheduled',
                         scheduled_at=form.cleaned_data.get('scheduled_at') or timezone.now(),
