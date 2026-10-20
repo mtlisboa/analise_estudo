@@ -14,9 +14,10 @@
 <form class="bank-filter" data-picker-search aria-label="Filtros de questões">
 <div class="settings-field"><label for="picker-search">Buscar questões</label><input type="search" id="picker-search" name="q" placeholder="Título, comando ou metadados"></div>
 <div class="settings-field"><label for="picker-scope">Visibilidade</label><select id="picker-scope" name="scope"><option value="all">Públicas e privadas</option><option value="public">Públicas</option><option value="private">Privadas</option></select></div>
+<div class="settings-field"><label for="picker-subject">Disciplina</label><select id="picker-subject" name="subject"><option value="">Todas as disciplinas</option>{% for subject in picker_subjects %}<option value="{{ subject }}">{{ subject }}</option>{% endfor %}</select></div>
 <div class="settings-field"><label for="picker-topic">Assunto</label><input type="search" id="picker-topic" name="topic" placeholder="Filtrar por assunto"></div>
 <div class="settings-field"><label for="picker-type">Tipo de questão</label><select id="picker-type" name="question_type"><option value="">Todos os tipos</option><option value="multiple_choice">Fechada</option><option value="open_ended">Aberta</option></select></div>
 <button class="button button-secondary" type="submit">Buscar</button><button type="button" data-clear-picker-filters>Limpar filtros</button></form>
 <div data-infinite-list data-picker-list data-url="{% url 'assessments:question-bank' %}" data-scope="all"></div><button type="button" data-load-more class="bank-load">Carregar mais</button><p data-list-status role="status"></p></dialog>
 {% include 'assessments/application_mode_dialog.html' %}{% include 'assessments/preview_dialog.html' %}</section>{% endblock %}
-{% block scripts %}<script src="{% static 'js/application-mode-dialog.js' %}" defer></script><script src="{% static 'js/question-workspace.js' %}?v=5" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/application-mode-dialog.js' %}" defer></script><script src="{% static 'js/question-workspace.js' %}?v=6" defer></script>{% endblock %}

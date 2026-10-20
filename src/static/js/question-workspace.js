@@ -93,7 +93,7 @@
             url.searchParams.set('question_type', list.dataset.questionType || '');
         }
         if (state.cursor) url.searchParams.set('before',state.cursor);
-        if (list.hasAttribute('data-picker-list')) { url.searchParams.set('select','1'); url.searchParams.set('subject',document.getElementById('id_subject').value); }
+        if (list.hasAttribute('data-picker-list')) { url.searchParams.set('select','1'); url.searchParams.set('subject',list.dataset.subject || ''); }
         try {
             const response=await fetch(url,{credentials:'same-origin',signal:controller.signal});
             if (!response.ok) throw new Error('Não foi possível carregar as questões. Tente novamente.');
@@ -114,6 +114,7 @@
         const form=picker.querySelector('[data-picker-search]');
         const list=picker.querySelector('[data-picker-list]');
         list.dataset.query=form.elements.q.value;
+        list.dataset.subject=form.elements.subject.value;
         list.dataset.scope=form.elements.scope.value;
         list.dataset.topic=form.elements.topic.value;
         list.dataset.questionType=form.elements.question_type.value;
@@ -127,8 +128,6 @@
         if (remove) { selected.delete(remove.dataset.removeQuestion); renderSelection(); return; }
         if (event.target.closest('[data-open-picker]')) {
             renderSelection();
-            const subject=document.getElementById('id_subject').value.trim();
-            if (!subject) { document.getElementById('id_subject').reportValidity(); document.getElementById('id_subject').focus(); return; }
             picker.hidden = false;
             picker.showModal();
             picker.querySelector('#picker-search').focus();
@@ -160,7 +159,7 @@
         filterPicker();
     });
     if(selectedRoot) renderSelection();
-    if(root.hasAttribute('data-picker-auto-open') && document.getElementById('id_subject')?.value.trim()) root.querySelector('[data-open-picker]')?.click();
+    if(root.hasAttribute('data-picker-auto-open')) root.querySelector('[data-open-picker]')?.click();
     if ('IntersectionObserver' in window) {
         states.forEach((state,list) => {
             const button=list.parentElement.querySelector('[data-load-more]');
