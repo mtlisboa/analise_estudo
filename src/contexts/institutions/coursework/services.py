@@ -10,6 +10,20 @@ from ..student import enrolled_classrooms
 from .models import Publication
 
 
+def teacher_offers(account):
+    """Application access follows the teacher's active classroom membership."""
+    if account.role != 'TEACHER':
+        return Offer.objects.none()
+    return Offer.objects.filter(
+        period__organization=account.organization,
+        classroom__organization=account.organization,
+        classroom__is_active=True,
+        classroom__memberships__user=account.user,
+        classroom__memberships__role='TEACHER',
+        classroom__memberships__status='ACTIVE',
+    ).select_related('period', 'classroom').distinct()
+
+
 def teacher_disciplines(account):
     offers = Offer.objects.filter(period__organization=account.organization, classroom__organization=account.organization,
         period__published_at__isnull=False, classroom__is_active=True,
@@ -23,9 +37,8 @@ def teacher_disciplines(account):
 
 
 def authorize_teacher(account, offer, subject):
-    if account.role != 'TEACHER' or not any(row['offer'].pk == offer.pk and row['subject'] == subject
-            for row in teacher_disciplines(account)):
-        raise PermissionDenied('Você não leciona esta disciplina na oferta publicada.')
+    if not teacher_offers(account).filter(pk=offer.pk).exists():
+        raise PermissionDenied('Você não possui vínculo ativo de professor nesta turma da instituição.')
 
 
 def student_publications(account, offer, subject):
