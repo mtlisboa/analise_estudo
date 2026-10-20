@@ -78,11 +78,58 @@
         rows.forEach(row => { row.querySelector('input').checked = false; });
         update();
     });
-    form.addEventListener('submit', event => {
+    const printDialog = document.querySelector('[data-print-dialog]');
+    const printStatus = printDialog.querySelector('[data-print-status]');
+    const printFrame = printDialog.querySelector('[data-print-frame]');
+    const printOpen = printDialog.querySelector('[data-print-open]');
+    printDialog.querySelector('[data-close-print]').addEventListener('click', () => printDialog.close());
+    let pdfObjectUrl;
+    let printing = false;
+    form.addEventListener('submit', async event => {
         if (!rows.some(row => row.querySelector('input').checked)) {
             event.preventDefault();
             picker.showModal();
             picker.querySelector('[data-offer-search-status]').textContent = 'Selecione pelo menos uma turma.';
+            return;
+        }
+        if (mode.value !== 'printed') return;
+        event.preventDefault();
+        if (printing) return;
+        printing = true;
+        const button = form.querySelector('[data-confirm-application]');
+        button.disabled = true;
+        printFrame.hidden = true;
+        printOpen.hidden = true;
+        printStatus.textContent = 'Salvando a aplicação e montando o PDF…';
+        printDialog.showModal();
+        try {
+            const response = await fetch(form.action || location.href, {
+                method: 'POST', body: new FormData(form),
+                headers: {'Accept': 'application/json'}, credentials: 'same-origin'
+            });
+            const type = response.headers.get('content-type') || '';
+            if (!type.includes('application/json')) throw new Error('Não foi possível salvar a aplicação. Recarregue a página e verifique sua sessão.');
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(Object.values(result.errors || {}).flat().map(error => error.message).join(' ') || 'Não foi possível salvar a aplicação.');
+            }
+            printStatus.textContent = 'Aplicação salva. Carregando o PDF…';
+            printOpen.href = result.pdf_url;
+            printOpen.hidden = false;
+            const pdf = await fetch(result.pdf_url, {credentials: 'same-origin'});
+            if (!pdf.ok || !(pdf.headers.get('content-type') || '').includes('application/pdf')) {
+                throw new Error('A aplicação foi salva, mas não foi possível carregar o PDF. Tente abrir pelo link acima ou clique em Imprimir novamente.');
+            }
+            if (pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
+            pdfObjectUrl = URL.createObjectURL(await pdf.blob());
+            printFrame.src = pdfObjectUrl;
+            printFrame.hidden = false;
+            printStatus.textContent = 'PDF pronto: gabaritos individuais, provas A e capa, provas B e capa, provas C e capa.';
+        } catch (error) {
+            printStatus.textContent = error.message || 'Falha ao gerar o PDF. Tente novamente.';
+        } finally {
+            printing = false;
+            button.disabled = false;
         }
     });
     update();

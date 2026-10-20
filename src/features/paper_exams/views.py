@@ -27,9 +27,8 @@ def permitted_run(user, pk):
         raise PermissionDenied('Você não possui mais acesso de gestão à turma.')
     account = getattr(user, 'institutional_account', None)
     if account:
-        from contexts.institutions.coursework.services import teacher_disciplines
-        if not any(r['offer'].classroom_id == run.classroom_id and r['subject'].casefold() == run.subject.casefold()
-                   for r in teacher_disciplines(account)):
+        from contexts.institutions.coursework.services import teacher_offers
+        if not teacher_offers(account).filter(classroom_id=run.classroom_id).exists():
             from django.core.exceptions import PermissionDenied
             raise PermissionDenied
     return run
@@ -43,9 +42,8 @@ class IssueForm(forms.Form):
         permitted = [c.pk for c in visible_classrooms(user).select_related('organization') if can_manage_classroom(user, c)]
         account = getattr(user, 'institutional_account', None)
         if account and assessment:
-            from contexts.institutions.coursework.services import teacher_disciplines
-            permitted = [r['offer'].classroom_id for r in teacher_disciplines(account)
-                         if r['subject'].casefold() == assessment.subject.casefold()]
+            from contexts.institutions.coursework.services import teacher_offers
+            permitted = list(teacher_offers(account).values_list('classroom_id', flat=True))
         self.fields['classroom'].queryset = Classroom.objects.filter(pk__in=permitted)
 
 
@@ -121,7 +119,7 @@ def download(request, pk, kind):
     if kind == 'folhas':
         return download_response(answer_sheets_pdf(run, sheets), 'application/pdf', 'folhas-de-respostas.pdf', inline=request.GET.get('inline') == '1')
     if kind == 'provas':
-        return download_response(exam_pdf(run, sheets), 'application/pdf', 'provas.pdf', inline=request.GET.get('inline') == '1')
+        return download_response(exam_pdf(run, sheets, include_answer_sheet=not bool(request.GET.get('student'))), 'application/pdf', 'provas.pdf', inline=request.GET.get('inline') == '1')
     if kind == 'gabaritos' and run.variants:
         from .documents import variant_keys_pdf
         return download_response(variant_keys_pdf(run), 'application/pdf', 'gabaritos-ABC.pdf')
@@ -243,14 +241,40 @@ def print_application(request, request_token):
     if not publications:
         from django.http import Http404
         raise Http404
-    writer = PdfWriter()
-    for publication in publications:
-        run = permitted_run(request.user, publication.exam_run_id)
-        writer.append(PdfReader(io.BytesIO(exam_pdf(run))))
-    output = io.BytesIO()
-    writer.write(output)
-    response = HttpResponse(output.getvalue(), content_type='application/pdf')
+    from .documents import application_print_pdf
+    runs = [permitted_run(request.user, publication.exam_run_id) for publication in publications]
+    response = HttpResponse(application_print_pdf(runs), content_type='application/pdf')
     response['Content-Disposition'] = 'inline; filename="provas-para-impressao.pdf"'
     response['X-Content-Type-Options'] = 'nosniff'
     response['Cache-Control'] = 'private, no-store'
     return response
+
+
+@login_required
+@require_GET
+def students(request):
+    """Teacher student area: reprint existing documents without issuing new sheets."""
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+    from contexts.institutions.coursework.views import teacher_identity, base_data
+    from contexts.institutions.coursework.services import teacher_offers
+    from features.users_manager.models import ClassroomMembership
+    account = teacher_identity(request)
+    classroom_ids = teacher_offers(account).values_list('classroom_id', flat=True)
+    members = ClassroomMembership.objects.filter(classroom_id__in=classroom_ids,
+        role='STUDENT', status='ACTIVE')
+    allowed = get_user_model().objects.filter(pk__in=members.values('user_id'), is_active=True)
+    query = request.GET.get('q', '').strip()[:100]
+    found = allowed
+    if query:
+        found = found.filter(Q(first_name__icontains=query) | Q(last_name__icontains=query)
+            | Q(username__icontains=query) | Q(institutional_account__registration__icontains=query))
+    selected = None
+    sheets = AnswerSheet.objects.none()
+    if request.GET.get('student', '').isdigit():
+        selected = get_object_or_404(allowed, pk=request.GET['student'])
+        sheets = AnswerSheet.objects.filter(student=selected, run__created_by=request.user,
+            run__classroom_id__in=classroom_ids).select_related('run').order_by('-run__created_at')
+    return render(request, 'paper_exams/students.html', {
+        **base_data(account), 'students': found.order_by('first_name', 'last_name', 'pk')[:50],
+        'query': query, 'selected_student': selected, 'sheets': sheets})

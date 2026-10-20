@@ -51,6 +51,8 @@ def answer_sheets_pdf(run, sheets=None):
             pdf.drawString(50, HEIGHT - y, text)
         pdf.setFont('Helvetica', 9)
         pdf.drawString(50, HEIGHT - 195, f'ID: {sheet.student_id} | Turno: {run.context.get("shift", "")} | Sala: {run.context.get("room", "")}'[:100])
+        pdf.setFont('Helvetica', 8)
+        pdf.drawString(50, HEIGHT - 208, ('Professor: ' + run.context.get('teacher', str(run.created_by)))[:100])
         qr = qrcode.make(qr_payload(sheet)).get_image()
         pdf.drawImage(ImageReader(qr), 438, HEIGHT - 187, 110, 110)
         pdf.setFont('Helvetica', 9)
@@ -76,7 +78,7 @@ def answer_sheets_pdf(run, sheets=None):
     return stream.getvalue()
 
 
-def exam_pdf(run, sheets=None):
+def exam_pdf(run, sheets=None, *, include_answer_sheet=True, generic=False):
     from pypdf import PdfReader, PdfWriter
     output = BytesIO()
     writer = PdfWriter()
@@ -84,8 +86,9 @@ def exam_pdf(run, sheets=None):
     def paragraph(text, style='Normal'):
         return Paragraph(escape(str(text)).replace('\n', '<br/>'), styles[style])
     for sheet in (sheets if sheets is not None else run.sheets.all()):
-        cover = BytesIO(answer_sheets_pdf(run, [sheet]))
-        writer.append(PdfReader(cover))
+        if include_answer_sheet:
+            cover = BytesIO(answer_sheets_pdf(run, [sheet]))
+            writer.append(PdfReader(cover))
         body = BytesIO()
         story = []
         for key, heading in [('content_topic', 'Assunto'), ('description', 'Descrição'), ('instructions', 'Instruções')]:
@@ -119,6 +122,17 @@ def exam_pdf(run, sheets=None):
                     story.append(paragraph(f'{letter}) {option}'))
             story.append(Spacer(1, 16))
         def header(pdf, doc):
+            if generic:
+                fields = [run.title + f' | Prova {sheet.variant}',
+                          'Aluno: __________________________________________________',
+                          f'Turma: {run.classroom_name}',
+                          'Professor: ' + run.context.get('teacher', str(run.created_by))]
+                block = KeepInFrame(510, 130, [paragraph(v) for v in fields], mode='shrink')
+                _, height = block.wrapOn(pdf, 510, 130)
+                block.drawOn(pdf, 42, HEIGHT - 50 - height)
+                pdf.setFont('Helvetica', 8)
+                pdf.drawString(42, 25, f'Prova {sheet.variant} - página {doc.page}')
+                return
             payload = signing.Signer(salt=SALT).sign(f'2:{sheet.student_id}:{sheet.pk.hex}:{doc.page}')
             qr = qrcode.make(payload).get_image()
             pdf.drawImage(ImageReader(qr), 438, HEIGHT - 165, 110, 110)
@@ -154,3 +168,41 @@ def variant_keys_pdf(run):
             story.append(Paragraph(escape(f'{index + 1:02}. {answer}'), styles['Normal']))
     SimpleDocTemplate(stream, pagesize=A4).build(story)
     return stream.getvalue()
+
+
+def application_print_pdf(runs):
+    """Individual answer sheets, then assigned A / cover, B / cover, C / cover."""
+    from types import SimpleNamespace
+    from pypdf import PdfReader, PdfWriter
+    runs = list(runs)
+    writer = PdfWriter()
+    batches = [(run, list(run.sheets.all())) for run in runs]
+    for run, sheets in batches:
+        writer.append(PdfReader(BytesIO(answer_sheets_pdf(run, sheets))))
+    for version in 'ABC':
+        count = 0
+        for run, sheets in batches:
+            questions = run.variants.get(version) if run.variants else run.questions
+            booklet = SimpleNamespace(variant=version, questions=questions)
+            body = PdfReader(BytesIO(exam_pdf(run, [booklet],
+                include_answer_sheet=False, generic=True)))
+            assigned = [sheet for index, sheet in enumerate(sheets)
+                        if (sheet.variant or 'ABC'[index % 3]) == version]
+            for _ in assigned:
+                writer.append(body)
+                count += 1
+        cover = BytesIO()
+        styles = getSampleStyleSheet()
+        story = [
+            Paragraph(f'CAPA - PROVA {version}', styles['Title']),
+            Spacer(1, 24),
+            Paragraph(escape(runs[0].title), styles['Heading1']),
+            Paragraph(f'{count} cadernos - versão {version}', styles['Normal']),
+            Paragraph('Turmas: ' + escape(', '.join(run.classroom_name for run in runs)), styles['Normal']),
+            Paragraph('Professor: ' + escape(runs[0].context.get('teacher', str(runs[0].created_by))), styles['Normal']),
+        ]
+        SimpleDocTemplate(cover, pagesize=A4).build(story)
+        writer.append(PdfReader(BytesIO(cover.getvalue())))
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()
