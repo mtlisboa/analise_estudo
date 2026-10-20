@@ -171,41 +171,68 @@ def variant_keys_pdf(run):
 
 
 def application_print_pdf(runs):
-    """Individual answer sheets, then assigned A / cover, B / cover, C / cover."""
-    from types import SimpleNamespace
+    """One answer sheet and one individual booklet per saved student assignment."""
+    from django.core.exceptions import ValidationError
     from pypdf import PdfReader, PdfWriter
-    runs = list(runs)
-    writer = PdfWriter()
-    batches = [(run, list(run.sheets.all())) for run in runs]
     from .variants import alphabetical_key
-    ordered_sheets = sorted(((run, sheet) for run, sheets in batches for sheet in sheets),
-        key=lambda item: (alphabetical_key(item[1].student_name), item[1].student_id, str(item[0].classroom_name)))
+
+    runs = list(runs)
+    ordered_sheets = sorted(
+        ((run, sheet) for run in runs for sheet in run.sheets.all()),
+        key=lambda item: (alphabetical_key(item[1].student_name),
+                          item[1].student_id, str(item[0].classroom_name)))
+    if not ordered_sheets:
+        raise ValidationError('A aplicação não possui alunos para impressão.')
+    expected_ids = {sheet.pk for _, sheet in ordered_sheets}
+    if len(expected_ids) != len(ordered_sheets):
+        raise ValidationError('Há folhas duplicadas na aplicação. Revise a emissão.')
     for run, sheet in ordered_sheets:
-        writer.append(PdfReader(BytesIO(answer_sheets_pdf(run, [sheet]))))
-    for version in 'ABC':
-        count = 0
-        for run, sheets in batches:
-            questions = run.variants.get(version) if run.variants else run.questions
-            booklet = SimpleNamespace(variant=version, questions=questions)
-            body = PdfReader(BytesIO(exam_pdf(run, [booklet],
-                include_answer_sheet=False, generic=True)))
-            assigned = [sheet for index, sheet in enumerate(sheets)
-                        if (sheet.variant or 'ABC'[index % 3]) == version]
-            for _ in assigned:
-                writer.append(body)
-                count += 1
+        if sheet.variant and (sheet.variant not in 'ABC' or sheet.variant not in run.variants):
+            raise ValidationError('Uma folha possui versão inválida. Revise a emissão antes de imprimir.')
+
+    writer = PdfWriter()
+    expected_pages = 0
+
+    def append_document(data):
+        nonlocal expected_pages
+        # Each student has an independent PDF and page objects.
+        document = PdfReader(BytesIO(data))
+        if not document.pages:
+            raise ValidationError('Um documento ficou vazio durante a geração.')
+        for page in document.pages:
+            writer.add_page(page)
+        expected_pages += len(document.pages)
+
+    for run, sheet in ordered_sheets:
+        append_document(answer_sheets_pdf(run, [sheet]))
+
+    emitted_ids = set()
+    versions = list('ABC')
+    if any(not sheet.variant for _, sheet in ordered_sheets):
+        versions.append('')
+    for version in versions:
+        assigned = [(run, sheet) for run, sheet in ordered_sheets if sheet.variant == version]
+        for run, sheet in assigned:
+            append_document(exam_pdf(run, [sheet], include_answer_sheet=False))
+            emitted_ids.add(sheet.pk)
+        label = version or 'ORIGINAL'
         cover = BytesIO()
         styles = getSampleStyleSheet()
         story = [
-            Paragraph(f'CAPA - PROVA {version}', styles['Title']),
+            Paragraph(f'CAPA - PROVA {label}', styles['Title']),
             Spacer(1, 24),
             Paragraph(escape(runs[0].title), styles['Heading1']),
-            Paragraph(f'{count} cadernos - versão {version}', styles['Normal']),
+            Paragraph(f'{len(assigned)} cadernos - versão {label}', styles['Normal']),
             Paragraph('Turmas: ' + escape(', '.join(run.classroom_name for run in runs)), styles['Normal']),
             Paragraph('Professor: ' + escape(runs[0].context.get('teacher', str(runs[0].created_by))), styles['Normal']),
         ]
         SimpleDocTemplate(cover, pagesize=A4).build(story)
-        writer.append(PdfReader(BytesIO(cover.getvalue())))
+        append_document(cover.getvalue())
+    if emitted_ids != expected_ids:
+        raise ValidationError('A quantidade de provas não corresponde às folhas de respostas.')
     output = BytesIO()
     writer.write(output)
-    return output.getvalue()
+    data = output.getvalue()
+    if len(PdfReader(BytesIO(data)).pages) != expected_pages:
+        raise ValidationError('O PDF ficou incompleto. Tente gerar novamente.')
+    return data
