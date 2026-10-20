@@ -111,8 +111,8 @@ def record(request,kind,pk=None):
                     # Existing printed results and family views must agree with the new answer key.
                     from features.paper_exams.models import SheetResult
                     from features.paper_exams.services import grade
-                    all_questions=effective_questions(obj.run)
                     for result in SheetResult.objects.select_for_update().filter(sheet__run=obj.run):
+                        all_questions=effective_questions(obj.run, result.sheet)
                         old={'score':str(result.score)}
                         score,maximum=grade(all_questions,result.answers,result.open_scores);result.maximum_score=maximum
                         if result.status=='graded':result.score=score

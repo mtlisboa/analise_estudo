@@ -21,6 +21,9 @@ from .views import teacher_identity, base_data
 
 
 class ApplicationForm(forms.Form):
+    shuffle_questions = forms.BooleanField(label='Embaralhar questões', required=False, initial=True)
+    shuffle_options = forms.BooleanField(label='Embaralhar alternativas', required=False, initial=True)
+
     request_token = forms.UUIDField(widget=forms.HiddenInput, initial=uuid.uuid4)
     kind = forms.ChoiceField(label='Tipo de aplicação', choices=[('EXAM', 'Prova'), ('ACTIVITY', 'Atividade')])
     offers = forms.ModelMultipleChoiceField(label='Turmas para aplicar', queryset=Offer.objects.none(), widget=forms.CheckboxSelectMultiple)
@@ -35,7 +38,8 @@ class ApplicationForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.scheduling = scheduling
         ids = [r['offer'].pk for r in teacher_disciplines(account) if r['subject'].casefold() == assessment.subject.casefold()]
-        self.fields['offers'].queryset = Offer.objects.filter(pk__in=ids)
+        self.fields['offers'].queryset = Offer.objects.filter(pk__in=ids).select_related('period', 'classroom')
+        self.fields['offers'].label_from_instance = lambda offer: f'{offer.name} · {offer.grade} · {offer.get_shift_display()} · {offer.period.name}'
         self.fields['title'].initial = assessment.topic
         self.fields['kind'].initial = assessment.kind
         self.fields['instructions'].initial = assessment.instructions
@@ -51,6 +55,9 @@ class ApplicationForm(forms.Form):
         start = data.get('scheduled_at') or timezone.now()
         if self.scheduling and start <= timezone.now():
             self.add_error('scheduled_at', 'Escolha uma data e horário futuros.')
+        if data.get('delivery_mode') != 'printed' or data.get('kind') != 'EXAM':
+            data['shuffle_questions'] = False
+            data['shuffle_options'] = False
         if data.get('delivery_mode') == 'printed':
             data['due_at'] = None
             data['is_visible'] = True
@@ -68,6 +75,8 @@ def apply(request, assessment_pk, scheduling=False):
     account = teacher_identity(request)
     assessment = get_object_or_404(Assessment, pk=assessment_pk, owner=request.user)
     form = ApplicationForm(account, assessment, request.POST if request.method == 'POST' else None, scheduling=scheduling)
+    if request.method == 'GET' and request.GET.get('delivery_mode') in ('online', 'printed'):
+        form.initial['delivery_mode'] = request.GET['delivery_mode']
     if request.method == 'POST' and form.is_valid():
         try:
             with transaction.atomic():
@@ -89,7 +98,9 @@ def apply(request, assessment_pk, scheduling=False):
                     obj.save()
                     publish(account, obj, prepare_only=True)
                     if obj.delivery_mode == 'printed':
-                        obj.exam_run = issue_run(assessment, offer.classroom, request.user)
+                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=obj.kind == 'EXAM',
+                            shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
+                            variant_seed=str(form.cleaned_data['request_token']))
                         obj.exam_run.title = obj.title
                         obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic)
                         obj.exam_run.save(update_fields=['title', 'context'])

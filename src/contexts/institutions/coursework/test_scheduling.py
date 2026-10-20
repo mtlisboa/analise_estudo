@@ -249,3 +249,47 @@ class AssessmentApplicationTests(TestCase):
         self.assertTrue(obj.is_published)
         self.assertEqual(obj.scheduled_at, started_at)
         self.assertEqual(Notification.objects.filter(recipient=self.student.user).count(), 1)
+
+
+    def test_offer_picker_on_immediate_and_scheduled_application(self):
+        for route in ('coursework:apply', 'coursework:schedule'):
+            page = self.client.get(reverse(route, args=[self.assessment.pk]))
+            self.assertContains(page, 'id="application-offer-dialog"', count=1)
+            self.assertContains(page, 'Pesquisar minhas turmas')
+            self.assertContains(page, 'Selecionar todas')
+            self.assertContains(page, 'data-offer-choice')
+            self.assertContains(page, self.offer.name)
+            self.assertContains(page, 'name="offers"')
+            form = page.context['form']
+            self.assertIn(self.offer, form.fields['offers'].queryset)
+            self.assertIn(self.offer.period.name, form.fields['offers'].label_from_instance(self.offer))
+
+    def test_offer_selection_is_preserved_after_validation_error(self):
+        data = self.payload(title='')
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['form']['offers'].value(), [str(self.offer.pk)])
+        self.assertContains(response, 'checked')
+
+    def test_physical_exam_creates_versioned_booklets_with_requested_shuffling(self):
+        from features.assessments.models import Question
+        for order in (3, 4):
+            Question.objects.create(assessment=self.assessment, order=order, statement=f'Questão extra {order}',
+                options=['A', 'B', 'C'], correct_answer='A', points=1)
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]),
+            self.payload(delivery_mode='printed', due_at='', shuffle_questions='on', shuffle_options='on'))
+        self.assertEqual(response.status_code, 302)
+        publication = Publication.objects.get(title='Aplicação independente')
+        self.assertEqual(set(publication.exam_run.variants), set('ABC'))
+        self.assertTrue(publication.exam_run.context['shuffle_questions'])
+        self.assertTrue(publication.exam_run.context['shuffle_options'])
+        self.client.get(reverse('paper-exams:detail', args=[publication.exam_run_id]))
+        keys = self.client.get(reverse('paper-exams:download', args=[publication.exam_run_id, 'gabaritos']))
+        self.assertEqual(keys.status_code, 200)
+        self.assertTrue(keys.content.startswith(b'%PDF'))
+
+    def test_virtual_application_does_not_create_printed_versions(self):
+        response = self.client.post(reverse('coursework:apply', args=[self.assessment.pk]),
+            self.payload(shuffle_questions='on', shuffle_options='on'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIsNone(Publication.objects.get(title='Aplicação independente').exam_run_id)

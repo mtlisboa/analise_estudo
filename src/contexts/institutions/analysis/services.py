@@ -40,11 +40,23 @@ def selected_runs(scope, f):
     if f.get('assessment'): qs=qs.filter(assessment=f['assessment'])
     return qs
 
-def effective_questions(run):
-    questions = [dict(q) for q in run.questions]
+def effective_questions(run, sheet=None):
+    from copy import deepcopy
+    source = run.variants.get(sheet.variant, run.questions) if sheet is not None else run.questions
+    questions = deepcopy(source)
     for rev in sorted(run.key_revisions.all(), key=lambda r:(r.created_at,r.pk)):
-        if 1 <= rev.question_index <= len(questions):
-            questions[rev.question_index-1].update(correct=rev.correct, annulled=rev.annulled)
+        if not 1 <= rev.question_index <= len(run.questions):
+            continue
+        original = run.questions[rev.question_index - 1]
+        for index, question in enumerate(questions):
+            matches = question.get('id') == original.get('id') if original.get('id') is not None else index == rev.question_index - 1
+            if not matches:
+                continue
+            correct = rev.correct
+            order = question.get('option_order')
+            if order and correct in 'ABCDE' and correct:
+                correct = 'ABCDE'[order.index('ABCDE'.index(correct))]
+            question.update(correct=correct, annulled=rev.annulled)
     return questions
 
 def build(scope, f):
@@ -66,7 +78,7 @@ def build(scope, f):
     for result in latest_results.values():
         run=run_map[result.sheet.run_id]
         offer=getattr(run.classroom,'planning_offer',None)
-        questions=effective_questions(run)
+        questions=effective_questions(run, result.sheet)
         total=Decimal(0); score=Decimal(0); used=0
         for i,q in enumerate(questions):
             meta=q.get('diagnostic_metadata',{})
@@ -80,13 +92,15 @@ def build(scope, f):
                 continue
             valid=answer in list('ABCDE'[:len(q.get('options',[]))]); correct=valid and answer==q['correct']
             total+=points; score+=points if correct else 0; used+=1
-            item_key=(str(run.pk),i)
-            item=items.setdefault(item_key,{'run':str(run.pk),'number':i+1,'title':run.title,'statement':q.get('statement',''),
+            canonical_index = next((index for index, original in enumerate(run.questions) if original.get('id') is not None and original.get('id') == q.get('id')), i)
+            canonical_answer = 'ABCDE'[q['option_order']['ABCDE'.index(answer)]] if valid and q.get('option_order') else answer
+            item_key=(str(run.pk),canonical_index)
+            item=items.setdefault(item_key,{'run':str(run.pk),'number':canonical_index+1,'title':run.title,'statement':q.get('statement',''),
                 'count':0,'correct':0,'blank':0,'invalid':0,'options':Counter(), 'available':list('ABCDE'[:len(q.get('options',[]))])})
             item['count']+=1;item['correct']+=int(correct)
             if not answer: item['blank']+=1
             elif not valid: item['invalid']+=1
-            else: item['options'][answer]+=1
+            else: item['options'][canonical_answer]+=1
             for skill in skills:
                 if skills_filter and skills_filter!=skill: continue
                 s=skill_rows[(result.sheet.student_id,offer.pk if offer else None,run.subject or run.assessment.subject,skill)]
