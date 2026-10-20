@@ -60,3 +60,17 @@ class PrintPacketTests(SimpleTestCase):
         self.assertIn('Prova B', pages[0])
         self.assertIn('Aluno 2', pages[0])
         self.assertNotIn('Folha de respostas', pages[0])
+
+    def test_every_student_has_exactly_one_identified_booklet(self):
+        for count in (4, 10, 11):
+            with self.subTest(count=count):
+                run, sheets = self.make_run(count)
+                pages = [p.extract_text() for p in PdfReader(BytesIO(application_print_pdf([run]))).pages]
+                booklets = [text for text in pages if 'Questão 1' in text]
+                self.assertEqual(len(booklets), count)
+                for sheet in sheets:
+                    own = [text for text in booklets
+                           if f'Aluno ID {sheet.student_id}\n' in text]
+                    self.assertEqual(len(own), 1)
+                    self.assertIn(f'Prova {sheet.variant}', own[0])
+                self.assertEqual(len(pages), count * 2 + 3)
