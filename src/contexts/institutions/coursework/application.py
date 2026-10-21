@@ -55,11 +55,16 @@ class ApplicationForm(forms.Form):
         for index, question in enumerate(self.scored_questions, 1):
             name = f'points_{question.pk}'
             self.fields[name] = forms.DecimalField(
-                label=f'Questão {index}: {question.statement[:120]}',
+                label=f'Questão: {question.statement[:120]}',
                 initial=question.points, min_value=Decimal('0.01'),
                 max_digits=8, decimal_places=2,
                 widget=forms.NumberInput(attrs={'step': '0.01', 'data-question-points': ''}))
-            self.question_point_fields.append(self[name])
+            bound = self[name]
+            bound.question_id = str(question.pk)
+            self.question_point_fields.append(bound)
+        if self.is_bound and hasattr(self.data, 'getlist'):
+            positions = {value: index for index, value in enumerate(self.data.getlist('question_order'))}
+            self.question_point_fields.sort(key=lambda field: positions.get(field.question_id, len(positions)))
         self.fields['offers'].queryset = teacher_offers(account)
         self.fields['offers'].label_from_instance = lambda offer: f'{offer.name} · {offer.grade} · {offer.get_shift_display()} · {offer.period.name}'
         self.fields['title'].initial = assessment.topic
@@ -70,6 +75,13 @@ class ApplicationForm(forms.Form):
 
     def clean(self):
         data = super().clean()
+        expected_order = [str(q.pk) for q in self.scored_questions]
+        order = self.data.getlist('question_order') if hasattr(self.data, 'getlist') else self.data.get('question_order', [])
+        order = order or expected_order
+        if not isinstance(order, list) or len(order) != len(expected_order) or set(order) != set(expected_order):
+            self.add_error(None, 'A ordem deve conter cada questão do questionário uma única vez.')
+        else:
+            data['question_order'] = order
         names = [f'points_{q.pk}' for q in self.scored_questions]
         if all(name in data for name in names) and data.get('total_points') is not None:
             total = sum((data[name] for name in names), Decimal('0'))
@@ -139,6 +151,7 @@ def apply(request, assessment_pk):
                             'assessment_metadata': list(assessment.metadata_tags),
                             'total_points': str(form.cleaned_data['total_points']),
                             'question_points': form.cleaned_data['question_points'],
+                            'question_order': form.cleaned_data['question_order'],
                             'selected_offer_ids': [offer.pk for offer in form.cleaned_data['offers']],
                         })
                     for key in ('kind', 'title', 'instructions', 'due_at', 'delivery_mode'):
@@ -148,6 +161,7 @@ def apply(request, assessment_pk):
                     if obj.delivery_mode == 'printed':
                         obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=True,
                             question_points=form.cleaned_data['question_points'],
+                            question_order=form.cleaned_data['question_order'],
                             shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
                             variant_seed=str(form.cleaned_data['request_token']), variant_offset=variant_offset,
                             student_variants={student_id: version for (classroom_id, student_id), version

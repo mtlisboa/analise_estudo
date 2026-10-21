@@ -23,7 +23,7 @@ MAX_PAGES = 100
 
 
 @transaction.atomic
-def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None, variant_offset=0, student_variants=None, question_points=None):
+def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False, shuffle_questions=False, shuffle_options=False, variant_seed=None, variant_offset=0, student_variants=None, question_points=None, question_order=None):
     if assessment.owner_id != user.pk or not can_manage_classroom(user, classroom):
         raise ValidationError('Você não pode emitir provas para esta avaliação ou turma.')
     account = getattr(user, 'institutional_account', None)
@@ -31,7 +31,8 @@ def issue_run(assessment, classroom, user, student_ids=None, *, versioned=False,
         from contexts.institutions.coursework.services import teacher_offers
         if not teacher_offers(account).filter(classroom_id=classroom.pk).exists():
             raise ValidationError('Selecione uma turma da instituição com vínculo ativo de professor.')
-    questions = list(assessment.questions.prefetch_related('images'))
+    from features.assessments.application_scoring import application_question_order
+    questions = application_question_order(list(assessment.questions.prefetch_related('images')), question_order)
     if not 1 <= len(questions) <= 50:
         raise ValidationError('A emissão aceita de 1 a 50 questões por prova.')
     from features.assessments.application_scoring import application_points

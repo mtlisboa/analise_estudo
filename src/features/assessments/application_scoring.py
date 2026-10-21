@@ -16,3 +16,12 @@ def application_points(questions, overrides=None):
             raise ValidationError('Cada questão deve ter pontuação positiva com até duas casas decimais.')
         result[str(question.pk)] = str(value)
     return result
+
+
+def application_question_order(questions, order=None):
+    if order is None:
+        return questions
+    by_id = {str(question.pk): question for question in questions}
+    if not isinstance(order, list) or len(order) != len(by_id) or set(order) != set(by_id):
+        raise ValidationError('As questões foram alteradas. Recarregue a aplicação e confira a ordem.')
+    return [by_id[key] for key in order]
