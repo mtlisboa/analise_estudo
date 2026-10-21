@@ -14,11 +14,21 @@
 <p data-offer-search-status role="status" aria-live="polite"></p><div class="offer-picker-list">
 {% for choice in form.offers %}<label class="offer-picker-row" data-offer-choice>{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>{% empty %}<p>Você não possui turmas disponíveis com vínculo ativo de professor nesta instituição.</p>{% endfor %}
 </div></dialog></section>{{ form.delivery_mode }}{{ form.delivery_mode.errors }}
-<fieldset><legend>Pontuação desta aplicação</legend>
+<button class="button button-secondary" type="button" data-open-application-scores aria-haspopup="dialog" aria-controls="application-score-dialog">Editar pontuação e ordem</button>
+<dialog id="application-score-dialog" class="question-dialog" aria-labelledby="application-score-title">
+<div class="dialog-toolbar"><h2 id="application-score-title">Pontuação e ordem desta aplicação</h2><button type="button" data-close-application-scores>Concluir edição</button></div>
+<p>Defina os pontos e a ordem padrão. O embaralhamento, quando ativado, parte desta configuração; no físico, questões abertas continuam no final.</p>
 {{ form.total_points.as_field_group }}
-<p data-points-status role="status" aria-live="polite">A soma dos valores das questões deve corresponder à pontuação total.</p>
-{% for field in form.question_point_fields %}<div class="settings-field application-field">{{ field.as_field_group }}</div>{% endfor %}
-</fieldset>
+<p data-points-status role="status" aria-live="polite">A soma das questões deve corresponder ao total.</p>
+<div data-application-score-list>
+{% for field in form.question_point_fields %}<div class="settings-field application-field" data-application-score-row>
+<input type="hidden" name="question_order" value="{{ field.question_id }}">
+<span data-application-position>{{ forloop.counter }}.</span>
+{{ field.as_field_group }}
+<button type="button" data-move-application-question="-1">Subir</button>
+<button type="button" data-move-application-question="1">Descer</button>
+</div>{% endfor %}
+</div></dialog>
 <div class="settings-field application-field">{{ form.scheduled_at.as_field_group }}</div>
 {% if form.delivery_mode.value == 'printed' %}
 <fieldset data-physical-exam-settings><legend>Embaralhamento físico — cadernos A, B e C</legend>
@@ -42,4 +52,4 @@
 </dialog>
 {% endblock %}
 
-{% block scripts %}{{ block.super }}<script src="{% static 'js/assessment-application.js' %}?v=8" defer></script>{% endblock %}
+{% block scripts %}{{ block.super }}<script src="{% static 'js/assessment-application.js' %}?v=9" defer></script>{% endblock %}

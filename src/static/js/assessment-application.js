@@ -34,6 +34,42 @@
             pointsStatus.textContent = 'Pontuação total atualizada pela soma das questões.';
         }));
     }
+    const scoreDialog = form.querySelector('#application-score-dialog');
+    const scoreList = form.querySelector('[data-application-score-list]');
+    if (scoreDialog && scoreList) {
+        const refreshPositions = () => {
+            const rows = [...scoreList.children];
+            rows.forEach((row, index) => {
+                row.querySelector('[data-application-position]').textContent = (index + 1) + '.';
+                row.querySelector('[data-move-application-question="-1"]').disabled = index === 0;
+                row.querySelector('[data-move-application-question="1"]').disabled = index === rows.length - 1;
+            });
+        };
+        form.querySelector('[data-open-application-scores]').addEventListener('click', () => {
+            scoreDialog.showModal();
+            totalPoints.focus();
+        });
+        scoreDialog.querySelector('[data-close-application-scores]').addEventListener('click', () => {
+            const invalid = [...scoreDialog.querySelectorAll('input')].find(field => !field.checkValidity());
+            if (invalid) { invalid.reportValidity(); return; }
+            scoreDialog.close();
+        });
+        scoreList.addEventListener('click', event => {
+            const button = event.target.closest('[data-move-application-question]');
+            if (!button) return;
+            const row = button.closest('[data-application-score-row]');
+            if (button.dataset.moveApplicationQuestion === '-1' && row.previousElementSibling) {
+                scoreList.insertBefore(row, row.previousElementSibling);
+            } else if (button.dataset.moveApplicationQuestion === '1' && row.nextElementSibling) {
+                scoreList.insertBefore(row.nextElementSibling, row);
+            }
+            refreshPositions();
+        });
+        form.addEventListener('invalid', event => {
+            if (scoreDialog.contains(event.target) && !scoreDialog.open) scoreDialog.showModal();
+        }, true);
+        refreshPositions();
+    }
     const mode = form.querySelector('[name="delivery_mode"]');
     const settings = form.querySelector('[data-virtual-settings]');
     const deadline = form.querySelector('[name="due_at"]');

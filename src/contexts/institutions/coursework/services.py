@@ -57,7 +57,9 @@ def publish(account, publication, *, prepare_only=False):
         raise PermissionDenied
     if publication.application_status in ('cancelled', 'failed', 'completed') or (publication.application_status == 'scheduled' and not prepare_only):
         raise ValidationError('Use o fluxo de aplicações para esta avaliação agendada.')
-    questions = list(publication.assessment.questions.prefetch_related('images'))
+    from features.assessments.application_scoring import application_question_order
+    questions = application_question_order(list(publication.assessment.questions.prefetch_related('images')),
+        publication.application_metadata.get('question_order'))
     if not questions and (publication.kind == 'EXAM' or not publication.instructions.strip()):
         raise ValidationError('Uma prova precisa de questões. Uma atividade precisa de questões ou instruções.')
     for question in questions:
