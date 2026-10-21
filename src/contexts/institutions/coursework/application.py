@@ -226,7 +226,7 @@ def finalize(request, pk):
         if obj.finalized_at is None:
             obj.finalized_at = timezone.now()
             obj.save(update_fields=['finalized_at'])
-        messages.success(request, 'Aplicação física finalizada. Gabaritos pendentes disponíveis em Correções.')
+        messages.success(request, 'Aplicação física finalizada.' if obj.application_metadata.get('omit_answer_sheet') else 'Aplicação física finalizada. Gabaritos pendentes disponíveis em Correções.')
     return redirect('assessments:corrections')
 
 

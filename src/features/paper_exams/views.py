@@ -117,6 +117,8 @@ def download(request, pk, kind):
         sheet = get_object_or_404(sheets, student_id=request.GET['student'])
         sheets = [sheet]
     if kind == 'folhas':
+        if run.context.get('omit_answer_sheet', False):
+            return HttpResponse('Esta aplicação foi configurada sem folha de respostas. Reimprima o caderno de questões.', status=400)
         return download_response(answer_sheets_pdf(run, sheets), 'application/pdf', 'folhas-de-respostas.pdf', inline=request.GET.get('inline') == '1')
     if kind == 'provas':
         return download_response(exam_pdf(run, sheets, include_answer_sheet=not bool(request.GET.get('student'))), 'application/pdf', 'provas.pdf', inline=request.GET.get('inline') == '1')

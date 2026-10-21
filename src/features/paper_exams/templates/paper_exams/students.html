@@ -9,7 +9,7 @@
 </section>
 {% if selected_student %}<section class="dash-card full-card"><h2>{{ selected_student.get_full_name|default:selected_student.username }}</h2>
 {% for sheet in sheets %}<article><h3>{{ sheet.run.title }} · {{ sheet.run.classroom_name }}</h3><p>{{ sheet.run.created_at|date:'d/m/Y H:i' }} · Prova {{ sheet.variant|default:'original' }}</p>
-<a class="button" data-preview-pdf href="{% url 'paper-exams:download' sheet.run_id 'folhas' %}?student={{ selected_student.pk }}&amp;inline=1">Reemitir gabarito</a>
+{% if not sheet.run.context.omit_answer_sheet %}<a class="button" data-preview-pdf href="{% url 'paper-exams:download' sheet.run_id 'folhas' %}?student={{ selected_student.pk }}&amp;inline=1">Reemitir gabarito</a>{% endif %}
 <a class="button" data-preview-pdf href="{% url 'paper-exams:download' sheet.run_id 'provas' %}?student={{ selected_student.pk }}&amp;inline=1">Reemitir prova</a>
 </article>{% empty %}<p>Nenhuma prova emitida por você para este aluno.</p>{% endfor %}</section>{% endif %}
 <dialog data-print-dialog aria-labelledby="print-preview-title" style="width: min(1100px, 95vw); max-width: 95vw;">
