@@ -27,8 +27,10 @@ class ApplicationForm(forms.Form):
     virtual_shuffle_questions = forms.BooleanField(label='Embaralhar questões para cada aluno', required=False)
     virtual_shuffle_options = forms.BooleanField(label='Embaralhar alternativas para cada aluno', required=False)
 
-    shuffle_questions = forms.BooleanField(label='Embaralhar questões', required=False, initial=True)
-    shuffle_options = forms.BooleanField(label='Embaralhar alternativas', required=False, initial=True)
+    shuffle_questions = forms.BooleanField(label='Embaralhar questões', required=False, initial=False)
+    shuffle_options = forms.BooleanField(label='Embaralhar alternativas', required=False, initial=False)
+    omit_answer_sheet = forms.BooleanField(label='Imprimir sem gabarito (folha de respostas)', required=False,
+        help_text='Disponível sem embaralhamento. Os alunos respondem no próprio caderno.')
 
     total_points = forms.DecimalField(label='Pontuação total desta aplicação',
         min_value=Decimal('0.01'), max_digits=10, decimal_places=2,
@@ -97,6 +99,9 @@ class ApplicationForm(forms.Form):
         if data.get('delivery_mode') != 'printed':
             data['shuffle_questions'] = False
             data['shuffle_options'] = False
+            data['omit_answer_sheet'] = False
+        if data.get('omit_answer_sheet') and (data.get('shuffle_questions') or data.get('shuffle_options')):
+            self.add_error('omit_answer_sheet', 'Para imprimir sem folha de respostas, desative o embaralhamento.')
         if data.get('delivery_mode') == 'printed':
             data['due_at'] = None
             data['is_visible'] = True
@@ -148,6 +153,7 @@ def apply(request, assessment_pk):
                             'virtual_shuffle_options': form.cleaned_data['virtual_shuffle_options'],
                             'physical_shuffle_questions': form.cleaned_data['shuffle_questions'],
                             'physical_shuffle_options': form.cleaned_data['shuffle_options'],
+                            'omit_answer_sheet': form.cleaned_data['omit_answer_sheet'],
                             'assessment_metadata': list(assessment.metadata_tags),
                             'total_points': str(form.cleaned_data['total_points']),
                             'question_points': form.cleaned_data['question_points'],
@@ -159,7 +165,7 @@ def apply(request, assessment_pk):
                     obj.save()
                     publish(account, obj, prepare_only=True)
                     if obj.delivery_mode == 'printed':
-                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=True,
+                        obj.exam_run = issue_run(assessment, offer.classroom, request.user, versioned=form.cleaned_data['shuffle_questions'] or form.cleaned_data['shuffle_options'],
                             question_points=form.cleaned_data['question_points'],
                             question_order=form.cleaned_data['question_order'],
                             shuffle_questions=form.cleaned_data['shuffle_questions'], shuffle_options=form.cleaned_data['shuffle_options'],
@@ -170,7 +176,8 @@ def apply(request, assessment_pk):
                         obj.exam_run.title = obj.title
                         obj.exam_run.context.update(instructions=obj.instructions, description=assessment.description, content_topic=assessment.content_topic,
                             application_metadata=obj.application_metadata, application_id=obj.pk, kind=obj.kind,
-                            print_layout='answer_sheets_then_ABC_with_trailing_covers',
+                            print_layout='answer_sheets_then_booklets',
+                            omit_answer_sheet=form.cleaned_data['omit_answer_sheet'],
                             total_points=str(form.cleaned_data['total_points']),
                             starts_at=obj.scheduled_at.isoformat(), due_at=obj.due_at.isoformat() if obj.due_at else None)
                         obj.exam_run.save(update_fields=['title', 'context'])
