@@ -273,6 +273,8 @@ def corrections(request):
     waiting=[]
     pending = (Q(publication__application_status='completed') & (Q(publication__finalized_at__isnull=False) | Q(publication__due_at__lt=timezone.now()))) | (Q(publication__isnull=True) & (Q(assessment__is_finalized=True) | Q(assessment__due_at__lt=timezone.now())))
     for run in runs.filter(pk__in=run_ids).filter(pending).select_related('assessment'):
+        if run.context.get('omit_answer_sheet', False):
+            continue
         missing=run.sheets.filter(result__isnull=True).count()
         if missing:
             waiting.append({'run':run,'missing':missing})

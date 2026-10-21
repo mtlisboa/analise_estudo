@@ -59,11 +59,13 @@ def answer_sheets_pdf(run, sheets=None):
         pdf.setFont('Helvetica', 9)
         pdf.drawString(50, HEIGHT - 220, 'Preencha toda a bolinha com caneta preta ou azul. Marque uma alternativa por questão.')
         for i, question in enumerate(sheet.questions):
-            if question.get('type') == 'open_ended':
-                continue
             x, y = bubble_position(i, 0)
             pdf.setFont('Helvetica-Bold', 9)
             pdf.drawRightString(x - 19, HEIGHT - y - 3, f'{i + 1:02}')
+            if question.get('type') == 'open_ended':
+                pdf.setFont('Helvetica', 8)
+                pdf.drawString(x - 8, HEIGHT - y - 3, 'Discursiva: responda no caderno')
+                continue
             for option in range(len(question['options'])):
                 x, y = bubble_position(i, option)
                 pdf.setLineWidth(.7)

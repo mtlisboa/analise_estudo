@@ -169,6 +169,14 @@
     printDialog.querySelector('[data-close-print]').addEventListener('click', () => printDialog.close());
     let pdfObjectUrl;
     let printing = false;
+    let submittedConfiguration = null;
+    const configurationKey = data => JSON.stringify([...data.entries()].filter(([key]) => !['csrfmiddlewaretoken', 'request_token'].includes(key)));
+    const newRequestToken = () => {
+        const bytes = crypto.getRandomValues(new Uint8Array(16));
+        bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+        const hex = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
+        return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+    };
     form.addEventListener('submit', async event => {
         if (!rows.some(row => row.querySelector('input').checked)) {
             event.preventDefault();
@@ -187,8 +195,16 @@
         printStatus.textContent = 'Salvando a aplicação e montando o PDF…';
         printDialog.showModal();
         try {
+            const payload = new FormData(form);
+            const configuration = configurationKey(payload);
+            if (submittedConfiguration !== null && submittedConfiguration !== configuration) {
+                const token = newRequestToken();
+                form.querySelector('[name="request_token"]').value = token;
+                payload.set('request_token', token);
+            }
+            submittedConfiguration = configuration;
             const response = await fetch(form.action || location.href, {
-                method: 'POST', body: new FormData(form),
+                method: 'POST', body: payload,
                 headers: {'Accept': 'application/json'}, credentials: 'same-origin'
             });
             const type = response.headers.get('content-type') || '';
