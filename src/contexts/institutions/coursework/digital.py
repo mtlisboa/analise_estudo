@@ -20,7 +20,8 @@ def presentation(publication, student_id=None):
         pairs = list(zip(ids, question.get('options', [])))
         if configuration.get('virtual_shuffle_options'):
             rng.shuffle(pairs)
-        question['_choices'] = pairs
+        question['_choices'] = [(identifier, f'{chr(65 + position)}) {text}')
+                                for position, (identifier, text) in enumerate(pairs)]
         if pairs:
             if 'option_ids' in question:
                 question['option_ids'] = [identifier for identifier, _ in pairs]

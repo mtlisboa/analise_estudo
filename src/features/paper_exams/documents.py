@@ -87,7 +87,7 @@ def exam_pdf(run, sheets=None, *, include_answer_sheet=True, generic=False):
     def paragraph(text, style='Normal'):
         return Paragraph(escape(str(text)).replace('\n', '<br/>'), styles[style])
     for sheet in (sheets if sheets is not None else run.sheets.all()):
-        if include_answer_sheet:
+        if include_answer_sheet and not run.context.get('omit_answer_sheet', False):
             cover = BytesIO(answer_sheets_pdf(run, [sheet]))
             writer.append(PdfReader(cover))
         body = BytesIO()
@@ -206,10 +206,11 @@ def application_print_pdf(runs):
         expected_pages += len(document.pages)
 
     for run, sheet in ordered_sheets:
-        append_document(answer_sheets_pdf(run, [sheet]))
+        if not run.context.get('omit_answer_sheet', False):
+            append_document(answer_sheets_pdf(run, [sheet]))
 
     emitted_ids = set()
-    versions = list('ABC')
+    versions = list('ABC') if any(sheet.variant for _, sheet in ordered_sheets) else []
     if any(not sheet.variant for _, sheet in ordered_sheets):
         versions.append('')
     for version in versions:

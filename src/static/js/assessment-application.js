@@ -96,10 +96,25 @@
     const shufflePhysical = form.querySelector('[data-shuffle-physical]');
     shufflePhysical?.addEventListener('click', () => {
         if (mode.value !== 'printed') return;
+        const omit = form.querySelector('[name="omit_answer_sheet"]');
+        if (omit) omit.checked = false;
         form.querySelector('[name="shuffle_questions"]').checked = true;
         form.querySelector('[name="shuffle_options"]').checked = true;
         physicalSettings.querySelector('[data-physical-shuffle-status]').textContent =
             'Embaralhamento físico ativado: questões e alternativas serão organizadas em A, B e C, com questões abertas no final. Clique em Imprimir para gerar e salvar as versões e os gabaritos.';
+    });
+
+    const omitSheet = form.querySelector('[name="omit_answer_sheet"]');
+    omitSheet?.addEventListener('change', () => {
+        if (omitSheet.checked) {
+            form.querySelector('[name="shuffle_questions"]').checked = false;
+            form.querySelector('[name="shuffle_options"]').checked = false;
+        }
+    });
+    ['shuffle_questions', 'shuffle_options'].forEach(name => {
+        form.querySelector('[name="' + name + '"]')?.addEventListener('change', event => {
+            if (event.target.checked && omitSheet) omitSheet.checked = false;
+        });
     });
 
     const picker = form.querySelector('#application-offer-dialog');
@@ -193,7 +208,7 @@
             pdfObjectUrl = URL.createObjectURL(await pdf.blob());
             printFrame.src = pdfObjectUrl;
             printFrame.hidden = false;
-            printStatus.textContent = 'PDF pronto: gabaritos individuais, provas A e capa, provas B e capa, provas C e capa.';
+            printStatus.textContent = 'PDF pronto para impressão, com a ordem e a inclusão de folhas de respostas configuradas nesta aplicação.';
         } catch (error) {
             printStatus.textContent = error.message || 'Falha ao gerar o PDF. Tente novamente.';
         } finally {
