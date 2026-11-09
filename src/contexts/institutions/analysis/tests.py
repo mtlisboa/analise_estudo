@@ -156,3 +156,23 @@ class AnalysisTests(TestCase):
         self.assertEqual(response.status_code,200)
         self.assertTrue(response.context['form'].errors)
         e.refresh_from_db();self.assertEqual(e.skill,'H1')
+
+    def test_institutional_menu_routes_use_the_redesigned_analysis(self):
+        self.evidence()
+        for user, route, args in [
+            (self.users['MANAGER'], 'institutions:manager-module', ['analise']),
+            (self.teacher.user, 'institutions:teacher-analysis', []),
+        ]:
+            self.client.force_login(user)
+            response = self.client.get(reverse(route, args=args))
+            self.assertEqual(response.status_code, 200)
+            self.assertTemplateUsed(response, 'institutions/analysis/index.html')
+            self.assertContains(response, 'institution_analysis.css?v=2')
+            self.assertContains(response, 'data-analysis-chart="timeline"')
+            self.assertEqual(response.context['chart_data']['timeline'][0]['average'], 50)
+            self.assertEqual(response.context['chart_data']['distribution'][2]['count'], 1)
+
+    def test_empty_chart_data_does_not_fabricate_results(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.context['chart_data']['timeline'], [])
+        self.assertEqual(sum(row['count'] for row in response.context['chart_data']['distribution']), 0)

@@ -27,3 +27,10 @@ O teste usa templates reais, dados descartáveis em SQLite e Plotly local, sem
 serviços externos. Confere temas claro/escuro, quatro dimensões, abertura 3D,
 estado vazio e ausência de transbordamento em 390 e 768 px. As capturas ficam
 no diretório temporário `lumini-analytics-visual` ou em `SCREENSHOT_DIR`.
+
+## Módulo institucional de análise
+
+`CHROMIUM_EXECUTABLE_PATH=/caminho/chromium node tests/frontend/institution_visual.cjs`
+renderiza as rotas reais do menu do gestor e do professor, com SQLite descartável.
+Confere as nove seções, formulários, gráficos SVG, tema escuro, celular e ausência
+de dados. Esse teste é separado do painel de análises salvas.

@@ -98,3 +98,17 @@ migração adicional foi gerada. A suíte completa foi comparada com a dev origi
 A única falha adicional foi corrigida e revalidada nos 81 testes focados.
 As falhas preexistentes concentram-se nos testes de aplicação/agendamento de
 questionários e seus contratos de formulário; não foram mascaradas ou removidas.
+
+## Correção do alvo da reestilização institucional
+
+A reestilização anterior atingiu `/analises/` (análises salvas), mas não o módulo
+acessado por gestores e professores. O módulo efetivo usa
+`institutions/analysis/index.html`, compartilhado pelas rotas de análise da
+gestão, desempenho acadêmico e análise do professor.
+
+Essa tela e o formulário de registros agora têm estilos próprios renovados,
+indicadores, filtros, navegação e tabelas responsivos. Evolução, distribuição e
+comparação de turmas usam gráficos SVG com escala, rótulos e valores acessíveis,
+sem dependência de CDN. Todas as nove seções e permissões foram preservadas.
+Validação: 30 testes Django; navegador nas rotas reais de gestor/professor, nove
+seções, registro de evidências, modo escuro, celular e estado sem dados.
