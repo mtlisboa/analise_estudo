@@ -4,15 +4,18 @@ from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 
+from features.users_manager.access import (
+    active_classroom_memberships,
+    managed_classrooms,
+    visible_classrooms as accessible_classrooms,
+)
 from features.users_manager.models import (
-    Classroom,
     ClassroomGroup,
     ClassroomMembership,
     ClassroomTest,
-    MembershipStatus,
     Organization,
     OrganizationMembership,
     SelfAssessment,
@@ -51,16 +54,7 @@ def _integer_set(value: str | None) -> set[int]:
 
 
 def _score(assessment: SelfAssessment) -> int:
-    return round(
-        (
-            assessment.focus
-            + assessment.organization
-            + assessment.comprehension
-            + assessment.motivation
-        )
-        / 4
-        * 20
-    )
+    return assessment.score
 
 
 def build_dashboard(user, params) -> dict[str, Any]:
@@ -85,40 +79,18 @@ def build_dashboard(user, params) -> dict[str, Any]:
     ]
     scoped_organization_ids = {organization.pk for organization in scoped_organizations}
 
-    managed_organization_ids = {
-        organization.pk
-        for organization in scoped_organizations
+    owned_organization_ids = {
+        organization.pk for organization in scoped_organizations
         if organization.owner_id == user.pk
     }
-
-    classrooms = list(
-        Classroom.objects.filter(organization_id__in=scoped_organization_ids, is_active=True)
-        .select_related("organization", "group")
-        .order_by("organization__name", "name")
+    managed_classroom_ids = set(
+        managed_classrooms(user).filter(organization_id__in=scoped_organization_ids)
+        .values_list("pk", flat=True)
     )
-    user_classroom_memberships = list(
-        ClassroomMembership.objects.filter(
-            classroom__organization_id__in=scoped_organization_ids,
-            classroom__is_active=True,
-            user=user,
-            status=MembershipStatus.ACTIVE,
-        )
+    visible_classrooms = list(
+        accessible_classrooms(user).filter(organization_id__in=scoped_organization_ids)
+        .select_related("organization").order_by("organization__name", "name")
     )
-    user_classroom_ids = {
-        membership.classroom_id for membership in user_classroom_memberships
-    }
-    teacher_classroom_ids = {
-        membership.classroom_id
-        for membership in user_classroom_memberships
-        if membership.role == ClassroomMembership.Role.TEACHER
-    }
-    visible_classrooms = [
-        classroom
-        for classroom in classrooms
-        if classroom.organization_id in managed_organization_ids
-        or classroom.pk in user_classroom_ids
-    ]
-
     all_groups = list(
         ClassroomGroup.objects.filter(
             organization_id__in=scoped_organization_ids,
@@ -131,7 +103,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
     visible_group_ids = {
         group.pk
         for group in all_groups
-        if group.organization_id in managed_organization_ids
+        if group.organization_id in owned_organization_ids
     }
     visible_group_ids.update(classroom.group_id for classroom in visible_classrooms)
     pending_group_ids = list(visible_group_ids)
@@ -162,6 +134,35 @@ def build_dashboard(user, params) -> dict[str, Any]:
         ]
     visible_classroom_ids = {classroom.pk for classroom in visible_classrooms}
 
+    # Only organizational owners may inspect another teacher's teaching scope.
+    teacher_options = list(
+        user.__class__.objects.filter(
+            organization_memberships__organization_id__in=owned_organization_ids,
+            organization_memberships__is_teacher=True,
+        ).distinct().order_by("first_name", "username")
+    )
+    selected_teacher_id = _integer(params.get("teacher"))
+    teacher_by_id = {teacher.pk: teacher for teacher in teacher_options}
+    if selected_teacher_id not in teacher_by_id:
+        selected_teacher_id = None
+    teacher_classroom_ids = {teacher.pk: set() for teacher in teacher_options}
+    teacher_membership_pairs = set(OrganizationMembership.objects.filter(
+        organization_id__in=owned_organization_ids, is_teacher=True,
+    ).values_list("user_id", "organization_id"))
+    for classroom in visible_classrooms:
+        if (classroom.owner_id, classroom.organization_id) in teacher_membership_pairs:
+            teacher_classroom_ids[classroom.owner_id].add(classroom.pk)
+    for membership in active_classroom_memberships().filter(
+        classroom__organization_id__in=owned_organization_ids,
+        role=ClassroomMembership.Role.TEACHER,
+        user_id__in=teacher_by_id,
+    ):
+        teacher_classroom_ids[membership.user_id].add(membership.classroom_id)
+    if selected_teacher_id:
+        visible_classrooms = [classroom for classroom in visible_classrooms
+                              if classroom.pk in teacher_classroom_ids[selected_teacher_id]]
+        visible_classroom_ids = {classroom.pk for classroom in visible_classrooms}
+
     selected_classroom_id = _integer(params.get("classroom"))
     if selected_classroom_id not in visible_classroom_ids:
         selected_classroom_id = None
@@ -172,53 +173,59 @@ def build_dashboard(user, params) -> dict[str, Any]:
     ]
     scoped_classroom_ids = {classroom.pk for classroom in scoped_classrooms}
 
+    classroom_memberships = list(
+        active_classroom_memberships().filter(classroom_id__in=scoped_classroom_ids)
+        .select_related("classroom", "user")
+    )
+    # Teachers see students only in classrooms they teach; owners see their organization.
+    taught_student_ids = {
+        membership.user_id for membership in classroom_memberships
+        if membership.classroom_id in managed_classroom_ids
+        and membership.role == ClassroomMembership.Role.STUDENT
+    }
     organization_memberships = list(
         OrganizationMembership.objects.filter(organization_id__in=scoped_organization_ids)
-        .select_related("organization", "user")
-        .order_by("user__username")
+        .select_related("organization", "user").order_by("user__username")
     )
-    classroom_memberships = list(
-        ClassroomMembership.objects.filter(
-            classroom_id__in=scoped_classroom_ids,
-            status=MembershipStatus.ACTIVE,
-        ).select_related("classroom", "user")
-    )
-    scoped_teacher_classroom_ids = teacher_classroom_ids & scoped_classroom_ids
-    allowed_student_ids = set()
-    if not selected_group_id and not selected_classroom_id:
-        allowed_student_ids.update(
-            membership.user_id
-            for membership in organization_memberships
-            if membership.is_student
-            and membership.organization_id in managed_organization_ids
-        )
-    allowed_student_ids.update(
-        membership.user_id
-        for membership in classroom_memberships
+    allowed_student_ids: set[int] = set()
+    allowed_teacher_ids: set[int] = set()
+    student_organization_names: dict[int, set[str]] = defaultdict(set)
+    classroom_student_ids = {
+        membership.user_id for membership in classroom_memberships
         if membership.role == ClassroomMembership.Role.STUDENT
-        and (
-            membership.classroom.organization_id in managed_organization_ids
-            or membership.classroom_id in scoped_teacher_classroom_ids
+    }
+    classroom_teacher_ids = {
+        membership.user_id for membership in classroom_memberships
+        if membership.role == ClassroomMembership.Role.TEACHER
+        and (membership.classroom_id in managed_classroom_ids
+             or membership.classroom.organization_id in owned_organization_ids)
+    }
+    classroom_teacher_ids.update(
+        teacher_id for teacher_id, room_ids in teacher_classroom_ids.items()
+        if room_ids & scoped_classroom_ids
+    )
+    for membership in organization_memberships:
+        can_view_student = (
+            membership.organization_id in owned_organization_ids
+            or membership.user_id in taught_student_ids
             or membership.user_id == user.pk
         )
-    )
-    allowed_teacher_ids = {
-        membership.user_id
-        for membership in organization_memberships
-        if membership.is_teacher
-        and membership.organization_id in managed_organization_ids
-    }
-    allowed_teacher_ids.update(
-        membership.user_id
-        for membership in classroom_memberships
-        if membership.role == ClassroomMembership.Role.TEACHER
-    )
-    student_organization_names: dict[int, set[str]] = defaultdict(set)
-    for membership in organization_memberships:
-        if membership.user_id in allowed_student_ids and membership.is_student:
-            student_organization_names[membership.user_id].add(
-                membership.organization.name
-            )
+        if membership.is_student and can_view_student:
+            allowed_student_ids.add(membership.user_id)
+            student_organization_names[membership.user_id].add(membership.organization.name)
+        if membership.is_teacher and (
+            membership.organization_id in owned_organization_ids
+            or membership.user_id in classroom_teacher_ids
+        ):
+            allowed_teacher_ids.add(membership.user_id)
+    if selected_group_id or selected_classroom_id or selected_teacher_id:
+        allowed_student_ids &= classroom_student_ids
+    if selected_classroom_id:
+        allowed_teacher_ids &= classroom_teacher_ids
+    if selected_teacher_id:
+        allowed_teacher_ids &= {selected_teacher_id}
+    if not organizations:
+        allowed_student_ids.add(user.pk)
 
     user_model = user.__class__
     students = list(user_model.objects.filter(pk__in=allowed_student_ids).order_by("first_name", "username"))
@@ -226,14 +233,31 @@ def build_dashboard(user, params) -> dict[str, Any]:
     selected_student_id = _integer(params.get("student"))
     if selected_student_id not in student_ids:
         selected_student_id = None
-    if selected_student_id:
-        students = [student for student in students if student.pk == selected_student_id]
-        student_ids = {selected_student_id}
-
     selected_student_ids = _integer_set(params.get("selected_students"))
     if selected_student_ids:
         student_ids &= selected_student_ids
         students = [student for student in students if student.pk in student_ids]
+    if selected_student_id:
+        students = [student for student in students if student.pk == selected_student_id]
+        student_ids = {selected_student_id}
+        enrolled_room_ids = {
+            membership.classroom_id for membership in classroom_memberships
+            if membership.user_id == selected_student_id
+            and membership.role == ClassroomMembership.Role.STUDENT
+        }
+        scoped_classrooms = [room for room in scoped_classrooms if room.pk in enrolled_room_ids]
+        scoped_classroom_ids = {room.pk for room in scoped_classrooms}
+        classroom_memberships = [membership for membership in classroom_memberships
+                                if membership.classroom_id in scoped_classroom_ids]
+        related_teacher_ids = {
+            membership.user_id for membership in classroom_memberships
+            if membership.role == ClassroomMembership.Role.TEACHER
+        }
+        related_teacher_ids.update(
+            teacher_id for teacher_id, room_ids in teacher_classroom_ids.items()
+            if room_ids & scoped_classroom_ids
+        )
+        allowed_teacher_ids &= related_teacher_ids
 
     period = params.get("period", "90")
     if period not in PERIODS:
@@ -243,15 +267,24 @@ def build_dashboard(user, params) -> dict[str, Any]:
     assessments = SelfAssessment.objects.filter(user_id__in=student_ids).select_related("user")
     if period_days:
         assessments = assessments.filter(created_at__gte=timezone.now() - timedelta(days=period_days))
-    assessment_list = list(assessments.order_by("created_at"))
+    assessment_list = list(assessments.order_by("created_at", "pk"))
 
     assessments_by_user: dict[int, list[SelfAssessment]] = defaultdict(list)
     assessments_by_date: dict[str, list[SelfAssessment]] = defaultdict(list)
     for assessment in assessment_list:
         assessments_by_user[assessment.user_id].append(assessment)
-        assessments_by_date[assessment.created_at.date().isoformat()].append(assessment)
+        assessments_by_date[timezone.localtime(assessment.created_at).date().isoformat()].append(assessment)
 
-    tests = ClassroomTest.objects.filter(classroom_id__in=scoped_classroom_ids)
+    tests = ClassroomTest.objects.filter(classroom_id__in=scoped_classroom_ids).filter(
+        Q(is_published=True) | Q(classroom_id__in=managed_classroom_ids)
+        | Q(classroom__organization_id__in=owned_organization_ids)
+    )
+    if period_days:
+        tests = tests.filter(created_at__gte=timezone.now() - timedelta(days=period_days))
+    if selected_teacher_id:
+        tests = tests.filter(created_by_id=selected_teacher_id)
+    test_counts = dict(tests.values("classroom_id").annotate(total=Count("pk"))
+                       .values_list("classroom_id", "total"))
     latest_by_user = {
         user_id: user_assessments[-1]
         for user_id, user_assessments in assessments_by_user.items()
@@ -262,18 +295,13 @@ def build_dashboard(user, params) -> dict[str, Any]:
     classroom_students = []
     classroom_tests = []
     student_classroom_names: dict[int, set[str]] = defaultdict(set)
-    student_classrooms: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    student_classrooms = defaultdict(list)
+    memberships_by_classroom = defaultdict(list)
+    for membership in classroom_memberships:
+        memberships_by_classroom[membership.classroom_id].append(membership)
     for classroom in scoped_classrooms:
-        memberships = [
-            membership
-            for membership in classroom_memberships
-            if membership.classroom_id == classroom.pk
-        ]
-        classroom_label = classroom.name
-        if classroom.letter:
-            classroom_label = f"{classroom_label} · {classroom.letter}"
-        classroom_label = f"{classroom_label} · {classroom.get_shift_display()}"
-        classroom_labels.append(classroom_label)
+        memberships = memberships_by_classroom[classroom.pk]
+        classroom_labels.append(classroom.name)
         classroom_students.append(
             len(
                 {
@@ -284,31 +312,29 @@ def build_dashboard(user, params) -> dict[str, Any]:
                 }
             )
         )
-        classroom_tests.append(tests.filter(classroom=classroom).count())
+        classroom_tests.append(test_counts.get(classroom.pk, 0))
         for membership in memberships:
             if membership.role == ClassroomMembership.Role.STUDENT:
-                student_classroom_names[membership.user_id].add(classroom_label)
-                student_classrooms[membership.user_id].append(
-                    {"id": classroom.pk, "name": classroom_label}
-                )
+                student_classroom_names[membership.user_id].add(classroom.name)
+                student_classrooms[membership.user_id].append({"id": classroom.pk, "name": classroom.name})
 
-    role_counts = {"Alunos": 0, "Professores": 0, "Ambos": 0}
-    visible_user_ids = allowed_student_ids | allowed_teacher_ids
-    for membership in organization_memberships:
-        if membership.user_id not in visible_user_ids:
-            continue
-        if membership.is_teacher and membership.is_student:
-            role_counts["Ambos"] += 1
-        elif membership.is_teacher:
-            role_counts["Professores"] += 1
-        elif membership.is_student:
-            role_counts["Alunos"] += 1
+    # Count people, not memberships duplicated across organizations.
+    visible_students = student_ids
+    visible_teachers = allowed_teacher_ids
+    if selected_student_id:
+        visible_teachers = visible_teachers & {selected_student_id}
+    role_counts = {
+        "Alunos": len(visible_students - visible_teachers),
+        "Professores": len(visible_teachers - visible_students),
+        "Ambos": len(visible_students & visible_teachers),
+    }
 
     line_dates = sorted(assessments_by_date)
-    line_series = {"score": [], "focus": [], "comprehension": [], "motivation": []}
+    line_series = {"score": [], "focus": [], "organization": [], "comprehension": [], "motivation": []}
     for date in line_dates:
         records = assessments_by_date[date]
         line_series["score"].append(round(sum(_score(item) for item in records) / len(records), 1))
+        line_series["organization"].append(round(sum(item.organization for item in records) / len(records), 2))
         line_series["focus"].append(round(sum(item.focus for item in records) / len(records), 2))
         line_series["comprehension"].append(
             round(sum(item.comprehension for item in records) / len(records), 2)
@@ -328,6 +354,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
         latest = user_assessments[-1]
         heatmap_rows.append(
             {
+                "id": student.pk,
                 "name": _display_name(student),
                 "values": [latest.focus, latest.organization, latest.comprehension, latest.motivation],
             }
@@ -338,11 +365,40 @@ def build_dashboard(user, params) -> dict[str, Any]:
                 "name": _display_name(student),
                 "score": round(sum(_score(item) for item in user_assessments) / len(user_assessments)),
                 "assessments": len(user_assessments),
-                "latest": latest.created_at.strftime("%d/%m/%Y"),
+                "latest": timezone.localtime(latest.created_at).strftime("%d/%m/%Y"),
                 "classrooms": ", ".join(sorted(student_classroom_names.get(student.pk, set()))) or "—",
             }
         )
     ranking.sort(key=lambda item: (-item["score"], item["name"]))
+
+    teacher_summary = []
+    test_counts_by_teacher = defaultdict(int)
+    for row in tests.values("classroom_id", "created_by_id").annotate(total=Count("pk")):
+        if row["classroom_id"] in teacher_classroom_ids.get(row["created_by_id"], set()):
+            test_counts_by_teacher[row["created_by_id"]] += row["total"]
+    for teacher in teacher_options:
+        if selected_teacher_id and teacher.pk != selected_teacher_id:
+            continue
+        room_ids = teacher_classroom_ids[teacher.pk] & scoped_classroom_ids
+        if selected_classroom_id and not room_ids:
+            continue
+        pupil_ids = {
+            membership.user_id for membership in classroom_memberships
+            if membership.classroom_id in room_ids
+            and membership.role == ClassroomMembership.Role.STUDENT
+            and membership.user_id in student_ids
+        }
+        # One latest observation per pupil prevents frequent respondents dominating the mean.
+        latest_scores = [latest_by_user[pk].score for pk in pupil_ids if pk in latest_by_user]
+        teacher_summary.append({
+            "id": teacher.pk,
+            "name": _display_name(teacher),
+            "classrooms": len(room_ids),
+            "students": len(pupil_ids),
+            "tests": test_counts_by_teacher[teacher.pk],
+            "assessed_students": len(latest_scores),
+            "student_average": round(sum(latest_scores) / len(latest_scores)) if latest_scores else None,
+        })
 
     all_scores = [_score(assessment) for assessment in assessment_list]
     student_snapshots = []
@@ -368,7 +424,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
                 },
                 "assessments": [
                     {
-                        "date": item.created_at.date().isoformat(),
+                        "date": timezone.localtime(item.created_at).date().isoformat(),
                         "focus": item.focus,
                         "organization": item.organization,
                         "comprehension": item.comprehension,
@@ -380,6 +436,7 @@ def build_dashboard(user, params) -> dict[str, Any]:
             }
         )
     payload = {
+        "students": student_snapshots,
         "empty": not bool(assessment_list),
         "periodLabel": period_label,
         "classrooms": {
@@ -388,7 +445,6 @@ def build_dashboard(user, params) -> dict[str, Any]:
             "tests": classroom_tests,
         },
         "roles": {"labels": list(role_counts), "values": list(role_counts.values())},
-        "students": student_snapshots,
         "timeline": {"dates": line_dates, **line_series},
         "scatter2d": {
             "names": labels,
@@ -420,6 +476,8 @@ def build_dashboard(user, params) -> dict[str, Any]:
         scope_title = next(item.name for item in scoped_classrooms if item.pk == selected_classroom_id)
     elif selected_group_id:
         scope_title = group_by_id[selected_group_id].name
+    elif selected_teacher_id:
+        scope_title = _display_name(teacher_by_id[selected_teacher_id])
     elif selected_organization_id:
         scope_title = next(item.name for item in scoped_organizations if item.pk == selected_organization_id)
     else:
@@ -430,12 +488,16 @@ def build_dashboard(user, params) -> dict[str, Any]:
         "classrooms": visible_classrooms,
         "classroom_groups": visible_groups,
         "students": list(user_model.objects.filter(pk__in=allowed_student_ids).order_by("first_name", "username")),
+        "teachers": teacher_options,
+        "teacher_summary": teacher_summary,
+        "can_analyze_teachers": bool(owned_organization_ids),
         "periods": [(key, label) for key, (label, _) in PERIODS.items()],
         "filters": {
             "organization": selected_organization_id,
-            "group": selected_group_id,
             "classroom": selected_classroom_id,
             "student": selected_student_id,
+            "teacher": selected_teacher_id,
+            "group": selected_group_id,
             "selected_students": sorted(student_ids) if selected_student_ids else [],
             "period": period,
         },

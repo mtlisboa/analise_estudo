@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load static %}
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/analytics.css' %}?v=2">{% endblock %}
 
 {% block title %}Análises salvas | Lumini{% endblock %}
 {% block main_class %}analytics-page{% endblock %}

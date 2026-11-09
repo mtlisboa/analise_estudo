@@ -53,17 +53,21 @@
         if (previouslyFocused && document.contains(previouslyFocused)) previouslyFocused.focus();
     }
 
-    function escapeText(value) {
-        var element = document.createElement("span");
-        element.textContent = value;
-        return element.innerHTML;
-    }
-
     function syncObservations() {
         observationValue.value = observations.join("\n");
-        observationList.innerHTML = observations.map(function (item, index) {
-            return '<span class="observation-chip">' + escapeText(item) + '<button type="button" data-remove-observation="' + index + '" aria-label="Remover ' + escapeText(item) + '">×</button></span>';
-        }).join("");
+        observationList.replaceChildren();
+        observations.forEach(function (item, index) {
+            var chip = document.createElement("span");
+            chip.className = "observation-chip";
+            chip.appendChild(document.createTextNode(item));
+            var button = document.createElement("button");
+            button.type = "button";
+            button.dataset.removeObservation = String(index);
+            button.setAttribute("aria-label", "Remover " + item);
+            button.textContent = "×";
+            chip.appendChild(button);
+            observationList.appendChild(chip);
+        });
     }
 
     function seedObservations(value) {
@@ -110,6 +114,9 @@
     }
 
     function openModal(editButton) {
+        observationInput.value = "";
+        form.querySelectorAll(".errorlist, .form-errors").forEach(function (node) { node.remove(); });
+        form.querySelectorAll('[aria-invalid="true"]').forEach(function (node) { node.removeAttribute("aria-invalid"); });
         if (editButton) {
             form.action = editButton.dataset.action;
             title.textContent = "Editar avaliação";
@@ -123,6 +130,10 @@
             seedObservations(editButton.dataset.observations);
         } else {
             form.reset();
+            form.querySelector("#id_subject").value = "";
+            form.querySelector("#id_topic").value = "";
+            form.querySelector("#id_technique").value = "";
+            setCheckedTypes("");
             form.action = createAction;
             title.textContent = "Nova avaliação";
             seedObservations("");
@@ -176,7 +187,7 @@
             }
         }
     });
-    form.addEventListener("submit", function () { syncObservations(); });
+    form.addEventListener("submit", function () { addObservation(); syncObservations(); });
 
     seedObservations(observationValue.value);
     if (document.documentElement.dataset.openAssessmentModal === "true") {

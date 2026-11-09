@@ -342,11 +342,13 @@ class UsersManagerTests(TestCase):
         self.assertNotContains(response, "Rascunho do professor")
 
     def test_user_can_create_self_assessment(self) -> None:
+        self.owner.complete_onboarding()
+        self.owner.save()
         response = self.client.post(
             reverse("users-manager:assessment-create"),
             {"focus": 4, "organization": 3, "comprehension": 5, "motivation": 4},
         )
-        self.assertRedirects(response, reverse("users-manager:dashboard"))
+        self.assertRedirects(response, reverse("accounts:dashboard"))
         self.assertEqual(SelfAssessment.objects.get(user=self.owner).score, 80)
 
     def test_dashboard_only_lists_the_users_institutions_and_marks_roles(self) -> None:

@@ -12,3 +12,5 @@ htmlcov/
 .idea/
 .vscode/
 staticfiles/
+
+node_modules/

@@ -1,8 +1,6 @@
 {% extends "base.html" %}
-
 {% block title %}Meu painel | Lumini{% endblock %}
 {% block main_class %}dashboard-page{% endblock %}
-
 {% block content %}
 <section class="dashboard-shell">
     <div class="dashboard-welcome">
@@ -15,6 +13,11 @@
         <a class="dashboard-action" href="{% url 'analytics-dashboard:dashboard' %}"><span>Análises</span><strong>Compare resultados no escopo certo.</strong><small>Explorar dados</small></a>
         <a class="dashboard-action" href="{% url 'ia-integrations:chat-bot' %}"><span>Assistente IA</span><strong>Transforme dúvidas em próximos passos.</strong><small>Iniciar conversa</small></a>
     </div>
+    <div class="dashboard-metrics">
+        <article class="dash-card"><h2>Última autoavaliação</h2><strong>{% if latest_assessment %}{{ latest_assessment.score }}%{% else %}—{% endif %}</strong><p>{{ self_assessment_count }} registro{{ self_assessment_count|pluralize }}</p></article>
+        <article class="dash-card"><h2>Avaliações criadas</h2><strong>{{ assessment_count }}</strong></article>
+    </div>
+    <a href="{% url 'ia-integrations:chat-bot' %}?mode=diagnostic">Começar diagnóstico</a>
     <div class="dashboard-note">
         <div><span>Comece pelo contexto</span><h2>Dados ganham sentido quando turma, atividade e objetivo estão conectados.</h2></div>
         <p>Crie ou escolha uma organização antes de analisar o desenvolvimento dos estudantes.</p>

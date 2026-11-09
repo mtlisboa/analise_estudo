@@ -7,6 +7,7 @@ class GenerateAnalysisForm(forms.Form):
     organization = forms.ChoiceField(label="Instituição", required=False)
     group = forms.ChoiceField(label="Grupo de turmas", required=False)
     classroom = forms.ChoiceField(label="Turma", required=False)
+    teacher = forms.ChoiceField(label="Professor", required=False)
     student = forms.ChoiceField(label="Aluno", required=False)
     period = forms.ChoiceField(
         label="Período analisado",
@@ -17,6 +18,12 @@ class GenerateAnalysisForm(forms.Form):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         available = build_dashboard(user, {})
+        self.fields["teacher"].choices = [("", "Todos os professores")] + [
+            (str(item.pk), item.get_full_name().strip() or item.username)
+            for item in available["teachers"]
+        ]
+        if not available["can_analyze_teachers"]:
+            self.fields["teacher"].widget = forms.HiddenInput()
         groups_by_id = {item.pk: item for item in available["classroom_groups"]}
 
         def group_path(item):
@@ -52,7 +59,7 @@ class GenerateAnalysisForm(forms.Form):
     def analysis_params(self) -> dict[str, str]:
         return {
             key: self.cleaned_data[key]
-            for key in ("organization", "group", "classroom", "student", "period")
+            for key in ("organization", "group", "classroom", "student", "teacher", "period")
         }
 
 
@@ -68,7 +75,7 @@ class SaveAnalysisForm(GenerateAnalysisForm):
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, user=user, **kwargs)
-        for field_name in ("organization", "group", "classroom", "student", "period"):
+        for field_name in ("organization", "group", "classroom", "student", "teacher", "period"):
             self.fields[field_name].widget = forms.HiddenInput()
 
     @property

@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load static %}
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/analytics.css' %}?v=2">{% endblock %}
 
 {% block title %}Gerar análise | Lumini{% endblock %}
 {% block main_class %}analytics-page{% endblock %}
@@ -14,7 +16,7 @@
         </div>
     </header>
 
-    <form class="analytics-card generate-analysis-card" method="post">
+    <form class="analytics-card generate-analysis-card" data-analysis-filters method="post">
         {% csrf_token %}
         {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
         <div class="generate-analysis-grid">
@@ -38,3 +40,5 @@
     </form>
 </section>
 {% endblock %}
+
+{% block scripts %}<script src="{% static 'js/analytics_dashboard.js' %}?v=6" defer></script>{% endblock %}

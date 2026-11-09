@@ -22,16 +22,10 @@ def has_teacher_role(user, organization: Organization) -> bool:
 
 
 def visible_classrooms(user, *, organization: Organization | None = None) -> QuerySet:
-    queryset = Classroom.objects.filter(is_active=True)
-    if organization is not None:
-        queryset = queryset.filter(organization=organization)
-    return queryset.filter(
-        Q(organization__owner=user)
-        | Q(
-            memberships__user=user,
-            memberships__status=MembershipStatus.ACTIVE,
-        )
-    ).distinct()
+    from .access import visible_classrooms as scoped_classrooms
+    queryset = scoped_classrooms(user)
+    return queryset.filter(organization=organization) if organization is not None else queryset
+
 
 
 def accessible_group_ids(user, organization: Organization) -> set[int]:
@@ -68,16 +62,13 @@ def accessible_group_ids(user, organization: Organization) -> set[int]:
 
 
 def can_view_classroom(user, classroom: Classroom) -> bool:
-    return can_manage_organization(
-        user, classroom.organization
-    ) or ClassroomMembership.objects.filter(
-        classroom=classroom,
-        user=user,
-        status=MembershipStatus.ACTIVE,
-    ).exists()
+    return visible_classrooms(user).filter(pk=classroom.pk).exists()
+
 
 
 def can_manage_classroom(user, classroom: Classroom) -> bool:
+    if not classroom.is_active or not classroom.organization.is_active:
+        return False
     if can_manage_organization(user, classroom.organization):
         return True
     from .models import InstitutionalAccount
