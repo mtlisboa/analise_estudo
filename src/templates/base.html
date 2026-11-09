@@ -14,6 +14,7 @@
         }());
     </script>
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v=8">
+    {% block extra_styles %}{% endblock %}
 </head>
 <body{% if user.is_authenticated and not onboarding_mode %} class="has-sidebar"{% endif %}>
     {% if user.is_authenticated and not onboarding_mode %}

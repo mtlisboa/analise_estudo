@@ -87,6 +87,6 @@ assert.equal(filters.elements.student.value, '');
 filters.elements.organization.dispatchEvent(new aw.Event('change', { bubbles: true }));
 assert.equal(filters.elements.teacher.value, '');
 assert.ok(ad.querySelector('#timeline-chart').textContent.includes('Não foi possível carregar'));
-assert.ok(ad.querySelector('.analytics-table').textContent.includes('teacher-fixture'));
+assert.ok(ad.querySelector('#teachers .analytics-table').textContent.includes('teacher-fixture'));
 analytics.window.close();
 console.log('Analytics frontend regressions passed: manager controls, dependent filters and chart failure fallback.');

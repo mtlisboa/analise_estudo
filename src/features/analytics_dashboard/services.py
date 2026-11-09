@@ -271,10 +271,11 @@ def build_dashboard(user, params) -> dict[str, Any]:
     }
 
     line_dates = sorted(assessments_by_date)
-    line_series = {"score": [], "focus": [], "comprehension": [], "motivation": []}
+    line_series = {"score": [], "focus": [], "organization": [], "comprehension": [], "motivation": []}
     for date in line_dates:
         records = assessments_by_date[date]
         line_series["score"].append(round(sum(_score(item) for item in records) / len(records), 1))
+        line_series["organization"].append(round(sum(item.organization for item in records) / len(records), 2))
         line_series["focus"].append(round(sum(item.focus for item in records) / len(records), 2))
         line_series["comprehension"].append(
             round(sum(item.comprehension for item in records) / len(records), 2)

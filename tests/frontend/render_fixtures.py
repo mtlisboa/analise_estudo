@@ -39,7 +39,19 @@ for member, is_teacher in [(teacher, True), (student, False)]:
         is_teacher=is_teacher, is_student=not is_teacher, added_by=user)
 room = Classroom.objects.create(name="Fixture room", organization=org, owner=teacher)
 ClassroomMembership.objects.create(classroom=room, user=student, role="STUDENT", status="ACTIVE", invited_by=teacher)
+from datetime import timedelta
+from features.users_manager.models import SelfAssessment, ClassroomTest
+for index, name in enumerate(["Ana Lima", "Bruno Santos", "Clara Mendes", "Diego Alves"]):
+    pupil = User.objects.create_user(username="visual-student-" + str(index), first_name=name)
+    OrganizationMembership.objects.create(organization=org, user=pupil, is_student=True, added_by=user)
+    ClassroomMembership.objects.create(classroom=room, user=pupil, role="STUDENT", status="ACTIVE", invited_by=teacher)
+    for day in range(6):
+        SelfAssessment.objects.create(user=pupil, focus=2 + (index + day) % 4,
+            organization=3 + index % 3, comprehension=2 + day % 4, motivation=3 + (day + index) % 3,
+            created_at=timezone.now() - timedelta(days=5-day))
+ClassroomTest.objects.create(classroom=room, title="Revisão de conceitos", created_by=teacher)
 print(json.dumps({
+    "analytics_overview": client.get(reverse("analytics-dashboard:dashboard")).content.decode(),
     "analytics": client.get(reverse("analytics-dashboard:dashboard"), {
         "organization": org.pk, "teacher": teacher.pk, "classroom": room.pk, "student": student.pk,
     }).content.decode(),
