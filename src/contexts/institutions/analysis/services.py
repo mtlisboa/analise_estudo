@@ -96,6 +96,7 @@ def build(scope, f):
             canonical_answer = 'ABCDE'[q['option_order']['ABCDE'.index(answer)]] if valid and q.get('option_order') else answer
             item_key=(str(run.pk),canonical_index)
             item=items.setdefault(item_key,{'run':str(run.pk),'number':canonical_index+1,'title':run.title,'statement':q.get('statement',''),
+                'legends':{letter:details.get('hypothesis','') for letter,details in run.questions[canonical_index].get('diagnostic_metadata',{}).get('alternatives',{}).items()},
                 'count':0,'correct':0,'blank':0,'invalid':0,'options':Counter(), 'available':list('ABCDE'[:len(q.get('options',[]))])})
             item['count']+=1;item['correct']+=int(correct)
             if not answer: item['blank']+=1
@@ -156,6 +157,40 @@ def build(scope, f):
     evaluated={r['student'] for r in rows};numeric=[r for r in rows if r['percentage'] is not None]
     average=mean(r['percentage'] for r in numeric) if numeric else None
     names={r['student']:r['name'] for r in rows}
+    # Virtual alternatives are identified through their frozen option IDs, never display letters.
+    from ..coursework.models import Publication, Submission
+    publications = filtered(scope, Publication, f).filter(is_published=True).filter(
+        Q(delivery_mode='online') | Q(delivery_mode='', assessment__delivery_mode='online'))
+    if f.get('assessment'): publications = publications.filter(assessment=f['assessment'])
+    submissions = Submission.objects.filter(publication__in=publications, score__isnull=False).select_related('publication', 'student')
+    if f.get('student'): submissions = submissions.filter(student_id=f['student'].user_id)
+    if f.get('start'): submissions = submissions.filter(submitted_at__date__gte=f['start'])
+    if f.get('end'): submissions = submissions.filter(submitted_at__date__lte=f['end'])
+    for submission in submissions:
+        publication = submission.publication
+        names[submission.student_id] = submission.student.get_full_name() or submission.student.username
+        keys = {str(k.get('question_id')): k for k in publication.grading_snapshot}
+        for index, question in enumerate(publication.public_snapshot.get('questions', [])):
+            key = keys.get(str(question.get('id')), {})
+            metadata = key.get('diagnostic_metadata', {})
+            if question.get('type') != 'multiple_choice' or not metadata.get('alternatives'): continue
+            if skills_filter and skills_filter not in metadata.get('skills', []): continue
+            ids = question.get('option_ids', [])
+            selected = submission.answer_ids.get(str(question.get('id')))
+            answer = 'ABCDE'[ids.index(selected)] if selected in ids and ids.index(selected) < 5 else ''
+            correct = bool(selected and selected == key.get('correct_option_id'))
+            item_key = ('online-' + str(publication.pk), index)
+            item = items.setdefault(item_key, {'number':index + 1, 'title':publication.title,
+                'statement':question.get('statement',''), 'count':0, 'correct':0, 'blank':0, 'invalid':0,
+                'options':Counter(), 'available':list('ABCDE'[:len(ids)]),
+                'legends':{letter:details.get('hypothesis','') for letter,details in metadata['alternatives'].items()}})
+            item['count'] += 1; item['correct'] += int(correct)
+            if not selected: item['blank'] += 1
+            elif not answer: item['invalid'] += 1
+            else: item['options'][answer] += 1
+            diagnostic = metadata['alternatives'].get(answer, {})
+            if not correct and diagnostic.get('reviewed') and diagnostic.get('hypothesis'):
+                hypotheses[(submission.student_id, publication.offer_id, diagnostic['hypothesis'])] += 1
     summaries=[]
     for uid in sorted(evaluated):
         vals=[r['percentage'] for r in numeric if r['student']==uid]
@@ -179,9 +214,10 @@ def build(scope, f):
     coverage=[{'skill':p.skill,'description':p.description,'subject':p.subject,'offer':p.offer_id,'status':'Avaliada' if (p.offer_id,p.subject,p.skill) in observed else 'Não avaliada'} for p in plans]
     for item in items.values():
         item['percentage']=percent(item['correct'],item['count'])
-        item['choices']=[{'letter':a,'count':item['options'][a],'percentage':percent(item['options'][a],item['count']),
+        item['choices']=[{'letter':a,'legend':item['legends'].get(a,''),'count':item['options'][a],'percentage':percent(item['options'][a],item['count']),
             'review': item['count']>=20 and item['options'][a]/item['count']<.05} for a in item.pop('available')]
         item.pop('options')
+        item.pop('legends')
     attendance=list(filtered(scope,Attendance,f,'date').select_related('student__user','offer__analysis_context').order_by('date','pk'))
     attendance_rows=[];alerts=[]
     for uid,oid,subject in sorted({(a.student_id,a.offer_id,a.subject) for a in attendance}):

@@ -176,3 +176,31 @@ class AnalysisTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.context['chart_data']['timeline'], [])
         self.assertEqual(sum(row['count'] for row in response.context['chart_data']['distribution']), 0)
+
+    def test_virtual_legend_uses_frozen_option_identity_and_is_not_public(self):
+        from ..coursework.models import Submission
+        from ..coursework.services import publish
+        from features.assessments.models import Question
+        self.question.question_type = Question.Type.MULTIPLE_CHOICE
+        self.question.options = ['Certa', 'Errada']
+        self.question.correct_answer = 'Certa'
+        self.question.diagnostic_metadata = {'alternatives': {'B': {'hypothesis':'Confusão de conceito','reviewed':True}}}
+        self.question.save()
+        publish(self.teacher, self.publication)
+        self.publication.refresh_from_db()
+        question = self.publication.public_snapshot['questions'][0]
+        self.assertNotIn('diagnostic_metadata', question)
+        self.assertEqual(self.publication.grading_snapshot[0]['diagnostic_metadata']['alternatives']['B']['hypothesis'], 'Confusão de conceito')
+        Submission.objects.create(publication=self.publication, student=self.student.user,
+            answer_ids={str(self.question.pk):question['option_ids'][1]}, answers={'q1':'1'}, score=0, maximum_score=2)
+        self.question.diagnostic_metadata = {}; self.question.save()
+        data = build(Scope(self.teacher.user), {})
+        self.assertEqual(data['hypotheses'][0]['hypothesis'], 'Confusão de conceito')
+        self.assertEqual(data['items'][0]['choices'][1]['legend'], 'Confusão de conceito')
+        self.assertEqual(build(Scope(self.teacher.user), {'start':date(2099,1,1)})['hypotheses'], [])
+
+    def test_printed_item_shows_registered_legend(self):
+        self.result()
+        data = build(Scope(self.teacher.user), {})
+        self.assertEqual(data['items'][0]['choices'][1]['legend'], 'Confusão conceitual')
+        self.assertEqual(data['hypotheses'][0]['count'], 1)

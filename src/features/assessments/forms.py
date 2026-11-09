@@ -235,6 +235,7 @@ class QuestionForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMixin, Que
         last_order = assessment.questions.aggregate(last=Max("order"))["last"] or 0
         question.order = last_order + 1
         question.save()
+        self.save_alternative_legends(assessment.owner)
         question.images.set(bank_item.images.all())
         question.content_blocks = bank_item.content_blocks
         question.support_text = bank_item.support_text
@@ -313,6 +314,7 @@ class QuestionBankItemForm(DiagnosticFields, TeacherSharingMixin, QuestionTypeMi
             item.source_question = source
             item.creation_method = creation_method or QuestionBankItem.CreationMethod.DERIVED
         item.save()
+        self.save_alternative_legends(owner)
         if source is not None:
             item.images.set(source.images.all())
             if "content_blocks" not in self.data:
