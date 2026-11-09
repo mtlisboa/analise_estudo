@@ -357,3 +357,16 @@ class QuestionImage(models.Model):
 
     def __str__(self):
         return self.description
+
+
+class AlternativeLegend(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='alternative_legends')
+    text = models.CharField('legenda da alternativa', max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['text', 'pk']
+        constraints = [models.UniqueConstraint(fields=['owner', 'text'], name='unique_owner_alternative_legend')]
+
+    def __str__(self):
+        return self.text

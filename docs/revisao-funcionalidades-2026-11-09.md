@@ -112,3 +112,23 @@ comparação de turmas usam gráficos SVG com escala, rótulos e valores acessí
 sem dependência de CDN. Todas as nove seções e permissões foram preservadas.
 Validação: 30 testes Django; navegador nas rotas reais de gestor/professor, nove
 seções, registro de evidências, modo escuro, celular e estado sem dados.
+
+## Legendas pedagógicas por alternativa
+
+O editor permite selecionar uma legenda ou cadastrar e selecionar uma nova em
+cada alternativa. Ao salvar uma questão válida, a legenda entra no catálogo
+pessoal do autor para reutilização. O texto fica copiado nos metadados da questão,
+sem depender de alterações futuras no catálogo. Reordenar ou remover alternativas
+não desloca a classificação para outra resposta.
+
+A seção institucional Questões e distratores exibe a legenda junto às contagens
+e a utiliza nas hipóteses de erro. Provas impressas mantêm a associação nas
+versões embaralhadas; aplicações virtuais usam IDs de alternativas e metadados
+congelados no gabarito privado. A legenda não é enviada no conteúdo público do
+aluno. Aplicações antigas sem metadados congelados não recebem inferências
+retroativas a partir de questões posteriormente editadas.
+
+Inclui a migração assessments.0018_alternativelegend. Testes cobrem cadastro,
+reutilização, isolamento do catálogo, edição, exclusão, cópia, troca para questão
+aberta, aplicação virtual, sigilo do gabarito e embaralhamento físico; controles
+JavaScript validados em DOM.

@@ -1,13 +1,14 @@
 {% load static %}
 <div data-question-type-editor>
 <textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>{{ widget.value|default_if_none:"[]" }}</textarea>
+<select data-legend-catalog hidden aria-label="Legendas disponíveis"><option value="">Sem legenda</option>{% for legend in widget.legends %}<option value="{{ legend }}">{{ legend }}</option>{% endfor %}</select>
 <div data-alternative-controls hidden>
-<p>Cada alternativa é um bloco independente. Adicione ou remova blocos e marque a resposta correta.</p>
+<p>Marque a resposta correta e associe uma legenda às alternativas. A legenda descreve uma possível interpretação do erro e fica disponível para reutilização após salvar a questão.</p>
 <div data-alternative-list class="alternative-block-list" role="group" aria-label="Lista de alternativas"></div>
 <div class="content-block-actions"><button type="button" data-add-alternative>Adicionar alternativa</button></div>
 <p role="status" aria-live="polite" data-alternative-status></p>
 </div>
 <noscript>Ative o JavaScript para adicionar e editar os blocos de alternativas.</noscript>
 </div>
-<link rel="stylesheet" href="{% static 'css/question-blocks.css' %}?v=3">
-<script src="{% static 'js/question-types.js' %}?v=2" defer></script>
+<link rel="stylesheet" href="{% static 'css/question-blocks.css' %}?v=4">
+<script src="{% static 'js/question-types.js' %}?v=3" defer></script>
