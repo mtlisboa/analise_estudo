@@ -15,7 +15,7 @@
         <button class="button button-small" id="new-assessment" type="button">Registrar nova avaliação</button>
     </div>
 
-    <form class="assessment-search" method="get" role="search">
+    <form class="assessment-search" method="get" action="{% url 'assessments:index' %}" role="search">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
         <label class="visually-hidden" for="assessment-query">Buscar minhas avaliações</label>
         <input id="assessment-query" name="q" type="search" value="{{ query }}" placeholder="Buscar por matéria, assunto, tipo ou técnica">
@@ -129,5 +129,5 @@
 </div>
 {{ default_techniques|json_script:"assessment-default-techniques" }}
 {% if assessment_form.errors %}<script>document.documentElement.dataset.openAssessmentModal = "true";</script>{% endif %}
-<script src="{% static 'js/assessments.js' %}?v=1"></script>
+<script src="{% static 'js/assessments.js' %}?v=2"></script>
 {% endblock %}

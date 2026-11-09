@@ -316,9 +316,28 @@ class UsersManagerTests(TestCase):
         self.assertNotContains(response, "Rascunho do professor")
 
     def test_user_can_create_self_assessment(self) -> None:
+        self.owner.complete_onboarding()
+        self.owner.save()
         response = self.client.post(
             reverse("users-manager:assessment-create"),
             {"focus": 4, "organization": 3, "comprehension": 5, "motivation": 4},
         )
-        self.assertRedirects(response, reverse("users-manager:dashboard"))
+        self.assertRedirects(response, reverse("accounts:dashboard"))
         self.assertEqual(SelfAssessment.objects.get(user=self.owner).score, 80)
+
+    def test_teacher_can_activate_a_pending_legacy_invitation(self) -> None:
+        organization = self.create_organization()
+        self.add_member(organization, self.student, student=True)
+        classroom = self.create_classroom(organization)
+        membership = ClassroomMembership.objects.create(
+            classroom=classroom, user=self.student, role=ClassroomMembership.Role.STUDENT,
+            status=MembershipStatus.PENDING, invited_by=self.owner,
+        )
+        response = self.client.post(
+            reverse("users-manager:classroom-invite", args=[classroom.pk]),
+            {"email": self.student.email, "role": ClassroomMembership.Role.STUDENT},
+        )
+        self.assertRedirects(response, reverse("users-manager:classroom-detail", args=[classroom.pk]))
+        membership.refresh_from_db()
+        self.assertEqual(membership.status, MembershipStatus.ACTIVE)
+        self.assertEqual(classroom.memberships.filter(user=self.student).count(), 1)

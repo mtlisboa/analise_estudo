@@ -10,12 +10,12 @@
         <div>
             <p class="section-kicker">INTELIGÊNCIA EDUCACIONAL</p>
             <h1>Dashboard de desempenho</h1>
-            <p>Compare organizações, turmas e alunos a partir de indicadores acadêmicos reais.</p>
+            <p>Acompanhe alunos e professores por organização, turma e período.</p>
         </div>
         <span class="analytics-scope">{{ scope_title }}</span>
     </header>
 
-    <form class="analytics-filters" method="get" aria-label="Filtros do dashboard">
+    <form class="analytics-filters{% if can_analyze_teachers %} analytics-filters-manager{% endif %}" method="get" aria-label="Filtros do dashboard">
         <label>
             <span>Organização</span>
             <select name="organization">
@@ -25,6 +25,17 @@
                 {% endfor %}
             </select>
         </label>
+        {% if can_analyze_teachers %}
+        <label>
+            <span>Professor</span>
+            <select name="teacher">
+                <option value="">Todos</option>
+                {% for teacher in teachers %}
+                    <option value="{{ teacher.pk }}"{% if filters.teacher == teacher.pk %} selected{% endif %}>{{ teacher.get_full_name|default:teacher.username }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% endif %}
         <label>
             <span>Turma</span>
             <select name="classroom">
@@ -63,6 +74,24 @@
         <article><span>TESTES</span><strong>{{ metrics.tests }}</strong><small>criados</small></article>
         <article class="highlight-metric"><span>ÍNDICE MÉDIO</span><strong>{% if metrics.assessment_average is not None %}{{ metrics.assessment_average }}%{% else %}—{% endif %}</strong><small>autoavaliações</small></article>
     </div>
+
+    {% if can_analyze_teachers %}
+    <article class="analytics-card analytics-table-card">
+        <div class="analytics-card-heading"><div><span>GESTÃO</span><h2>Análise dos professores</h2></div></div>
+        <p>Turmas e alunos vinculados; testes criados pelo professor no período. A média usa a última autoavaliação de cada aluno no período e não representa uma nota do professor.</p>
+        <div class="analytics-table-wrap">
+            <table class="analytics-table">
+                <thead><tr><th>Professor</th><th>Turmas</th><th>Alunos</th><th>Testes criados</th><th>Alunos com registro</th><th>Autoavaliação dos alunos</th></tr></thead>
+                <tbody>
+                    {% for row in teacher_summary %}
+                    <tr><td><strong>{{ row.name }}</strong></td><td>{{ row.classrooms }}</td><td>{{ row.students }}</td><td>{{ row.tests }}</td><td>{{ row.assessed_students }}</td><td>{% if row.student_average is not None %}{{ row.student_average }}%{% else %}Sem dados{% endif %}</td></tr>
+                    {% empty %}<tr><td colspan="6">Nenhum professor neste escopo.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+    {% endif %}
+    <p class="analytics-notice">Os índices de foco, organização, compreensão e motivação são autoavaliações pessoais. Não são notas de provas.</p>
 
     <div class="analytics-grid">
         <article class="analytics-card analytics-wide">
@@ -122,5 +151,5 @@
 
 {% block scripts %}
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-<script src="{% static 'js/analytics_dashboard.js' %}?v=1" defer></script>
+<script src="{% static 'js/analytics_dashboard.js' %}?v=2" defer></script>
 {% endblock %}

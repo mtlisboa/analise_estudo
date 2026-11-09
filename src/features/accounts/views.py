@@ -60,7 +60,13 @@ def sign_up(request: HttpRequest) -> HttpResponse:
 def dashboard(request: HttpRequest) -> HttpResponse:
     if not request.user.has_completed_onboarding and not request.user.is_system_admin:
         return redirect("accounts:onboarding")
-    return render(request, "accounts/dashboard.html")
+    assessments = request.user.self_assessments.order_by("-created_at", "-pk")
+    return render(request, "accounts/dashboard.html", {
+        "latest_assessment": assessments.first(),
+        "recent_assessments": assessments[:5],
+        "self_assessment_count": assessments.count(),
+        "assessment_count": request.user.created_assessments.count(),
+    })
 
 
 @login_required

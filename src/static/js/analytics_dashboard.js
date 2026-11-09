@@ -16,10 +16,30 @@
         }
         if (attempts > 0) {
             window.setTimeout(function () { waitForPlotly(callback, attempts - 1); }, 100);
+        } else {
+            document.querySelectorAll(".analytics-chart").forEach(function (node) {
+                node.textContent = "Não foi possível carregar o gráfico. Os indicadores e tabelas continuam disponíveis. Recarregue para tentar novamente.";
+                node.setAttribute("role", "status");
+            });
         }
     }
 
     ready(function () {
+        var filters = document.querySelector(".analytics-filters");
+        if (filters) {
+            filters.addEventListener("change", function (event) {
+                var dependentFields = {
+                    organization: ["teacher", "classroom", "student"],
+                    teacher: ["classroom", "student"],
+                    classroom: ["student"]
+                }[event.target.name];
+                if (!dependentFields) return;
+                dependentFields.forEach(function (name) {
+                    var field = filters.elements.namedItem(name);
+                    if (field) field.value = "";
+                });
+            });
+        }
         var dataNode = document.getElementById("analytics-dashboard-data");
         if (!dataNode) return;
         var dashboardData = JSON.parse(dataNode.textContent);

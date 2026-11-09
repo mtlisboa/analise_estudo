@@ -2,8 +2,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
-from django.http import Http404, HttpRequest, HttpResponse, HttpResponseForbidden
+from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+
+from .access import active_classroom_memberships, managed_classrooms, visible_classrooms
 
 from .forms import (
     ClassroomForm,
@@ -11,13 +14,11 @@ from .forms import (
     ClassroomTestForm,
     OrganizationForm,
     OrganizationMemberForm,
-    RelationshipRequestForm,
     SelfAssessmentForm,
 )
 from .models import (
     Classroom,
     ClassroomMembership,
-    EducationalRelationship,
     MembershipStatus,
     Organization,
     OrganizationMembership,
@@ -112,7 +113,7 @@ def organization_detail(request: HttpRequest, pk: int) -> HttpResponse:
         {
             "organization": organization,
             "organization_memberships": organization.memberships.select_related("user", "added_by"),
-            "classrooms": organization.classrooms.filter(is_active=True).select_related("owner"),
+            "classrooms": visible_classrooms(request.user).filter(organization=organization).select_related("owner"),
             "can_manage": _can_manage_organization(request.user, organization),
             "can_create_classroom": bool(membership and membership.is_teacher),
         },
@@ -136,37 +137,19 @@ def add_organization_member(request: HttpRequest, pk: int) -> HttpResponse:
     return render(
         request,
         "users_manager/form.html",
-        {"form": form, "title": f"Adicionar membro a {organization.name}"},
+        {"form": form, "title": f"Adicionar membro a {organization.name}", "back_url": reverse("users-manager:organization-detail", kwargs={"pk": organization.pk}), "back_label": organization.name},
     )
 
 
 @login_required
 def request_relationship(request: HttpRequest) -> HttpResponse:
-    form = RelationshipRequestForm(request.POST or None, requester=request.user)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Solicitação de vínculo enviada.")
-        return redirect("users-manager:dashboard")
-    return render(request, "users_manager/form.html", {"form": form, "title": "Novo vínculo"})
+    messages.info(request, "Os vínculos agora são gerenciados dentro das organizações.")
+    return redirect("users-manager:dashboard")
 
 
 @login_required
 def decide_relationship(request: HttpRequest, pk: int, decision: str) -> HttpResponse:
-    if request.method != "POST":
-        return HttpResponse(status=405)
-    if decision not in {"accept", "reject"}:
-        raise Http404
-    relationship = get_object_or_404(EducationalRelationship, pk=pk)
-    if relationship.recipient_id != request.user.pk:
-        return HttpResponseForbidden("Somente o destinatário pode responder à solicitação.")
-    if relationship.status != MembershipStatus.PENDING:
-        messages.info(request, "Esta solicitação já foi respondida.")
-        return redirect("users-manager:dashboard")
-    relationship.status = (
-        MembershipStatus.ACTIVE if decision == "accept" else MembershipStatus.REJECTED
-    )
-    relationship.save(update_fields=("status", "updated_at"))
-    messages.success(request, "Vínculo atualizado.")
+    messages.info(request, "Os vínculos agora são gerenciados dentro das organizações.")
     return redirect("users-manager:dashboard")
 
 
@@ -194,31 +177,19 @@ def create_classroom(request: HttpRequest, organization_pk: int) -> HttpResponse
     return render(
         request,
         "users_manager/form.html",
-        {"form": form, "title": f"Nova turma em {organization.name}"},
+        {"form": form, "title": f"Nova turma em {organization.name}", "back_url": reverse("users-manager:organization-detail", kwargs={"pk": organization.pk}), "back_label": organization.name},
     )
 
 
 def _can_manage_classroom(user, classroom: Classroom) -> bool:
-    return bool(_organization_teacher_membership(user, classroom.organization)) and (
-        classroom.owner_id == user.pk
-        or ClassroomMembership.objects.filter(
-            classroom=classroom,
-            user=user,
-            role=ClassroomMembership.Role.TEACHER,
-            status=MembershipStatus.ACTIVE,
-        ).exists()
-    )
+    return managed_classrooms(user).filter(pk=classroom.pk).exists()
 
 
 @login_required
 def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    classroom = get_object_or_404(Classroom, pk=pk, is_active=True)
+    classroom = get_object_or_404(Classroom, pk=pk, is_active=True, organization__is_active=True)
     can_manage = _can_manage_classroom(request.user, classroom)
-    can_view = can_manage or ClassroomMembership.objects.filter(
-        classroom=classroom,
-        user=request.user,
-        status=MembershipStatus.ACTIVE,
-    ).exists()
+    can_view = visible_classrooms(request.user).filter(pk=classroom.pk).exists()
     if not can_view:
         return HttpResponseForbidden("Você não participa desta turma.")
     return render(
@@ -226,9 +197,9 @@ def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "users_manager/classroom_detail.html",
         {
             "classroom": classroom,
-            "memberships": classroom.memberships.select_related("user", "invited_by"),
+            "memberships": active_classroom_memberships().filter(classroom=classroom).select_related("user", "invited_by"),
             "tests": classroom.tests.filter(is_published=True)
-            if not can_manage
+            if not (can_manage or classroom.organization.owner_id == request.user.pk)
             else classroom.tests.all(),
             "can_manage": can_manage,
         },
@@ -237,7 +208,7 @@ def classroom_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 @login_required
 def invite_classroom_member(request: HttpRequest, pk: int) -> HttpResponse:
-    classroom = get_object_or_404(Classroom, pk=pk, is_active=True)
+    classroom = get_object_or_404(Classroom, pk=pk, is_active=True, organization__is_active=True)
     if not _can_manage_classroom(request.user, classroom):
         return HttpResponseForbidden("Apenas professores da turma podem adicionar membros.")
     form = ClassroomMemberForm(
@@ -252,13 +223,13 @@ def invite_classroom_member(request: HttpRequest, pk: int) -> HttpResponse:
     return render(
         request,
         "users_manager/form.html",
-        {"form": form, "title": f"Adicionar membro a {classroom.name}"},
+        {"form": form, "title": f"Adicionar membro a {classroom.name}", "back_url": reverse("users-manager:classroom-detail", kwargs={"pk": classroom.pk}), "back_label": classroom.name},
     )
 
 
 @login_required
 def create_classroom_test(request: HttpRequest, pk: int) -> HttpResponse:
-    classroom = get_object_or_404(Classroom, pk=pk, is_active=True)
+    classroom = get_object_or_404(Classroom, pk=pk, is_active=True, organization__is_active=True)
     if not _can_manage_classroom(request.user, classroom):
         return HttpResponseForbidden("Apenas professores da turma podem criar testes.")
     form = ClassroomTestForm(request.POST or None)
@@ -272,25 +243,13 @@ def create_classroom_test(request: HttpRequest, pk: int) -> HttpResponse:
     return render(
         request,
         "users_manager/form.html",
-        {"form": form, "title": f"Novo teste para {classroom.name}"},
+        {"form": form, "title": f"Novo teste para {classroom.name}", "back_url": reverse("users-manager:classroom-detail", kwargs={"pk": classroom.pk}), "back_label": classroom.name},
     )
 
 
 @login_required
 def decide_classroom_invitation(request: HttpRequest, pk: int, decision: str) -> HttpResponse:
-    if request.method != "POST":
-        return HttpResponse(status=405)
-    if decision not in {"accept", "reject"}:
-        raise Http404
-    membership = get_object_or_404(ClassroomMembership, pk=pk, user=request.user)
-    if membership.status != MembershipStatus.PENDING:
-        messages.info(request, "Este convite já foi respondido.")
-        return redirect("users-manager:dashboard")
-    membership.status = (
-        MembershipStatus.ACTIVE if decision == "accept" else MembershipStatus.REJECTED
-    )
-    membership.save(update_fields=("status",))
-    messages.success(request, "Convite atualizado.")
+    messages.info(request, "Os vínculos agora são gerenciados dentro das organizações.")
     return redirect("users-manager:dashboard")
 
 
@@ -302,9 +261,9 @@ def create_self_assessment(request: HttpRequest) -> HttpResponse:
         assessment.user = request.user
         assessment.save()
         messages.success(request, f"Autoavaliação salva. Resultado geral: {assessment.score}%.")
-        return redirect("users-manager:dashboard")
+        return redirect("accounts:dashboard")
     return render(
         request,
         "users_manager/form.html",
-        {"form": form, "title": "Nova autoavaliação"},
+        {"form": form, "title": "Nova autoavaliação", "back_url": reverse("accounts:dashboard"), "back_label": "meu painel"},
     )
