@@ -37,6 +37,8 @@ def generate_analysis(request: HttpRequest) -> HttpResponse:
                 filters=analysis_context["filters"],
                 snapshot={
                     "metrics": analysis_context["metrics"],
+                    "teacher_summary": analysis_context.get("teacher_summary", []),
+                    "can_analyze_teachers": analysis_context.get("can_analyze_teachers", False),
                     "ranking": analysis_context["ranking"],
                     "analytics_payload": analysis_context["analytics_payload"],
                 },
@@ -93,6 +95,8 @@ def analysis_detail(request: HttpRequest, pk: int) -> HttpResponse:
         {
             "scope_title": saved_analysis.scope_title,
             "metrics": saved_analysis.snapshot["metrics"],
+            "teacher_summary": saved_analysis.snapshot.get("teacher_summary", []),
+            "can_analyze_teachers": saved_analysis.snapshot.get("can_analyze_teachers", False),
             "ranking": saved_analysis.snapshot["ranking"],
             "analytics_payload": saved_analysis.snapshot["analytics_payload"],
         },
@@ -112,6 +116,7 @@ def _render_analysis(
         request,
         "analytics_dashboard/dashboard.html",
         {
+            **analysis_context,
             "saved_analysis": saved_analysis,
             "is_preview": is_preview,
             "save_form": save_form,

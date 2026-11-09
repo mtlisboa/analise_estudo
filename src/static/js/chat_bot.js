@@ -76,6 +76,8 @@
                 return;
             }
 
+            if (payload.conversation_id && payload.conversation_id !== conversationId) return;
+
             if (payload.type === 'chat.ready') {
                 setStatus('online', 'Online');
                 if (diagnosticPrompt && !diagnosticStarted) {
@@ -150,7 +152,7 @@
         conversationId = window.crypto && window.crypto.randomUUID
             ? window.crypto.randomUUID()
             : String(Date.now());
-        input.focus();
+        finishWaiting();
     });
 
     connect();

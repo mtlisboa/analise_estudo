@@ -274,9 +274,9 @@ class ClassroomMemberForm(forms.Form):
         if ClassroomMembership.objects.filter(
             classroom=self.classroom,
             user=self.invited_user,
-            status__in=(MembershipStatus.PENDING, MembershipStatus.ACTIVE),
+            status=MembershipStatus.ACTIVE,
         ).exists():
-            raise forms.ValidationError("Este usuário já participa ou possui um convite pendente.")
+            raise forms.ValidationError("Este usuário já participa desta turma.")
         return email
 
     def clean(self):
