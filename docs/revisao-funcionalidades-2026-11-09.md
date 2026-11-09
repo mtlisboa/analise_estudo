@@ -43,7 +43,7 @@ a integração com esse serviço externo não foi validada ao vivo nesta revisã
 
 Nenhuma migração de banco é necessária. Os dados históricos de vínculos são
 preservados. A revisão cobre código, respostas HTTP, permissões, templates e
-comportamento JavaScript em DOM; a validação visual em navegador fica pendente.
+comportamento JavaScript em DOM e validação visual em navegador.
 
 ## Complemento: análise de professores pelo gestor
 
@@ -63,3 +63,18 @@ carregar, a tela informa a falha e mantém tabelas e indicadores disponíveis.
 As instruções salvas dos testes publicados passam a aparecer na turma.
 
 A integração MCP permanece fora deste complemento, conforme o escopo solicitado.
+
+## Reestilização do módulo de análise
+
+Layout responsivo com hierarquia tipográfica, cartões de indicadores, filtros
+agrupados, navegação por seções e tabelas legíveis. A análise de alunos e
+professores pelo gestor permanece disponível, com as permissões existentes.
+
+Os gráficos seguem os temas claro e escuro. A evolução alterna entre índice
+percentual e quatro dimensões de 1 a 5, evitando escalas misturadas. Barras
+horizontais e mapa de calor acomodam nomes e listas longas; o mapa 3D permanece
+disponível em uma seção expansível, carregada ao abrir. Estados vazios e erros
+não ocultam tabelas e indicadores. Autoavaliações são identificadas como tal.
+
+Validação em Chromium com Plotly real: temas claro/escuro, dimensões, 3D,
+resoluções de 390, 768 e 1440 px e estado sem registros.
