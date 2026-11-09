@@ -58,6 +58,14 @@ def index(request, teacher_only=False):
     if request.GET.get('format')=='json':
         return JsonResponse({k:data[k] for k in ('metrics','eligible','evaluated','participation','missing','distribution','timeline','skills','items','hypotheses','method','version','demo')})
     context.update(data)
+    context['chart_data'] = {
+        'distribution': data['distribution'], 'timeline': data['timeline'],
+        'participation': {'eligible': data['eligible'], 'evaluated': data['evaluated'], 'missing': data['missing']},
+        'classes': [{'label': row['offer'].name, 'average': row['average'],
+                     'evaluated': row['evaluated'], 'eligible': row['eligible']}
+                    for row in data['class_summary']],
+    }
+    context['active_filters'] = sum(value not in (None, '') for value in form.cleaned_data.values())
     if request.resolver_match.view_name == 'institutions:manager-performance':
         context['metrics'] = [m for m in data['metrics'] if m[0] != 'Alunos avaliados']
     context['performance_page'] = Paginator(list({r['classroom'] for r in data['rows']}),25).get_page(request.GET.get('page'))
