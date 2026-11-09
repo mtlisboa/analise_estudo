@@ -24,7 +24,7 @@
     <article class="dash-card manager-card full-card">
         <div class="manager-card-title"><div><span>TESTES</span><h2>Atividades da turma</h2></div><strong>{{ tests|length }}</strong></div>
         <div class="manager-list">
-            {% for classroom_test in tests %}<div class="manager-list-item"><div class="avatar-letter">✓</div><div class="list-copy"><strong>{{ classroom_test.title }}</strong><small>Valor: {{ classroom_test.max_score }} ponto{{ classroom_test.max_score|pluralize }} · {% if classroom_test.is_published %}Publicado{% else %}Rascunho{% endif %}</small></div></div>{% empty %}<p class="empty-state">Nenhum teste criado para esta turma.</p>{% endfor %}
+            {% for classroom_test in tests %}<div class="manager-list-item"><div class="avatar-letter">✓</div><div class="list-copy"><strong>{{ classroom_test.title }}</strong><small>Valor: {{ classroom_test.max_score }} ponto{{ classroom_test.max_score|pluralize }} · {% if classroom_test.is_published %}Publicado{% else %}Rascunho{% endif %}</small>{% if classroom_test.instructions %}<p>{{ classroom_test.instructions|linebreaksbr }}</p>{% endif %}</div></div>{% empty %}<p class="empty-state">Nenhum teste criado para esta turma.</p>{% endfor %}
         </div>
     </article>
 </section>

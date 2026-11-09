@@ -11,4 +11,5 @@ O script renderiza os templates Django com banco SQLite em memória e executa o
 JavaScript real no DOM. Cobre o reinício do modal após edição inválida, o envio
 de observações ainda não adicionadas, o tratamento literal de HTML/aspas,
 a rota de pesquisa e respostas atrasadas de conversas anteriores.
+Também cobre os filtros dependentes do gestor e a falha de carregamento dos gráficos.
 O agente MCP é simulado; estes testes não substituem testes visuais em navegador.

@@ -44,3 +44,22 @@ a integração com esse serviço externo não foi validada ao vivo nesta revisã
 Nenhuma migração de banco é necessária. Os dados históricos de vínculos são
 preservados. A revisão cobre código, respostas HTTP, permissões, templates e
 comportamento JavaScript em DOM; a validação visual em navegador fica pendente.
+
+## Complemento: análise de professores pelo gestor
+
+A visão de alunos foi preservada. O responsável da organização dispõe também
+de filtro por professor e resumo de turmas, alunos vinculados, testes criados no
+período, alunos com autoavaliação e média da última autoavaliação de cada aluno.
+Essa média é um indicador dos registros dos alunos, não uma nota de desempenho
+do professor. Professores sem turma continuam visíveis, com valores zero e
+estado sem dados. A consulta não cresce uma vez por professor.
+
+O filtro por professor só opera nas organizações administradas pelo usuário;
+alunos e professores comuns não recebem o seletor ou os dados de gestão.
+Filtros por aluno também limitam turmas e testes ao vínculo desse aluno. A troca
+de organização/professor/turma limpa os filtros dependentes, impedindo a
+reutilização de seleções de outro contexto. Se a biblioteca de gráficos não
+carregar, a tela informa a falha e mantém tabelas e indicadores disponíveis.
+As instruções salvas dos testes publicados passam a aparecer na turma.
+
+A integração MCP permanece fora deste complemento, conforme o escopo solicitado.

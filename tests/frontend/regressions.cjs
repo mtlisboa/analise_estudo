@@ -71,3 +71,22 @@ assert.ok(cd.querySelector('[data-chat-messages]').textContent.includes('CURRENT
 assert.equal(cd.querySelector('[data-chat-thinking]').hidden, true);
 chat.window.close();
 console.log('Frontend regressions passed: modal reset, observations, safe DOM, search route, stale chat responses.');
+
+const analytics = dom(html.analytics);
+const aw = analytics.window, ad = aw.document;
+// Exercise the CDN failure branch without spending ten seconds on timer retries.
+aw.setTimeout = callback => { callback(); return 1; };
+script(aw, 'analytics_dashboard.js');
+ad.dispatchEvent(new aw.Event('DOMContentLoaded'));
+const filters = ad.querySelector('.analytics-filters');
+assert.ok(filters.elements.teacher.value);
+assert.ok(filters.elements.student.value);
+filters.elements.teacher.dispatchEvent(new aw.Event('change', { bubbles: true }));
+assert.equal(filters.elements.classroom.value, '');
+assert.equal(filters.elements.student.value, '');
+filters.elements.organization.dispatchEvent(new aw.Event('change', { bubbles: true }));
+assert.equal(filters.elements.teacher.value, '');
+assert.ok(ad.querySelector('#timeline-chart').textContent.includes('Não foi possível carregar'));
+assert.ok(ad.querySelector('.analytics-table').textContent.includes('teacher-fixture'));
+analytics.window.close();
+console.log('Analytics frontend regressions passed: manager controls, dependent filters and chart failure fallback.');

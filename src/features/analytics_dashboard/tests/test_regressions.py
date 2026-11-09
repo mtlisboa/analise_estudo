@@ -98,3 +98,111 @@ class AnalyticsScopeRegressionTests(TestCase):
         data = build_dashboard(self.teacher, {"organization": str(self.org.pk)})
         self.assertEqual(data["metrics"]["classrooms"], 0)
         self.assertNotIn(self.student.pk, [u.pk for u in data["students"]])
+
+    def test_manager_sees_teacher_summary_and_student_analysis(self):
+        ClassroomTest.objects.create(classroom=self.room, title="Lesson test", created_by=self.teacher)
+        data = build_dashboard(self.owner, {})
+        self.assertTrue(data['can_analyze_teachers'])
+        row = next(row for row in data['teacher_summary'] if row['id'] == self.teacher.pk)
+        self.assertEqual(row['classrooms'], 1)
+        self.assertEqual(row['students'], 1)
+        self.assertEqual(row['tests'], 1)
+        self.assertEqual(row['student_average'], 80)
+        self.assertEqual(data['metrics']['students'], 2)
+
+    def test_manager_can_filter_teacher_and_then_student(self):
+        ClassroomTest.objects.create(classroom=self.room, title="Teacher test", created_by=self.teacher)
+        ClassroomTest.objects.create(classroom=self.other_room, title="Other test", created_by=self.owner)
+        data = build_dashboard(self.owner, {'teacher': str(self.teacher.pk), 'student': str(self.student.pk)})
+        self.assertEqual(data['filters']['teacher'], self.teacher.pk)
+        self.assertEqual(data['metrics']['students'], 1)
+        self.assertEqual(data['metrics']['classrooms'], 1)
+        self.assertEqual(data['metrics']['tests'], 1)
+        self.assertEqual([u.pk for u in data['students']], [self.student.pk])
+        self.assertEqual(len(data['teacher_summary']), 1)
+
+    def test_teacher_filter_does_not_count_tests_authored_by_colleague(self):
+        ClassroomTest.objects.create(classroom=self.room, title="Own", created_by=self.teacher)
+        ClassroomTest.objects.create(classroom=self.room, title="Colleague", created_by=self.owner)
+        data = build_dashboard(self.owner, {'teacher': str(self.teacher.pk)})
+        self.assertEqual(data['metrics']['tests'], 1)
+        self.assertEqual(data['teacher_summary'][0]['tests'], 1)
+
+    def test_teacher_with_no_classes_remains_visible_to_manager(self):
+        ClassroomMembership.objects.filter(user=self.teacher).delete()
+        self.room.owner = self.owner
+        self.room.save()
+        data = build_dashboard(self.owner, {'teacher': str(self.teacher.pk)})
+        self.assertEqual(data['filters']['teacher'], self.teacher.pk)
+        self.assertEqual(data['metrics']['classrooms'], 0)
+        self.assertEqual(data['metrics']['students'], 0)
+        self.assertEqual(data['metrics']['teachers'], 1)
+        self.assertIsNone(data['teacher_summary'][0]['student_average'])
+
+    def test_regular_teacher_cannot_use_manager_teacher_filter(self):
+        data = build_dashboard(self.teacher, {'teacher': str(self.owner.pk)})
+        self.assertFalse(data['can_analyze_teachers'])
+        self.assertIsNone(data['filters']['teacher'])
+        self.assertEqual(data['teacher_summary'], [])
+        self.assertEqual(data['teachers'], [])
+        self.assertEqual(data['analytics_payload']['scatter2d']['names'], ['student'])
+
+    def test_student_cannot_access_teacher_summary(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse('analytics-dashboard:dashboard'), {'teacher': self.teacher.pk})
+        self.assertNotContains(response, 'Análise dos professores')
+        self.assertNotContains(response, 'name="teacher"')
+        self.assertEqual(response.context['teacher_summary'], [])
+
+    def test_teacher_from_other_organization_is_not_selectable(self):
+        outsider = User.objects.create_user(username="external_teacher")
+        other_org = Organization.objects.create(name="Outside", owner=outsider)
+        OrganizationMembership.objects.create(organization=other_org, user=outsider,
+            is_teacher=True, added_by=outsider)
+        data = build_dashboard(self.owner, {'teacher': str(outsider.pk)})
+        self.assertIsNone(data['filters']['teacher'])
+        self.assertNotIn(outsider.pk, [u.pk for u in data['teachers']])
+
+    def test_teacher_analysis_respects_period_and_uses_one_latest_record_per_student(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        now = timezone.now()
+        SelfAssessment.objects.filter(user=self.student).update(created_at=now - timedelta(days=60))
+        old_test = ClassroomTest.objects.create(classroom=self.room, title="Old", created_by=self.teacher)
+        ClassroomTest.objects.filter(pk=old_test.pk).update(created_at=now - timedelta(days=60))
+        for day, score in [(3, 1), (2, 2), (1, 5)]:
+            SelfAssessment.objects.create(user=self.student, focus=score, organization=score,
+                comprehension=score, motivation=score, created_at=now - timedelta(days=day))
+        data = build_dashboard(self.owner, {'teacher': str(self.teacher.pk), 'period': '30'})
+        row = data['teacher_summary'][0]
+        self.assertEqual(row['tests'], 0)
+        self.assertEqual(row['assessed_students'], 1)
+        self.assertEqual(row['student_average'], 100)
+
+    def test_selecting_student_excludes_unrelated_classrooms_and_tests(self):
+        ClassroomTest.objects.create(classroom=self.other_room, title="Unrelated", created_by=self.owner)
+        data = build_dashboard(self.owner, {'student': str(self.student.pk)})
+        self.assertEqual(data['metrics']['classrooms'], 1)
+        self.assertEqual(data['metrics']['tests'], 0)
+        self.assertEqual(data['analytics_payload']['classrooms']['labels'], ['Assigned'])
+
+    def test_manager_teacher_controls_render(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse('analytics-dashboard:dashboard'), {'teacher': self.teacher.pk})
+        self.assertContains(response, 'name="teacher"')
+        self.assertContains(response, 'Análise dos professores')
+        self.assertEqual(response.context['filters']['teacher'], self.teacher.pk)
+
+    def test_teacher_summary_does_not_add_queries_per_teacher(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        with CaptureQueriesContext(connection) as baseline:
+            build_dashboard(self.owner, {})
+        for index in range(10):
+            teacher = User.objects.create_user(username=f"extra-teacher-{index}")
+            OrganizationMembership.objects.create(organization=self.org, user=teacher,
+                is_teacher=True, added_by=self.owner)
+        with CaptureQueriesContext(connection) as expanded:
+            data = build_dashboard(self.owner, {})
+        self.assertEqual(len(data["teacher_summary"]), 12)
+        self.assertLessEqual(len(expanded), len(baseline) + 1)

@@ -30,7 +30,19 @@ invalid = client.post(reverse("assessments:update", args=[assessment.pk]), {
     "subject": "Old failed edit", "topic": "", "assessment_types": [kind.pk],
     "observations": "Previous edit observation", "technique": kind.default_technique_id,
 })
+from features.users_manager.models import Organization, OrganizationMembership, Classroom, ClassroomMembership
+org = Organization.objects.create(name="Frontend school", owner=user)
+teacher = User.objects.create_user(username="teacher-fixture")
+student = User.objects.create_user(username="student-fixture")
+for member, is_teacher in [(teacher, True), (student, False)]:
+    OrganizationMembership.objects.create(organization=org, user=member,
+        is_teacher=is_teacher, is_student=not is_teacher, added_by=user)
+room = Classroom.objects.create(name="Fixture room", organization=org, owner=teacher)
+ClassroomMembership.objects.create(classroom=room, user=student, role="STUDENT", status="ACTIVE", invited_by=teacher)
 print(json.dumps({
+    "analytics": client.get(reverse("analytics-dashboard:dashboard"), {
+        "organization": org.pk, "teacher": teacher.pk, "classroom": room.pk, "student": student.pk,
+    }).content.decode(),
     "assessment": invalid.content.decode(),
     "chat": client.get(reverse("ia-integrations:chat-bot")).content.decode(),
 }))

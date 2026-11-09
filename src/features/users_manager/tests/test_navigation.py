@@ -89,3 +89,15 @@ class NavigationRegressionTests(TestCase):
         self.assertContains(response, reverse('ia-integrations:chat-bot') + '?mode=diagnostic')
         self.assertNotContains(response, '78%')
         self.assertNotContains(response, 'cresceu 23%')
+
+    def test_published_test_instructions_are_visible_to_student(self):
+        from features.users_manager.models import ClassroomTest
+        ClassroomTest.objects.create(classroom=self.room, title="Activity", created_by=self.owner,
+            instructions="Read chapter one.\nAnswer the questions.", is_published=True)
+        ClassroomTest.objects.create(classroom=self.room, title="Draft", created_by=self.owner,
+            instructions="PRIVATE INSTRUCTIONS", is_published=False)
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("users-manager:classroom-detail", args=[self.room.pk]))
+        self.assertContains(response, "Read chapter one.")
+        self.assertContains(response, "Answer the questions.")
+        self.assertNotContains(response, "PRIVATE INSTRUCTIONS")
