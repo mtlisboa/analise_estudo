@@ -53,6 +53,34 @@ services:
     restart: unless-stopped
     stop_grace_period: 10s
 
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  ollama-init:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:0.5b}"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ['ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1 || exec ollama pull "$$OLLAMA_MODEL"']
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: on-failure:3
+
   redis:
     image: redis:7-alpine
     healthcheck:
@@ -75,6 +103,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  ollama_data:
   mailpit_data:
   sqlite_data:
 

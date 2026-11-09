@@ -163,6 +163,42 @@ docker compose down
 Para também remover os dados persistidos, execute conscientemente
 `docker compose down --volumes`.
 
+### LLM local com Ollama
+
+O Compose também inicia o serviço `ollama` em CPU e o inicializador
+`ollama-init`, que baixa o modelo `qwen2.5:0.5b` se ainda não estiver no volume.
+O primeiro download exige internet; acompanhe até o inicializador terminar com
+código 0 antes de enviar prompts:
+
+```bash
+docker compose up -d ollama ollama-init
+docker compose logs -f ollama-init
+docker compose exec ollama ollama run qwen2.5:0.5b "Responda em português: o que é uma fração?"
+```
+
+- API entre containers: `http://ollama:11434`.
+- API no host: `http://localhost:11434` (publicada apenas na interface local).
+- Modelos persistem em `ollama_data`; `docker compose down --volumes` os remove.
+- `OLLAMA_MODEL` e `OLLAMA_PORT` no `.env` alteram o modelo e a porta do host.
+  Depois de mudar o modelo, execute novamente `docker compose up -d ollama ollama-init`
+  e use o nome escolhido nos comandos de inferência.
+
+Exemplo de chamada HTTP com o modelo padrão:
+
+```bash
+curl http://localhost:11434/api/generate -H 'Content-Type: application/json' \
+  -d '{"model":"qwen2.5:0.5b","prompt":"Explique uma fração em português.","stream":false}'
+```
+
+O healthcheck confirma que o servidor responde; a disponibilidade do modelo é
+confirmada pelo término do `ollama-init`. Se o download falhar após as tentativas,
+execute `docker compose run --rm ollama-init` para tentar novamente.
+O serviço web continua iniciando independentemente do download. Esta configuração
+fornece a API local; a aplicação ainda não a utiliza automaticamente.
+A imagem oficial usa a tag `latest`; para ambientes reproduzíveis, fixe uma
+versão ou digest validado. Referências: [Docker do Ollama](https://docs.ollama.com/docker)
+e [modelo Qwen2.5](https://ollama.com/library/qwen2.5).
+
 ### E-mail local com Mailpit
 
 O Compose inicia o Mailpit e configura o Django para enviar e-mails para
@@ -187,7 +223,7 @@ usando a porta interna 1025. Se executar o Django fora do Docker, ajuste
 `EMAIL_PORT` para a porta SMTP escolhida. Veja as variáveis em `.env.example`.
 
 `docker compose down` preserva a caixa de entrada; `docker compose down --volumes`
-remove **tanto os e-mails quanto o banco SQLite**. A configuração do Mailpit é
+remove **os e-mails, o banco SQLite e os modelos do Ollama**. A configuração do Mailpit é
 exclusiva do Compose local. Em outros ambientes, configure as variáveis `EMAIL_*`
 e `DEFAULT_FROM_EMAIL` para seu provedor SMTP.
 
