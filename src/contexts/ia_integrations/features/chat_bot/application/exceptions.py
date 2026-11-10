@@ -7,4 +7,4 @@ class InvalidChatMessage(ChatBotError):
 
 
 class AgentUnavailable(ChatBotError):
-    """The MCP agent could not answer the request."""
+    """The language model could not answer the request."""

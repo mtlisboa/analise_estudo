@@ -5,13 +5,23 @@
 {% block main_class %}chat-page{% endblock %}
 
 {% block content %}
+<style>
+.chat-message p { white-space: pre-wrap; }
+.chat-table-scroll { overflow-x: auto; max-width: 100%; }
+.chat-table-scroll table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.chat-table-scroll th, .chat-table-scroll td { padding: .5rem; text-align: left; border-bottom: 1px solid #8884; }
+.chat-proposal { border: 1px solid #8885; border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+.chat-proposal button { display: block; margin-top: .75rem; padding: .6rem 1rem; cursor: pointer; }
+.chat-message details { margin-top: .75rem; max-width: 100%; }
+.chat-message small { display: block; margin-top: .5rem; }
+</style>
 <section class="chat-shell" data-chat-root data-websocket-path="/ws/ia-integrations/chat-bot/">
     {{ diagnostic_prompt|json_script:"diagnostic-prompt" }}
     <header class="chat-page-heading">
         <div>
             <p class="section-kicker">Lumini IA</p>
             <h1>Aprenda perguntando.</h1>
-            <p>Converse com um assistente que transforma a documentação em respostas claras e práticas.</p>
+            <p>Tire dúvidas, interprete resultados e crie questões e atividades com o contexto que você fornecer.</p>
         </div>
         <div class="chat-connection" data-chat-status aria-live="polite">
             <span aria-hidden="true"></span>
@@ -36,14 +46,14 @@
                 <div>
                     <small>Base de conhecimento</small>
                     <strong>Documentação Lumini</strong>
-                    <p>A fonte será conectada ao agente MCP quando a documentação estiver disponível.</p>
+                    <p>Manual do aplicativo e dados permitidos para sua conta. Consulte resultados, tire dúvidas e prepare questões e atividades.</p>
                 </div>
             </div>
 
             <div class="chat-suggestions">
                 <span>Sugestões para começar</span>
-                <button type="button" data-chat-suggestion="Como posso organizar melhor minha rotina de estudos?">Organizar minha rotina</button>
-                <button type="button" data-chat-suggestion="Explique como interpretar minha autoavaliação.">Entender minha autoavaliação</button>
+                <button type="button" data-chat-suggestion="Interprete meus dados de desempenho e explique as limitações.">Interpretar meus dados</button>
+                <button type="button" data-chat-suggestion="Quero montar uma atividade no aplicativo. Quais informações você precisa?">Montar uma atividade</button>
                 <button type="button" data-chat-suggestion="Qual deve ser meu próximo passo de aprendizagem?">Definir o próximo passo</button>
             </div>
 
@@ -74,7 +84,7 @@
             <div class="chat-thinking" data-chat-thinking hidden>
                 <span class="message-avatar" aria-hidden="true">IA</span>
                 <div><i></i><i></i><i></i></div>
-                <small>Consultando a documentação…</small>
+                <small>Preparando resposta…</small>
             </div>
 
             <form class="chat-composer" data-chat-form>
@@ -88,5 +98,5 @@
         </article>
     </div>
 </section>
-<script src="{% static 'js/chat_bot.js' %}?v=2" defer></script>
+<script src="{% static 'js/chat_bot.js' %}?v=3" defer></script>
 {% endblock %}

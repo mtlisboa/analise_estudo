@@ -7,6 +7,7 @@ class ChatRequest:
     message: str
     conversation_id: str
     user_id: str
+    history: tuple = ()
 
 
 @dataclass(frozen=True, slots=True)

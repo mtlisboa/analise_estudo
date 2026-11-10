@@ -82,9 +82,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-IA_MCP_SERVER_URL = os.getenv("IA_MCP_SERVER_URL", "")
-IA_MCP_CHAT_TOOL = os.getenv("IA_MCP_CHAT_TOOL", "answer_from_documentation")
-IA_MCP_TIMEOUT_SECONDS = float(os.getenv("IA_MCP_TIMEOUT_SECONDS", "30"))
 
 DATABASES = {
     "default": {
@@ -153,3 +150,8 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").lower() == "true"
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() == "true"
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
+
+# Local AI provider shared by chat and assessment authoring.
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
+OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
