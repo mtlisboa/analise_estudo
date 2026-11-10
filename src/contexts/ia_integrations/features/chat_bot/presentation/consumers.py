@@ -3,6 +3,9 @@ from uuid import uuid4
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import time
+import asyncio
+from django.conf import settings
+from ..application import history as history_store
 import json
 import logging
 from channels.db import database_sync_to_async
@@ -24,18 +27,71 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
     service_factory = staticmethod(build_chat_bot_service)
 
     async def connect(self) -> None:
+        self.task = None
         user = self.scope.get("user")
         if user is None or not user.is_authenticated or not user.is_active or getattr(user, "must_change_password", False):
             await self.close(code=4401)
             return
 
-        self.history = []
+        self.task = None
         self.pending = None
-        self.conversation_id = None
+        self.conversation_id, rows = await database_sync_to_async(history_store.load)(user.pk)
+        self.history = [{'role': r['role'], 'content': r['content']} for r in rows[-8:]]
         await self.accept()
-        await self.send_json({"type": "chat.ready"})
+        await self.send_json({"type": "chat.ready", "conversation_id": self.conversation_id,
+                              "messages": rows, "timeout_seconds": settings.IA_CHAT_TIMEOUT_SECONDS})
+
+    async def disconnect(self, code):
+        if self.task and not self.task.done():
+            self.task.cancel()
+            try:
+                await self.task
+            except asyncio.CancelledError:
+                pass
 
     async def receive_json(self, content: Any, **kwargs: Any) -> None:
+        if isinstance(content, dict) and content.get('type') == 'chat.clear':
+            if self.task and not self.task.done():
+                self.task.cancel()
+                try:
+                    await self.task
+                except asyncio.CancelledError:
+                    pass
+            self.pending = None
+            self.history = []
+            self.conversation_id = await database_sync_to_async(history_store.clear)(self.scope['user'].pk)
+            await self.send_json({'type': 'chat.cleared', 'conversation_id': self.conversation_id})
+            return
+        if isinstance(content, dict) and content.get('type') == 'chat.history':
+            before = content.get('before')
+            if type(before) is int and before > 0:
+                rows = await database_sync_to_async(history_store.page)(self.scope['user'].pk, self.conversation_id, before)
+                await self.send_json({'type': 'chat.history', 'conversation_id': self.conversation_id, 'messages': rows})
+            return
+        if self.task and not self.task.done():
+            await self._send_error('busy', 'Uma resposta está em andamento. Aguarde ou limpe a conversa.', self.conversation_id)
+            return
+        if isinstance(content, dict) and content.get('type') == 'chat.message':
+            self.task = asyncio.create_task(self._respond(content))
+            return
+        if isinstance(content, dict) and content.get('type') == 'chat.confirm':
+            await self.confirm(content)
+            return
+        await self._send_error('invalid_event', 'Evento de chat inválido.')
+
+    async def _respond(self, content):
+        try:
+            async with asyncio.timeout(settings.IA_CHAT_TIMEOUT_SECONDS):
+                await self._message(content)
+        except TimeoutError:
+            await self._send_error('timeout', 'O modelo demorou além do limite. Tente uma solicitação menor ou verifique se o modelo terminou de baixar.', self.conversation_id)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logging.getLogger(__name__).exception('Chat request failed')
+            await self._send_error('agent_unavailable', 'Não foi possível concluir a resposta. Tente novamente.', self.conversation_id)
+
+    async def _message(self, content: Any) -> None:
         if isinstance(content, dict) and content.get("type") == "chat.confirm":
             await self.confirm(content)
             return
@@ -50,18 +106,17 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             await self._send_error("invalid_message", "O campo 'message' deve ser texto.")
             return
 
-        conversation_id = content.get("conversation_id") or str(uuid4())
-        if not isinstance(conversation_id, str) or len(conversation_id) > 128:
-            await self._send_error(
-                "invalid_conversation_id",
-                "O campo 'conversation_id' deve ser texto.",
-            )
+        conversation_id = self.conversation_id
+        if content.get('conversation_id') not in (None, conversation_id):
+            await self._send_error('stale_conversation', 'A conversa mudou. Recarregue o chat.', content.get('conversation_id'))
             return
-
-        if conversation_id != self.conversation_id:
-            self.history = []
-            self.pending = None
-            self.conversation_id = conversation_id
+        message = message.strip()
+        if not message or len(message) > ChatBotService.MAX_MESSAGE_LENGTH:
+            await self._send_error('invalid_message', 'Escreva uma mensagem de até 8000 caracteres.', conversation_id)
+            return
+        if not await database_sync_to_async(history_store.append)(self.scope['user'].pk, conversation_id, 'user', message):
+            await self._send_error('stale_conversation', 'A conversa foi limpa em outra aba. Recarregue o chat.', conversation_id)
+            return
         # A new request invalidates an older unaccepted proposal.
         self.pending = None
         user = self.scope["user"]
@@ -90,6 +145,9 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             await self._send_error("agent_unavailable", "Não foi possível concluir a consulta. Tente novamente.", conversation_id)
             return
 
+        if not await database_sync_to_async(history_store.append)(user.pk, conversation_id, 'assistant', response.message, response.metadata):
+            await self._send_error('stale_conversation', 'A conversa foi limpa em outra aba. Recarregue o chat.', conversation_id)
+            return
         self.history.extend([{"role": "user", "content": message[:8000]},
                              {"role": "assistant", "content": json.dumps({"message": response.message, "proposal": response.metadata.get("proposal")}, ensure_ascii=False)[:16000]}])
         self.history = self.history[-8:]
@@ -123,12 +181,19 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             logging.getLogger(__name__).exception("Assistant action failed")
             await self._send_error('action_failed', 'Não foi possível salvar a proposta. Nenhuma alteração parcial foi mantida.', pending[3])
             return
+        await database_sync_to_async(history_store.append)(self.scope['user'].pk, pending[3], 'assistant', result['message'], {'url': result['url']})
         self.history.append({'role': 'assistant', 'content': result['message']})
         await self.send_json({'type': 'chat.response', 'conversation_id': pending[3], 'message': result['message'], 'metadata': {'url': result['url']}})
 
     def _execute(self, proposal):
         user = get_user_model().objects.get(pk=self.scope['user'].pk, is_active=True)
-        return execute_proposal(user, proposal)
+        from django.db import transaction
+        from contexts.ia_integrations.models import Conversation
+        with transaction.atomic():
+            conversation = Conversation.objects.select_for_update().get(user=user)
+            if str(conversation.generation) != self.conversation_id:
+                raise ValidationError('A conversa foi limpa. Solicite uma nova proposta.')
+            return execute_proposal(user, proposal)
 
     async def _send_error(
         self, code: str, message: str, conversation_id: str | None = None

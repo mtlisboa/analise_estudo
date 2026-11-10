@@ -30,6 +30,7 @@ services:
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-nao-responda@analise-estudo.test}"
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:0.5b}"
+      IA_CHAT_TIMEOUT_SECONDS: "${IA_CHAT_TIMEOUT_SECONDS:-120}"
       OLLAMA_TIMEOUT_SECONDS: "${OLLAMA_TIMEOUT_SECONDS:-180}"
       IA_MCP_SERVER_URL: "${IA_MCP_SERVER_URL:-}"
       IA_MCP_CHAT_TOOL: "${IA_MCP_CHAT_TOOL:-answer_from_documentation}"
@@ -87,7 +88,7 @@ services:
       ollama:
         condition: service_healthy
     restart: on-failure:3
-  
+
 
   redis:
     image: redis:7-alpine

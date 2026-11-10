@@ -15,9 +15,38 @@
     var initialMessage = messages.innerHTML;
     var socket;
     var waiting = false;
-    var conversationId = window.crypto && window.crypto.randomUUID
-        ? window.crypto.randomUUID()
-        : String(Date.now());
+    var conversationId = null;
+    var responseTimer;
+    var oldestId = null;
+    var olderButton = document.createElement('button');
+    olderButton.type = 'button';
+    olderButton.textContent = 'Carregar mensagens anteriores';
+    olderButton.hidden = true;
+    messages.parentNode.insertBefore(olderButton, messages);
+    olderButton.addEventListener('click', function () {
+        if (socket && socket.readyState === WebSocket.OPEN && oldestId) {
+            socket.send(JSON.stringify({type: 'chat.history', before: oldestId}));
+        }
+    });
+    var timeoutMs = 130000;
+    var reconnect = document.createElement('button');
+    reconnect.type = 'button';
+    reconnect.textContent = 'Reconectar';
+    reconnect.hidden = true;
+    status.appendChild(reconnect);
+    reconnect.addEventListener('click', connect);
+
+    function startWaiting(limit) {
+        window.clearTimeout(responseTimer);
+        waiting = true;
+        thinking.hidden = false;
+        sendButton.disabled = true;
+        responseTimer = window.setTimeout(function () {
+            finishWaiting();
+            addMessage('assistant', 'A conexão não trouxe uma resposta no prazo. Reconecte para recuperar o histórico e tentar novamente.');
+            if (socket) socket.close();
+        }, limit || timeoutMs);
+    }
 
     function setStatus(state, label) {
         status.dataset.state = state;
@@ -120,7 +149,7 @@
 
             });
         }
-        if (metadata.proposal && metadata.confirmation_token) {
+        if (metadata.proposal) {
             var p = metadata.proposal;
             var preview = element(parent, 'section');
             preview.className = 'chat-proposal';
@@ -141,13 +170,15 @@
             element(preview, 'small', 'Não será publicada ou aplicada aos alunos. Proposta válida por 10 minutos nesta conexão.');
             var save = element(preview, 'button', 'Salvar no aplicativo');
             save.type = 'button';
+            if (!metadata.confirmation_token) {
+                save.disabled = true;
+                save.textContent = 'Proposta anterior — solicite uma nova para salvar';
+            }
             save.dataset.chatConfirm = 'true';
             save.addEventListener('click', function () {
                 if (waiting || !socket || socket.readyState !== WebSocket.OPEN) return;
                 save.disabled = true;
-                waiting = true;
-                thinking.hidden = false;
-                sendButton.disabled = true;
+                startWaiting();
                 socket.send(JSON.stringify({type: 'chat.confirm', token: metadata.confirmation_token, conversation_id: conversationId}));
             });
         }
@@ -155,6 +186,7 @@
     }
 
     function finishWaiting() {
+        window.clearTimeout(responseTimer);
         waiting = false;
         thinking.hidden = true;
         setStatus(socket && socket.readyState === WebSocket.OPEN ? 'online' : 'offline',
@@ -163,6 +195,8 @@
     }
 
     function connect() {
+        if (socket && socket.readyState === WebSocket.OPEN) return;
+        reconnect.hidden = true;
         var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         setStatus('connecting', 'Conectando');
         socket = new WebSocket(protocol + '//' + window.location.host + root.dataset.websocketPath);
@@ -177,18 +211,56 @@
                 return;
             }
 
+            if (payload.type === 'chat.ready') {
+                conversationId = payload.conversation_id;
+                timeoutMs = (Number(payload.timeout_seconds) || 120) * 1000 + 10000;
+                messages.innerHTML = initialMessage;
+                (payload.messages || []).forEach(function (row) {
+                    var copy = addMessage(row.role, row.content);
+                    if (row.role === 'assistant') {
+                        try { renderMetadata(copy, row.metadata || {}); } catch (error) { /* Text remains readable. */ }
+                    }
+                });
+                oldestId = (payload.messages || []).length ? payload.messages[0].id : null;
+                olderButton.hidden = (payload.messages || []).length < 200;
+                finishWaiting();
+            } else if (payload.type === 'chat.history') {
+                var anchor = messages.firstChild;
+                var previousHeight = messages.scrollHeight;
+                (payload.messages || []).forEach(function (row) {
+                    var copy = addMessage(row.role, row.content);
+                    try { if (row.role === 'assistant') renderMetadata(copy, row.metadata || {}); } catch (error) {}
+                    messages.insertBefore(copy.parentNode, anchor);
+                });
+                if ((payload.messages || []).length) oldestId = payload.messages[0].id;
+                olderButton.hidden = (payload.messages || []).length < 200;
+                messages.scrollTop = messages.scrollHeight - previousHeight;
+                return;
+            } else if (payload.type === 'chat.cleared') {
+                conversationId = payload.conversation_id;
+                olderButton.hidden = true;
+                oldestId = null;
+                messages.innerHTML = initialMessage;
+                finishWaiting();
+                return;
+            }
             if (payload.conversation_id && payload.conversation_id !== conversationId) return;
 
             if (payload.type === 'chat.ready') {
                 setStatus('online', 'Online');
-                if (diagnosticPrompt && !diagnosticStarted) {
+                if (diagnosticPrompt && !diagnosticStarted && !(payload.messages || []).length) {
                     diagnosticStarted = true;
                     sendMessage(diagnosticPrompt);
                 }
             } else if (payload.type === 'chat.response') {
                 var copy = addMessage('assistant', payload.message);
-                renderMetadata(copy, payload.metadata || {});
-                finishWaiting();
+                try {
+                    renderMetadata(copy, payload.metadata || {});
+                } catch (error) {
+                    element(copy, 'small', 'Não foi possível exibir os detalhes desta resposta.');
+                } finally {
+                    finishWaiting();
+                }
             } else if (payload.type === 'chat.error') {
                 addMessage('assistant', payload.message || 'Não consegui responder agora. Tente novamente.');
                 finishWaiting();
@@ -198,10 +270,14 @@
         socket.addEventListener('close', function () {
             finishWaiting();
             setStatus('offline', 'Desconectado');
+            reconnect.hidden = false;
         });
 
         socket.addEventListener('error', function () {
+            finishWaiting();
+            reconnect.hidden = false;
             setStatus('offline', 'Erro na conexão');
+            socket.close();
         });
     }
 
@@ -218,9 +294,7 @@
         }));
         input.value = '';
         input.style.height = '';
-        waiting = true;
-        thinking.hidden = false;
-        sendButton.disabled = true;
+        startWaiting();
         scrollToLatest();
     }
 
@@ -251,12 +325,14 @@
     });
 
     clearButton.addEventListener('click', function () {
-        if (waiting) return;
-        messages.innerHTML = initialMessage;
-        conversationId = window.crypto && window.crypto.randomUUID
-            ? window.crypto.randomUUID()
-            : String(Date.now());
-        finishWaiting();
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            addMessage('assistant', 'Reconecte antes de limpar o histórico salvo.');
+            return;
+        }
+        if (!window.confirm('Apagar o histórico desta conversa? Questões e atividades já salvas serão mantidas.')) return;
+        root.querySelectorAll('[data-chat-confirm]').forEach(function (button) { button.disabled = true; });
+        socket.send(JSON.stringify({type: 'chat.clear'}));
+        startWaiting(10000);
     });
 
     connect();

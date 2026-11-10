@@ -129,8 +129,15 @@ configure `OLLAMA_MODEL=qwen2.5:3b` (maior uso de memória e tempo em CPU), recr
   continuam no fluxo normal, após revisão.
 - Edições por IA preservam a questão original e cópias já aplicadas. Uma mudança
   na questão original entre prévia e confirmação invalida a proposta.
-- A conversa mantém até oito mensagens recentes em memória da conexão, com limite
-  de tamanho. Recarregar a página inicia outra conversa; não há histórico permanente.
+- O histórico é persistido no banco por usuário e recuperado ao reabrir o chat,
+  em páginas de 200 mensagens. O botão de mensagens anteriores recupera o restante.
+  O modelo recebe até oito mensagens recentes, com limite de tamanho.
+- **Limpar conversa** apaga o histórico salvo, cancela uma resposta em andamento e
+  invalida propostas anteriores; questões e atividades já salvas permanecem.
+- `IA_CHAT_TIMEOUT_SECONDS` limita toda a resposta a 120 segundos por padrão,
+  incluindo as consultas adicionais. O navegador também encerra a espera se a
+  conexão ficar sem resposta, e oferece **Reconectar**. A migração `ia_integrations/0001`
+  cria as tabelas do histórico; o entrypoint Docker aplica migrations automaticamente.
 
 O WebSocket autenticado é `/ws/ia-integrations/chat-bot/`.
 Envie `{"type":"chat.message","message":"...","conversation_id":"..."}`.

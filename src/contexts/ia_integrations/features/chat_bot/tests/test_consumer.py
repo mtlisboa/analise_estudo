@@ -38,20 +38,21 @@ class ChatBotConsumerTests(TransactionTestCase):
         ):
             connected, _ = await communicator.connect()
             self.assertTrue(connected)
-            self.assertEqual(await communicator.receive_json_from(), {"type": "chat.ready"})
+            ready = await communicator.receive_json_from()
+            self.assertEqual(ready["type"], "chat.ready")
 
             await communicator.send_json_to(
                 {
                     "type": "chat.message",
                     "message": "Como melhorar meus estudos?",
-                    "conversation_id": "thread-1",
+                    "conversation_id": ready["conversation_id"],
                 }
             )
             response = await communicator.receive_json_from()
 
             self.assertEqual(response["type"], "chat.response")
             self.assertEqual(response["message"], "Resposta MCP")
-            self.assertEqual(response["conversation_id"], "thread-1")
+            self.assertEqual(response["conversation_id"], ready["conversation_id"])
             await communicator.disconnect()
 
     async def test_rejects_anonymous_connection(self) -> None:
@@ -86,11 +87,12 @@ class ConfirmationTests(TransactionTestCase):
         socket.scope['user'] = user
         ProposalService.calls = []
         with patch('contexts.ia_integrations.features.chat_bot.presentation.consumers.ChatBotConsumer.service_factory', return_value=ProposalService()):
-            await socket.connect(); await socket.receive_json_from()
-            await socket.send_json_to({'type':'chat.message', 'message':'Crie a questão', 'conversation_id':'a'})
+            await socket.connect(); ready = await socket.receive_json_from()
+            cid = ready['conversation_id']
+            await socket.send_json_to({'type':'chat.message', 'message':'Crie a questão', 'conversation_id':cid})
             proposal = await socket.receive_json_from()
             self.assertEqual(await QuestionBankItem.objects.acount(), 0)
-            event = {'type':'chat.confirm', 'token':proposal['metadata']['confirmation_token'], 'conversation_id':'a'}
+            event = {'type':'chat.confirm', 'token':proposal['metadata']['confirmation_token'], 'conversation_id':cid}
             await socket.send_json_to(dict(event, token='forged'))
             self.assertEqual((await socket.receive_json_from())['code'], 'invalid_proposal')
             await socket.send_json_to(event)
@@ -101,10 +103,12 @@ class ConfirmationTests(TransactionTestCase):
             await socket.send_json_to(event)
             self.assertEqual((await socket.receive_json_from())['code'], 'invalid_proposal')
             self.assertEqual(await QuestionBankItem.objects.acount(), 1)
-            await socket.send_json_to({'type':'chat.message', 'message':'Explique', 'conversation_id':'a'})
+            await socket.send_json_to({'type':'chat.message', 'message':'Explique', 'conversation_id':cid})
             await socket.receive_json_from()
             self.assertTrue(ProposalService.calls[-1].history)
-            await socket.send_json_to({'type':'chat.message', 'message':'Nova conversa', 'conversation_id':'b'})
+            await socket.send_json_to({'type':'chat.clear'})
+            cleared = await socket.receive_json_from()
+            await socket.send_json_to({'type':'chat.message', 'message':'Nova conversa', 'conversation_id':cleared['conversation_id']})
             await socket.receive_json_from()
             self.assertFalse(ProposalService.calls[-1].history)
             await socket.disconnect()
