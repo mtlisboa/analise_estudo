@@ -183,3 +183,26 @@ O manual prioriza correspondência no título, normaliza acentos/plurais e remov
 resultados com relevância muito inferior. Fontes vazias e dados contendo apenas
 identificadores não geram blocos de detalhes. Análises são exibidas após a resposta
 final, para não transmitir afirmações ainda não validadas durante o streaming.
+
+## Validação das respostas
+
+`validation.py` é independente de Django, banco e transporte. Rejeita três
+frases/passos longos iguais ou muito semelhantes, sequências de 12 palavras
+repetidas quatro vezes, textos acima de 16.000 caracteres e estruturas excessivas.
+A numeração da lista não disfarça a repetição. Os campos de questões diferentes
+são verificados separadamente para permitir contextos compartilhados legítimos.
+
+No Ollama, cada trecho de resposta é verificado antes de enviá-lo ao chat. Detectar
+um loop fecha a conexão sem esperar o fim da geração. MCP e geração síncrona
+validam o resultado completo; o cliente não controla geração interna do serviço
+remoto. Resultados reprovados não chegam à confirmação nem à gravação.
+
+Para dúvidas operacionais identificadas pelo pedido, o texto não é transmitido
+antes da validação. As instruções devem reproduzir frases completas do manual,
+na ordem documentada. Passos inventados, negações removidas e paráfrases que não
+podem ser verificadas são substituídos pela consulta direta ao manual, com fonte
+explícita e link cadastrado. A geração rejeitada inteira é descartada; não se
+aproveita uma lista parcialmente inventada. Sem trecho documental, retorna erro.
+
+Essas verificações são conservadoras e não constituem um detector universal de
+alucinações. Conteúdo pedagógico e interpretações ainda precisam de revisão.

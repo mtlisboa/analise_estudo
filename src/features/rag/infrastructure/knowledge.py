@@ -18,7 +18,8 @@ def documentation(query):
             scored.append((score, title, section))
     scored.sort(key=lambda row: row[0], reverse=True)
     minimum = max(1, scored[0][0] / 2) if scored else 1
-    return [{'source': 'Manual Lumini — ' + title, 'text': section[:900]}
+    links = {'Questionários e atividades': '/avaliacoes/questionarios/novo/', 'Banco de questões': '/avaliacoes/questoes/'}
+    return [{'source': 'Manual Lumini — ' + title, 'text': section[:900], **({'url': links[title]} if title in links else {})}
             for score, title, section in scored[:2] if score >= minimum]
 
 

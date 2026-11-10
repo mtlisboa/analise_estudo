@@ -1,7 +1,8 @@
 import json
 import re
 from .contracts import ChatResponse
-from .exceptions import AgentUnavailable, ProposalRejected
+from .exceptions import AgentUnavailable, ProposalRejected, InvalidGeneration
+from .validation import validate_text, validate_output, validate_grounding, operational_request, operational_answer, valid_history
 from .ports import ModelProvider, RagRepository, KnowledgeSource
 
 COMMON = '''Você é o assistente Lumini. Responda em português. Não invente dados, IDs ou funcionalidades.
@@ -72,7 +73,8 @@ class AssistantGateway:
         remaining = 2400
         recent = []
         relevant = [e for e in request.history if e.get('mode') == request.mode
-                    and not (e.get('role') == 'assistant' and is_placeholder(e.get('content')))]
+                    and not (e.get('role') == 'assistant' and
+                             (is_placeholder(e.get('content')) or not valid_history(e.get('content'))))]
         for entry in reversed(relevant[-6:]):
             if remaining <= 0:
                 break
@@ -82,13 +84,34 @@ class AssistantGateway:
         messages.extend(recent)
         messages.append({'role': 'user', 'content': request.message})
         consulted = []
+        operational = request.mode == 'doubts' and operational_request(request.message)
+
+        async def documentation_reply(reason):
+            if request.on_partial:
+                await request.on_partial('')
+            if not docs:
+                raise InvalidGeneration(reason)
+            text = 'Não foi possível validar a orientação gerada. Consulta direta ao manual do aplicativo:\n\n'
+            text += '\n\n'.join(d['text'] for d in docs)
+            metadata = {'mode': request.mode, 'source': 'documentation',
+                        'sources': [d['source'] for d in docs], 'validation': reason}
+            if docs[0].get('url'):
+                metadata['url'] = docs[0]['url']
+            return ChatResponse(text, request.conversation_id, metadata)
         async def emit_partial(text):
-            if request.on_partial and not is_placeholder(text) and request.mode != 'analysis':
+            validate_text(text)
+            if request.on_partial and not is_placeholder(text) and request.mode != 'analysis' and not operational:
                 await request.on_partial(text)
 
         for turn in range(3):
-            result = await self.provider.acomplete(messages, structured=request.mode != 'doubts', on_partial=emit_partial,
-                user_id=request.user_id, allow_question_tools=request.mode == 'assembly')
+            try:
+                result = await self.provider.acomplete(messages, structured=request.mode != 'doubts', on_partial=emit_partial,
+                    user_id=request.user_id, allow_question_tools=request.mode == 'assembly')
+                validate_output(result)
+            except InvalidGeneration as exc:
+                if operational:
+                    return await documentation_reply(exc.reason)
+                raise
             if isinstance(result, str):
                 raw = result.strip()
                 if raw.startswith('{'):
@@ -112,8 +135,15 @@ class AssistantGateway:
                 continue
             message = result.get('message')
             if isinstance(message, str) and not is_placeholder(message):
+                if request.mode == 'doubts' and (operational or operational_answer(message)):
+                    try:
+                        validate_grounding(message, docs)
+                    except InvalidGeneration as exc:
+                        return await documentation_reply(exc.reason)
                 break
             if turn == 2 or any(m.get('content') == REPAIR for m in messages):
+                if operational:
+                    return await documentation_reply('placeholder')
                 raise AgentUnavailable('O modelo retornou texto vazio ou genérico. Reformule o pedido ou configure um modelo mais capaz.')
             # One repair attempt within the existing request deadline; never save placeholder output.
             if request.on_partial:

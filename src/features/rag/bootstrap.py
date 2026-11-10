@@ -2,6 +2,7 @@
 from asgiref.sync import async_to_sync
 from django.conf import settings
 from .exceptions import AgentUnavailable
+from .validation import validate_output
 
 
 async def token_for(user_id):
@@ -18,15 +19,21 @@ def provider_name():
 async def acomplete(messages, *, structured=False, on_partial=None, user_id=None, allow_question_tools=True):
     if provider_name() == 'ollama':
         from .infrastructure.providers.ollama import acomplete as invoke
-        return await invoke(messages, structured=structured, on_partial=on_partial)
+        result = await invoke(messages, structured=structured, on_partial=on_partial)
+        validate_output(result)
+        return result
     from .infrastructure.providers.mcp import acomplete as invoke
-    return await invoke(messages, structured=structured, on_partial=on_partial, user_id=user_id, allow_question_tools=allow_question_tools, capability_provider=token_for)
+    result = await invoke(messages, structured=structured, on_partial=on_partial, user_id=user_id, allow_question_tools=allow_question_tools, capability_provider=token_for)
+    validate_output(result)
+    return result
 
 
 def complete(messages, *, structured=False, user_id=None):
     if provider_name() == 'ollama':
         from .infrastructure.providers.ollama import complete as invoke
-        return invoke(messages, structured=structured)
+        result = invoke(messages, structured=structured)
+        validate_output(result)
+        return result
     return async_to_sync(acomplete)(messages, structured=structured, user_id=user_id)
 
 

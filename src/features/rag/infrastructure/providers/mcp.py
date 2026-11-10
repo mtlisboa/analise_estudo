@@ -6,7 +6,8 @@ import httpx
 from django.conf import settings
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
-from ...exceptions import AgentUnavailable
+from ...exceptions import AgentUnavailable, InvalidGeneration
+from ...validation import validate_output
 
 
 async def acomplete(messages, *, structured=False, on_partial=None, user_id=None, allow_question_tools=True, capability_provider=None):
@@ -40,9 +41,12 @@ async def acomplete(messages, *, structured=False, on_partial=None, user_id=None
                 raise ValueError('Invalid result')
             if not value:
                 raise ValueError('Empty result')
+            validate_output(value)
             if on_partial and isinstance(value, dict) and isinstance(value.get('message'), str):
                 await on_partial(value['message'])
             return value
+    except InvalidGeneration:
+        raise
     except asyncio.CancelledError:
         raise
     except Exception as exc:

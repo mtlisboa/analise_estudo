@@ -5,7 +5,14 @@ O assistente auxilia no uso do aplicativo e nos estudos. Os dados são consultad
 No Banco de questões é possível cadastrar, buscar, visualizar e editar questões próprias, gerar uma questão com IA ou solicitar uma edição por IA. Informe disciplina, assunto e instruções com contexto, nível e objetivos. Questões podem ser de múltipla escolha ou discursivas. As alternativas possuem legendas cadastráveis e reutilizáveis: representam hipóteses sobre o erro, nunca um diagnóstico certo do aluno. Alterações no banco não alteram cópias já usadas em avaliações. A edição por IA gera uma nova versão.
 
 ## Questionários e atividades
-Crie um questionário e selecione questões no modal, com filtro opcional por disciplina. É possível montar manualmente, por algoritmo, com IA selecionando questões do banco autorizado ou com questões novas geradas a partir de contexto. Pontuação e ordem são ajustadas no editor. Revise enunciados, gabaritos e pontuação antes de aplicar. O assistente salva rascunhos privados, não publica nem aplica avaliações automaticamente.
+Para criar uma atividade no aplicativo:
+1. Abra Questionários e clique em “Criar questionário”.
+2. Preencha os campos do questionário, incluindo título, disciplina, assunto, descrição e instruções.
+3. Clique em “Selecionar questões”, escolha as questões disponíveis e use “Concluir seleção”. O filtro por disciplina é opcional.
+4. Use “Editar pontuação e ordem” para revisar os pontos e a sequência.
+5. Clique em “Salvar questionário”.
+6. Depois de salvar e revisar, use “Aplicar avaliação” para configurar a aplicação às turmas autorizadas.
+Salvar um questionário não publica uma atividade automaticamente. Para preparar questões com o assistente, selecione o modo Montagem e confirme a proposta antes de gravar.
 
 ## Aplicação virtual e impressa
 Após revisar o questionário, selecione as turmas autorizadas e configure a aplicação e o prazo. No virtual, alunos recebem a avaliação na disciplina e enviam respostas. Na aplicação física, gere provas e gabaritos por aluno e use o fluxo de correção. Avaliações impressas podem manter ordem fixa ou usar versões embaralhadas. Confira versão e gabarito antes da correção. Questões abertas exigem revisão da pontuação.

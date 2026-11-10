@@ -52,20 +52,20 @@ class ModeTests(TransactionTestCase):
     async def test_placeholder_is_repaired_once_without_reusing_example(self):
         user = await get_user_model().objects.acreate_user(username='repair')
         with patch('features.rag.bootstrap.acomplete', new_callable=AsyncMock,
-                   side_effect=['resposta', 'Abra Questionários, crie um questionário e selecione as questões.']) as provider:
-            result = await AssistantGateway().ask(ChatRequest('como criar uma atividade', 'c', str(user.pk)))
+                   side_effect=['resposta', 'Uma fração representa uma parte de um todo.']) as provider:
+            result = await AssistantGateway().ask(ChatRequest('Explique frações', 'c', str(user.pk)))
         self.assertEqual(provider.await_count, 2)
         self.assertFalse(provider.call_args.kwargs['structured'])
-        self.assertIn('selecione as questões', result.message)
+        self.assertIn('parte de um todo', result.message)
         self.assertNotIn('data', result.metadata)
-        self.assertEqual(result.metadata['sources'], ['Manual Lumini — Questionários e atividades'])
+        self.assertEqual(result.metadata['sources'], [])
 
     async def test_repeated_placeholder_is_rejected(self):
         user = await get_user_model().objects.acreate_user(username='bad-answer')
         with patch('features.rag.bootstrap.acomplete', new_callable=AsyncMock,
                    return_value='resposta') as provider:
             with self.assertRaises(AgentUnavailable):
-                await AssistantGateway().ask(ChatRequest('Como criar uma atividade?', 'c', str(user.pk)))
+                await AssistantGateway().ask(ChatRequest('Explique frações', 'c', str(user.pk)))
         self.assertEqual(provider.await_count, 2)
 
     async def test_analysis_uses_authorized_data_and_separate_history(self):

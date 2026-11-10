@@ -108,3 +108,23 @@ class HistoryTests(TransactionTestCase):
         socket, ready = await self.connection(user)
         self.assertEqual([m['metadata']['mode'] for m in ready['messages']], ['assembly', 'assembly'])
         await socket.disconnect()
+
+    async def test_repetitive_output_is_not_persisted_as_an_answer(self):
+        from unittest.mock import AsyncMock
+        from features.rag.tests.test_validation import LOOP
+        user = await get_user_model().objects.acreate_user(username='validated-history')
+        socket, ready = await self.connection(user)
+        with patch('features.rag.bootstrap.acomplete', new_callable=AsyncMock, return_value=LOOP):
+            await socket.send_json_to({'type':'chat.message', 'message':'Como criar uma atividade?', 'mode':'doubts'})
+            response = await socket.receive_json_from()
+            if response['type'] == 'chat.delta':
+                response = await socket.receive_json_from()
+            self.assertEqual(response['type'], 'chat.response')
+            self.assertEqual(response['metadata']['source'], 'documentation')
+            await socket.send_json_to({'type':'chat.message', 'message':'Crie uma questão', 'mode':'assembly'})
+            self.assertEqual((await socket.receive_json_from())['type'], 'chat.error')
+        answers = [row async for row in ChatMessage.objects.filter(role='assistant')]
+        self.assertEqual(len(answers), 1)
+        self.assertNotIn('Adicionar a atividade', answers[0].content)
+        self.assertIn('Consulta direta ao manual', answers[0].content)
+        await socket.disconnect()

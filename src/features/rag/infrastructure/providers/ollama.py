@@ -10,6 +10,7 @@ import urllib.request
 
 from django.conf import settings
 from ...exceptions import AgentUnavailable
+from ...validation import validate_text, validate_output
 
 
 def complete(messages, *, structured=False):
@@ -33,7 +34,9 @@ def complete(messages, *, structured=False):
             result = json.loads(text)
             if not isinstance(result, dict):
                 raise ValueError('Expected object')
+            validate_output(result)
             return result
+        validate_text(text)
         return text.strip()
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise AgentUnavailable('Não foi possível obter uma resposta válida do modelo. Verifique o Ollama e o download do modelo.') from exc
@@ -80,6 +83,7 @@ async def acomplete(messages, *, structured=False, on_partial=None):
                         if len(text) > 131072:
                             raise ValueError('Oversized response')
                         partial = partial_message(text) if structured else text
+                        validate_text(partial)
                         if on_partial and partial != last_sent and time.monotonic() - sent_at >= .15:
                             await on_partial(partial)
                             last_sent, sent_at = partial, time.monotonic()
@@ -91,6 +95,7 @@ async def acomplete(messages, *, structured=False, on_partial=None):
         result = json.loads(text) if structured else text
         if structured and not isinstance(result, dict):
             raise ValueError('Expected object')
+        validate_output(result)
         logging.getLogger(__name__).info('Ollama elapsed=%.2fs prompt_tokens=%s output_tokens=%s load_ns=%s',
             time.monotonic()-started, done.get('prompt_eval_count'), done.get('eval_count'), done.get('load_duration'))
         return result
