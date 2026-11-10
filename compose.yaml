@@ -73,17 +73,7 @@ services:
       start_period: 15s
     restart: unless-stopped
 
-  ollama-init:
-    image: ollama/ollama:latest
-    environment:
-      OLLAMA_HOST: http://ollama:11434
-      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:0.5b}"
-    entrypoint: ["/bin/sh", "-c"]
-    command: ['ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1 || exec ollama pull "$$OLLAMA_MODEL"']
-    depends_on:
-      ollama:
-        condition: service_healthy
-    restart: on-failure:3
+  
 
   redis:
     image: redis:7-alpine

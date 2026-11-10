@@ -136,7 +136,13 @@ REDIS_URL = os.getenv("REDIS_URL", "").strip()
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [REDIS_URL]},
+        # Channels uses blocking reads while waiting for websocket events.
+        # redis-py 8 defaults socket_timeout to 5s, which interrupts idle reads.
+        "CONFIG": {"hosts": [{
+            "address": REDIS_URL,
+            "socket_timeout": None,
+            "socket_connect_timeout": 5,
+        }]},
     } if REDIS_URL else {"BACKEND": "channels.layers.InMemoryChannelLayer"}
 }
 
