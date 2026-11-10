@@ -28,6 +28,9 @@ services:
       EMAIL_USE_TLS: "False"
       EMAIL_USE_SSL: "False"
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-nao-responda@analise-estudo.test}"
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:0.5b}"
+      OLLAMA_TIMEOUT_SECONDS: "${OLLAMA_TIMEOUT_SECONDS:-180}"
       IA_MCP_SERVER_URL: "${IA_MCP_SERVER_URL:-}"
       IA_MCP_CHAT_TOOL: "${IA_MCP_CHAT_TOOL:-answer_from_documentation}"
       IA_MCP_TIMEOUT_SECONDS: "${IA_MCP_TIMEOUT_SECONDS:-30}"
@@ -58,7 +61,7 @@ services:
     stop_grace_period: 10s
 
   ollama:
-    image: ollama/ollama:latest
+    image: "${OLLAMA_IMAGE:-alpine/ollama@sha256:1792cb2cc1b468826119b176a9679cbaab685ee9bd8296633cdcd203ee6d5528}"
     environment:
       OLLAMA_HOST: "0.0.0.0:11434"
     ports:
@@ -73,6 +76,17 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  ollama-init:
+    image: "${OLLAMA_IMAGE:-alpine/ollama@sha256:1792cb2cc1b468826119b176a9679cbaab685ee9bd8296633cdcd203ee6d5528}"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:0.5b}"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ['ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1 || exec ollama pull "$$OLLAMA_MODEL"']
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: on-failure:3
   
 
   redis:

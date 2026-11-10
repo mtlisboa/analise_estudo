@@ -7,7 +7,7 @@ Base de uma aplicação para análise da capacidade e do desempenho de estudante
 - Python 3.12+
 - Django 5.2
 - Django Channels (WebSocket/ASGI)
-- MCP Python SDK v2
+- Ollama (inferência local por HTTP)
 - SQLite
 - Autenticação por sessão
 
@@ -93,43 +93,52 @@ ou mais tipos de questão (memorização, compreensão, dedução, aplicação, 
 e pensamento crítico). A técnica avaliativa pode ser escolhida manualmente; se
 ficar em branco, o sistema aplica a técnica padrão do primeiro tipo selecionado.
 
-## Chatbot com agente MCP
+## Assistente IA local
 
-O bounded context `ia-integrations` fica em `src/contexts/ia_integrations` e
-contém a feature `chat_bot`. O navegador se comunica com a aplicação por
-WebSocket, enquanto a aplicação consulta o agente externo pelo transporte MCP
-Streamable HTTP. A obtenção e indexação da documentação pertencem ao agente MCP
-e podem ser implementadas depois sem alterar o contrato WebSocket.
+O chat, a geração/edição de questões e a montagem por IA usam a API `/api/chat`
+do Ollama. Não há respostas simuladas nem dependência de servidor MCP. Se o
+modelo estiver indisponível ou retornar conteúdo inválido, a interface informa
+falha sem inventar uma resposta ou salvar dados parciais.
 
-Configure a conexão no `.env`:
+No Compose, `web` acessa `http://ollama:11434`. Fora do Docker, configure:
 
 ```dotenv
-IA_MCP_SERVER_URL=http://localhost:9000/mcp
-IA_MCP_CHAT_TOOL=answer_from_documentation
-IA_MCP_TIMEOUT_SECONDS=30
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:0.5b
+OLLAMA_TIMEOUT_SECONDS=180
 ```
 
-O socket exige uma sessão Django autenticada e está disponível em:
+O modelo padrão é leve e pode falhar em instruções complexas. Para melhor qualidade,
+configure `OLLAMA_MODEL=qwen2.5:3b` (maior uso de memória e tempo em CPU), recrie
+`web` e `ollama-init` e aguarde o download. Revise sempre o conteúdo pedagógico.
 
-```text
-ws://localhost:8000/ws/ia-integrations/chat-bot/
-```
+### Recursos e limites
 
-Contrato de entrada:
+- Consulta trechos relevantes do manual versionado em
+  `src/contexts/ia_integrations/knowledge/manual.md`, incluído na imagem Docker.
+- Interpreta autoavaliações e resultados revisados do próprio usuário; gestores
+  e professores consultam os mesmos indicadores e escopos do módulo institucional.
+- Mostra fontes e tabelas dos dados consultados. Catálogos e detalhes de alunos
+  são limitados a 30 registros por consulta; o modelo pode buscar questões e
+  aplicar filtros de análise validados no servidor (até três consultas por mensagem).
+- Cria exercícios apenas na conversa ou propõe salvar questões, gerar uma nova
+  versão de questão própria e montar um questionário com questões novas/existentes.
+- O botão **Salvar no aplicativo** aceita a proposta exibida. Cada proposta vale
+  dez minutos na conexão atual e só pode ser aceita uma vez. Uma nova mensagem
+  invalida a anterior. Questões e atividades são privadas; aplicação/publicação
+  continuam no fluxo normal, após revisão.
+- Edições por IA preservam a questão original e cópias já aplicadas. Uma mudança
+  na questão original entre prévia e confirmação invalida a proposta.
+- A conversa mantém até oito mensagens recentes em memória da conexão, com limite
+  de tamanho. Recarregar a página inicia outra conversa; não há histórico permanente.
 
-```json
-{
-  "type": "chat.message",
-  "message": "Como posso melhorar meu desempenho?",
-  "conversation_id": "identificador-opcional"
-}
-```
-
-Quando `conversation_id` não é informado, o servidor cria um UUID. Uma resposta
-bem-sucedida usa `chat.response`; falhas de validação ou indisponibilidade do
-agente usam `chat.error`. O tool MCP configurado deve aceitar `message`,
-`conversation_id` e `user_id`, retornando texto ou um objeto com uma das chaves
-`message`, `answer` ou `result`.
+O WebSocket autenticado é `/ws/ia-integrations/chat-bot/`.
+Envie `{"type":"chat.message","message":"...","conversation_id":"..."}`.
+Respostas usam `chat.response`, com texto e metadados de fontes/dados/prévia;
+falhas usam `chat.error`. Para aceitar uma proposta, o cliente envia
+`{"type":"chat.confirm","token":"token recebido","conversation_id":"..."}`.
+O servidor identifica o usuário pela sessão, revalida permissões e executa ações
+em transação. O modelo não executa SQL, código, URLs arbitrárias ou publicação.
 
 ## Imagem Docker
 
@@ -193,10 +202,18 @@ curl http://localhost:11434/api/generate -H 'Content-Type: application/json' \
 O healthcheck confirma que o servidor responde; a disponibilidade do modelo é
 confirmada pelo término do `ollama-init`. Se o download falhar após as tentativas,
 execute `docker compose run --rm ollama-init` para tentar novamente.
-O serviço web continua iniciando independentemente do download. Esta configuração
-fornece a API local; a aplicação ainda não a utiliza automaticamente.
-A imagem oficial usa a tag `latest`; para ambientes reproduzíveis, fixe uma
-versão ou digest validado. Referências: [Docker do Ollama](https://docs.ollama.com/docker)
+O serviço web continua iniciando independentemente do download. O chat e a autoria de questões usam esta API automaticamente pelo serviço web.
+O servidor e o inicializador compartilham a imagem comunitária `alpine/ollama`,
+fixada por digest e preparada somente para CPU. Ela remove os componentes de GPU
+da distribuição oficial; não habilite aceleração CUDA/ROCm com esta imagem.
+O manifesto consultado em 10/11/2026 informa download comprimido de aproximadamente
+44,2 MB em amd64 e 32,8 MB em arm64. Isso **não inclui os pesos do modelo**,
+armazenados separadamente em `ollama_data`. O modelo padrão continua `qwen2.5:0.5b`.
+Use `OLLAMA_IMAGE` para trocar a distribuição (por exemplo, `ollama/ollama:latest`
+se precisar da imagem oficial com suporte a GPU). A execução local dos containers
+precisa ser validada em uma máquina com Docker.
+Fonte da imagem: [alpine-docker/ollama](https://github.com/alpine-docker/ollama).
+Referências: [Docker do Ollama](https://docs.ollama.com/docker)
 e [modelo Qwen2.5](https://ollama.com/library/qwen2.5).
 
 ### E-mail local com Mailpit
@@ -274,7 +291,7 @@ src/
 ├── contexts/
 │   └── ia_integrations/    # contexto ia-integrations
 │       └── features/
-│           └── chat_bot/   # WebSocket, aplicação e adaptador MCP
+│           └── chat_bot/   # WebSocket, contexto autorizado e adaptador Ollama
 ├── features/
 │   ├── accounts/           # feature de identidade e acesso
 │   │   ├── migrations/

@@ -8,3 +8,5 @@
 
 {% if question.assessment_method %}<p>Método avaliativo: {{ question.assessment_method }}</p>{% endif %}
 {% if question.metadata_tags %}<p>Metadados: {{ question.metadata_tags|join:"; " }}</p>{% endif %}
+
+{% if question.owner_id == request.user.pk %}<p><a href="{% url 'assessments:bank-question-ai-edit' question.pk %}">Editar com IA</a> · <a href="{% url 'assessments:bank-question-update' question.pk %}">Editar manualmente</a></p>{% endif %}

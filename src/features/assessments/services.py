@@ -1,50 +1,27 @@
 from .bank_access import available_questions
 import json
 from decimal import Decimal
-from uuid import uuid4
 
-from asgiref.sync import async_to_sync
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Max, Q
-
-from contexts.ia_integrations.features.chat_bot.application.contracts import ChatRequest
-from contexts.ia_integrations.features.chat_bot.infrastructure.mcp_agent_gateway import (
-    McpAgentGateway,
-)
 
 from .models import Assessment, Question, QuestionBankItem
 
 
 def request_ai_json(prompt, user_id):
-    gateway = McpAgentGateway(
-        server_url=settings.IA_MCP_SERVER_URL,
-        tool_name=settings.IA_MCP_CHAT_TOOL,
-        timeout_seconds=settings.IA_MCP_TIMEOUT_SECONDS,
-    )
-    response = async_to_sync(gateway.ask)(
-        ChatRequest(
-            message=prompt,
-            conversation_id=str(uuid4()),
-            user_id=str(user_id),
-        )
-    )
-    content = response.message.strip()
-    if content.startswith("```"):
-        content = content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-    try:
-        payload = json.loads(content)
-    except json.JSONDecodeError as exc:
-        raise ValidationError("A IA não retornou dados estruturados válidos.") from exc
-    if not isinstance(payload, dict):
-        raise ValidationError("A IA retornou um formato inesperado.")
-    return payload
+    from contexts.ia_integrations.features.chat_bot.infrastructure.ollama_gateway import complete
+    return complete([
+        {"role": "system", "content": "Você cria material pedagógico em português. Responda somente o objeto JSON solicitado, sem inventar IDs."},
+        {"role": "user", "content": prompt},
+    ], structured=True)
 
 
 def _question_from_payload(owner, subject, topic, payload, *, method, source=None, prompt=""):
     if not isinstance(payload, dict):
         raise ValidationError("A IA retornou uma questão inválida.")
+    from contexts.ia_integrations.features.chat_bot.application.actions import question_payload
+    payload = question_payload(payload)
     item = QuestionBankItem(
         owner=owner,
         subject=subject,
@@ -179,14 +156,12 @@ def assemble_assessment(assessment):
                 'Responda somente JSON como {"question_ids":[1,2]}.',
                 assessment.owner_id,
             )
-            try:
-                ids = [int(item_id) for item_id in payload.get("question_ids", [])]
-            except (TypeError, ValueError) as exc:
-                raise ValidationError("A IA retornou identificadores de questões inválidos.") from exc
+            ids = payload.get("question_ids")
+            allowed = {item['id'] for item in catalog}
+            if not isinstance(ids, list) or len(ids) != count or any(type(i) is not int for i in ids) or len(set(ids)) != len(ids) or not set(ids) <= allowed:
+                raise ValidationError("A IA deve selecionar a quantidade solicitada, sem repetir ou inventar questões.")
             selected_by_id = {item.pk: item for item in candidates.filter(pk__in=ids)}
-            selected = [selected_by_id[item_id] for item_id in ids if item_id in selected_by_id][
-                :count
-            ]
+            selected = [selected_by_id[item_id] for item_id in ids]
         else:
             payload = request_ai_json(
                 f"Crie {count} questões para uma avaliação de {assessment.subject}, assunto "
@@ -197,25 +172,22 @@ def assemble_assessment(assessment):
                 assessment.owner_id,
             )
             question_payloads = payload.get("questions", [])
-            if not isinstance(question_payloads, list):
+            if not isinstance(question_payloads, list) or len(question_payloads) != count:
                 raise ValidationError("A IA não retornou uma lista de questões.")
-            selected = [
-                _question_from_payload(
-                    assessment.owner,
-                    assessment.subject,
-                    assessment.topic,
-                    item,
-                    method=QuestionBankItem.CreationMethod.AI_GENERATED,
-                    prompt=assessment.generation_prompt,
-                )
-                for item in question_payloads[:count]
-            ]
-        if not selected:
-            raise ValidationError("Nenhuma questão compatível foi encontrada ou gerada.")
-        for item in selected:
-            add_bank_item_to_assessment(assessment, item)
-        assessment.assembly_status = Assessment.AssemblyStatus.READY
-        assessment.assembly_notes = f"{len(selected)} questão(ões) adicionada(s)."
+            selected = None
+        with transaction.atomic():
+            if selected is None:
+                selected = [
+                    _question_from_payload(assessment.owner, assessment.subject, assessment.topic, item,
+                        method=QuestionBankItem.CreationMethod.AI_GENERATED, prompt=assessment.generation_prompt)
+                    for item in question_payloads
+                ]
+            if not selected:
+                raise ValidationError("Nenhuma questão compatível foi encontrada ou gerada.")
+            for item in selected:
+                add_bank_item_to_assessment(assessment, item)
+            assessment.assembly_status = Assessment.AssemblyStatus.READY
+            assessment.assembly_notes = f"{len(selected)} questão(ões) adicionada(s)."
     except Exception as exc:
         assessment.assembly_status = Assessment.AssemblyStatus.FAILED
         assessment.assembly_notes = str(exc)
