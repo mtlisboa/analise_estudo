@@ -120,7 +120,7 @@ configure `OLLAMA_MODEL=qwen2.5:3b` (maior uso de memória e tempo em CPU), recr
   e professores consultam os mesmos indicadores e escopos do módulo institucional.
 - Mostra fontes e tabelas dos dados consultados. Catálogos e detalhes de alunos
   são limitados a 30 registros por consulta; o modelo pode buscar questões e
-  aplicar filtros de análise validados no servidor (até três consultas por mensagem).
+  aplicar filtros de análise validados no servidor (até duas consultas por mensagem).
 - Cria exercícios apenas na conversa ou propõe salvar questões, gerar uma nova
   versão de questão própria e montar um questionário com questões novas/existentes.
 - O botão **Salvar no aplicativo** aceita a proposta exibida. Cada proposta vale
@@ -131,10 +131,10 @@ configure `OLLAMA_MODEL=qwen2.5:3b` (maior uso de memória e tempo em CPU), recr
   na questão original entre prévia e confirmação invalida a proposta.
 - O histórico é persistido no banco por usuário e recuperado ao reabrir o chat,
   em páginas de 200 mensagens. O botão de mensagens anteriores recupera o restante.
-  O modelo recebe até oito mensagens recentes, com limite de tamanho.
+  O modelo recebe até seis mensagens recentes, com limite de tamanho.
 - **Limpar conversa** apaga o histórico salvo, cancela uma resposta em andamento e
   invalida propostas anteriores; questões e atividades já salvas permanecem.
-- `IA_CHAT_TIMEOUT_SECONDS` limita toda a resposta a 120 segundos por padrão,
+- `IA_CHAT_TIMEOUT_SECONDS` limita toda a resposta a 240 segundos por padrão,
   incluindo as consultas adicionais. O navegador também encerra a espera se a
   conexão ficar sem resposta, e oferece **Reconectar**. A migração `ia_integrations/0001`
   cria as tabelas do histórico; o entrypoint Docker aplica migrations automaticamente.
@@ -694,3 +694,24 @@ nem envia notificações; **Disponibilizar aos alunos** libera a cópia salva,
 se o prazo ainda estiver aberto. No agendamento, a opção de visibilidade vale
 para o horário agendado. Nas aplicações físicas, os campos exclusivos da
 versão virtual são ocultados e as instruções da aplicação constam no PDF.
+
+### Desempenho do assistente em CPU
+
+O chat não carrega relatórios e questões a cada mensagem: consulta dados apenas
+quando necessário, respeitando as permissões existentes. A documentação usa no
+máximo dois trechos pertinentes de 900 caracteres. O histórico enviado ao modelo
+é limitado a 2.400 caracteres e cada resultado de consulta a 4.000 caracteres,
+com indicação de amostragem. Os dados completos consultados continuam nos detalhes
+da interface. Esses limites são de caracteres, não estimativas exatas de tokens.
+
+A conexão HTTP do chat usa streaming assíncrono: o texto aparece durante a geração,
+mas propostas só ficam disponíveis depois da resposta completa e validada. Limpar,
+desconectar ou atingir o prazo fecha a requisição ao Ollama. Respostas incompletas
+não são persistidas como concluídas. O log registra tempos e contagens de tokens,
+sem registrar o conteúdo da conversa.
+
+`OLLAMA_KEEP_ALIVE=30m` mantém o modelo carregado entre pedidos (consome RAM durante
+esse período). O chat usa contexto de 8.192 tokens e saída máxima de 2.048 tokens.
+O prazo total padrão passa a 240 segundos; se o `.env` já tiver
+`IA_CHAT_TIMEOUT_SECONDS=120`, atualize-o para `240` e recrie `web`.
+Não é necessário apagar volumes nem baixar novamente os modelos.

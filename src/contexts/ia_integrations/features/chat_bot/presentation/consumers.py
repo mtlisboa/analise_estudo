@@ -84,7 +84,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             async with asyncio.timeout(settings.IA_CHAT_TIMEOUT_SECONDS):
                 await self._message(content)
         except TimeoutError:
-            await self._send_error('timeout', 'O modelo demorou além do limite. Tente uma solicitação menor ou verifique se o modelo terminou de baixar.', self.conversation_id)
+            await self._send_error('timeout', 'A geração excedeu o prazo total e a conexão com o modelo foi encerrada. Tente dividir o pedido em partes menores.', self.conversation_id)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -125,6 +125,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             conversation_id=conversation_id,
             user_id=str(user.pk),
             history=tuple(self.history),
+            on_partial=self._partial,
         )
 
         try:
@@ -165,6 +166,9 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
                 "metadata": response.metadata,
             }
         )
+
+    async def _partial(self, text):
+        await self.send_json({'type': 'chat.delta', 'conversation_id': self.conversation_id, 'message': text})
 
     async def confirm(self, content):
         pending = self.pending

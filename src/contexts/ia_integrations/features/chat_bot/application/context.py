@@ -11,10 +11,10 @@ from features.users_manager.models import SelfAssessment
 def documentation(query):
     path = Path(settings.BASE_DIR) / 'contexts/ia_integrations/knowledge/manual.md'
     sections = path.read_text(encoding='utf-8').split('\n## ')
-    terms = set(re.findall(r'\w{3,}', query.lower()))
+    terms = set(re.findall(r'\w{3,}', query.lower())) - {'como', 'para', 'uma', 'que', 'por', 'com', 'meu', 'minha', 'isso', 'qual', 'quero'}
     ranked = sorted(enumerate(sections), key=lambda pair: sum(t in pair[1].lower() for t in terms), reverse=True)
-    return [{'source': 'Manual Lumini — ' + text.splitlines()[0].lstrip('# '), 'text': text[:3000]}
-            for _, text in ranked[:4]]
+    return [{'source': 'Manual Lumini — ' + text.splitlines()[0].lstrip('# '), 'text': text[:900]}
+            for _, text in ranked[:2] if any(t in text.lower() for t in terms)]
 
 
 def user_context(user):
@@ -56,6 +56,22 @@ def read_tool(user, tool):
     if not isinstance(tool, dict):
         raise ValidationError('Consulta inválida.')
     name = tool.get('name')
+    if name == 'my_data':
+        from contexts.institutions.coursework.models import Submission
+        return {'results': list(Submission.objects.filter(student=user, reviewed_at__isnull=False).values(
+            'publication__title', 'score', 'maximum_score', 'submitted_at').order_by('-submitted_at')[:10]),
+            'self_assessments': list(SelfAssessment.objects.filter(user=user).values(
+            'focus', 'organization', 'comprehension', 'motivation', 'created_at')[:10]),
+            'limits': 'Até 10 resultados revisados e 10 autoavaliações recentes.'}
+    if name == 'analysis_options':
+        from contexts.institutions.analysis.scope import Scope
+        scope = Scope(user)
+        query = tool.get('query', '')
+        if not isinstance(query, str) or len(query) > 160:
+            raise ValidationError('Busca inválida.')
+        return {'offers': list(scope.offers.filter(name__icontains=query).values('id', 'name')[:10]),
+            'students': list(scope.students.filter(Q(user__first_name__icontains=query) | Q(user__last_name__icontains=query)).values(
+                'id', 'user__first_name', 'user__last_name')[:10]), 'subjects': sorted({s for _, s in scope.pairs}), 'limit': 10}
     if name == 'search_questions':
         query = tool.get('query', '')
         if not isinstance(query, str) or len(query) > 160:

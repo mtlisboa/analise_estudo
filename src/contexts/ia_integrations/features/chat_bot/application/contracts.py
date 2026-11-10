@@ -8,6 +8,7 @@ class ChatRequest:
     conversation_id: str
     user_id: str
     history: tuple = ()
+    on_partial: Any = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -17,6 +17,7 @@
     var waiting = false;
     var conversationId = null;
     var responseTimer;
+    var partialCopy = null;
     var oldestId = null;
     var olderButton = document.createElement('button');
     olderButton.type = 'button';
@@ -40,6 +41,7 @@
         window.clearTimeout(responseTimer);
         waiting = true;
         thinking.hidden = false;
+        if (thinking.querySelector('small')) thinking.querySelector('small').textContent = 'Preparando resposta…';
         sendButton.disabled = true;
         responseTimer = window.setTimeout(function () {
             finishWaiting();
@@ -141,6 +143,9 @@
                     table(queries, 'Evolução (até 30 datas)', r.timeline, [['date', 'Data'], ['average', 'Média (%)']]);
                     table(queries, 'Alunos (até 30)', r.student_rows, [['name', 'Aluno'], ['average', 'Média (%)']]);
                     table(queries, 'Hipóteses de erro (até 30)', r.hypotheses, [['student', 'Aluno'], ['hypothesis', 'Hipótese'], ['count', 'Ocorrências']]);
+                } else if (r.results || r.self_assessments) {
+                    table(queries, 'Resultados revisados', r.results, [['publication__title', 'Atividade'], ['score', 'Nota'], ['maximum_score', 'Máximo']]);
+                    table(queries, 'Autoavaliações', r.self_assessments, [['created_at', 'Data'], ['focus', 'Foco'], ['comprehension', 'Compreensão']]);
                 } else if (r.questions) {
                     table(queries, r.topic || 'Questões consultadas (até 30)', r.questions, [['id', 'Código'], ['statement', 'Enunciado']]);
                 } else if (r.statement) {
@@ -185,7 +190,13 @@
         scrollToLatest();
     }
 
+    function removePartial() {
+        if (partialCopy) partialCopy.parentNode.remove();
+        partialCopy = null;
+    }
+
     function finishWaiting() {
+        removePartial();
         window.clearTimeout(responseTimer);
         waiting = false;
         thinking.hidden = true;
@@ -252,7 +263,14 @@
                     diagnosticStarted = true;
                     sendMessage(diagnosticPrompt);
                 }
+            } else if (payload.type === 'chat.delta') {
+                if (!waiting) return;
+                if (!partialCopy) partialCopy = addMessage('assistant', '');
+                partialCopy.querySelector('p').textContent = payload.message;
+                if (thinking.querySelector('small')) thinking.querySelector('small').textContent = 'Gerando resposta…';
+                scrollToLatest();
             } else if (payload.type === 'chat.response') {
+                removePartial();
                 var copy = addMessage('assistant', payload.message);
                 try {
                     renderMetadata(copy, payload.metadata || {});

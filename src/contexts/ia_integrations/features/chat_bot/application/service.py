@@ -22,5 +22,6 @@ class ChatBotService:
             conversation_id=request.conversation_id,
             user_id=request.user_id,
             history=request.history,
+            on_partial=request.on_partial,
         )
         return await self._agent_gateway.ask(normalized_request)
