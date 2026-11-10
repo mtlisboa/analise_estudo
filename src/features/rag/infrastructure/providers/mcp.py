@@ -6,11 +6,10 @@ import httpx
 from django.conf import settings
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
-from ..auth import token_for
-from ..exceptions import AgentUnavailable
+from ...exceptions import AgentUnavailable
 
 
-async def acomplete(messages, *, structured=False, on_partial=None, user_id=None, allow_question_tools=True):
+async def acomplete(messages, *, structured=False, on_partial=None, user_id=None, allow_question_tools=True, capability_provider=None):
     endpoint = settings.RAG_MCP_URL
     if urlsplit(endpoint).scheme not in ('http', 'https') or not urlsplit(endpoint).hostname:
         raise AgentUnavailable('Configure RAG_MCP_URL para usar o provedor MCP.')
@@ -21,7 +20,7 @@ async def acomplete(messages, *, structured=False, on_partial=None, user_id=None
             meta = None
             if allow_question_tools and settings.RAG_QUESTIONS_MCP_URL:
                 meta = {'lumini/questions': {'url': settings.RAG_QUESTIONS_MCP_URL,
-                        'bearer_token': await token_for(user_id), 'expires_in': 300}}
+                        'bearer_token': await capability_provider(user_id), 'expires_in': 300}}
             async with httpx.AsyncClient(headers=headers, timeout=settings.RAG_MCP_TIMEOUT_SECONDS,
                                          follow_redirects=False) as http:
                 async with streamable_http_client(endpoint, http_client=http) as (read, write, _):

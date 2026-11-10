@@ -21,8 +21,3 @@ class ChatResponse:
 
 class AgentGateway(Protocol):
     async def ask(self, request: ChatRequest) -> ChatResponse: ...
-
-
-class CompletionProvider(Protocol):
-    async def acomplete(self, messages: list[dict], *, structured: bool = False,
-                        on_partial: Any = None, user_id: Any = None) -> Any: ...

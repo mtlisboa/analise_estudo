@@ -10,7 +10,7 @@ from .models import Assessment, Question, QuestionBankItem
 
 
 def request_ai_json(prompt, user_id):
-    from contexts.ia_integrations.rag.service import complete
+    from features.rag.bootstrap import complete
     return complete([
         {"role": "system", "content": "Você cria material pedagógico em português. Responda somente o objeto JSON solicitado, sem inventar IDs."},
         {"role": "user", "content": prompt},
@@ -20,7 +20,7 @@ def request_ai_json(prompt, user_id):
 def _question_from_payload(owner, subject, topic, payload, *, method, source=None, prompt=""):
     if not isinstance(payload, dict):
         raise ValidationError("A IA retornou uma questão inválida.")
-    from contexts.ia_integrations.rag.actions import question_payload
+    from features.rag.infrastructure.actions import question_payload
     payload = question_payload(payload)
     item = QuestionBankItem(
         owner=owner,

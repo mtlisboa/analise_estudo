@@ -1,20 +1,39 @@
 # RAG central e MCP
 
-O módulo ativo é `src/contexts/ia_integrations/rag/`. Chat e geração, edição e
+O módulo ativo é `src/features/rag/`. Chat e geração, edição e
 montagem de avaliações usam este módulo. Os imports antigos do chat são somente
 compatibilidade; não contêm implementações duplicadas. Os esboços desconectados
 `features/assessments/rag_service.py` e `montage_service.py` foram substituídos.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `service.py` | Selecionar o provedor; API `complete` / `acomplete` |
-| `providers/ollama.py` | Inferência local, streaming, timeout e cancelamento |
-| `providers/mcp.py` | Cliente MCP Streamable HTTP para inferência remota |
-| `orchestrator.py` | Contexto, histórico limitado, consultas e proposta validada |
-| `retrieval.py` | Busca no manual e leitura dos dados autorizados |
-| `actions.py` | Validação e gravação transacional das propostas confirmadas |
-| `mcp_server.py` | Ferramentas de leitura do banco de questões |
-| `auth.py` | Credenciais por usuário, expiração e revalidação |
+| `ports.py` | Contratos de modelo, repositório e conhecimento |
+| `orchestrator.py` | Regras dos modos, contexto, histórico e propostas; sem Django, ORM ou SDK de rede |
+| `bootstrap.py` | Composição dos adaptadores e API de inferência usada por chat/avaliações |
+| `infrastructure/providers/ollama.py` | Transporte HTTP local, streaming e cancelamento |
+| `infrastructure/providers/mcp.py` | Transporte MCP remoto; recebe emissor de credenciais por injeção |
+| `infrastructure/repository.py` | Adaptador Django: consultas, propostas, histórico e confirmação transacional |
+| `infrastructure/queries.py` | Consultas com escopo de acesso e regras institucionais |
+| `infrastructure/actions.py` | Validação/gravação utilizando os serviços do domínio educacional |
+| `infrastructure/history.py` | Persistência e limpeza de mensagens |
+| `infrastructure/auth.py` | Credenciais temporárias vinculadas à conta |
+| `infrastructure/knowledge.py` | Leitura/busca do manual em `knowledge/manual.md` |
+| `presentation/mcp_server.py` | Endpoint MCP de questões; usa o contrato do repositório |
+
+O núcleo recebe `ModelProvider`, `RagRepository` e `KnowledgeSource` no construtor.
+Esses contratos retornam dados JSON comuns, sem modelos/querysets do ORM.
+Para trocar banco ou persistência, implemente `RagRepository` e configure
+`RAG_REPOSITORY_CLASS` (padrão `features.rag.infrastructure.repository.DjangoRepository`).
+O adaptador substituto precisa preservar autorização por usuário, validação de
+versões e atomicidade; a troca não pode remover essas garantias.
+
+O banco continua configurado pelo `DATABASES` do Django dentro do adaptador padrão.
+As tabelas e migrations de conversas permanecem no app proprietário
+`contexts.ia_integrations`, evitando renomear tabelas ou perder históricos.
+Toda operação de persistência do fluxo RAG passa pelo repositório, inclusive
+confirmação, limpeza e paginação. Os antigos imports internos do chat são apenas
+compatibilidade; a pasta `contexts/ia_integrations/rag` foi removida.
+
 
 A recuperação atual usa busca textual no manual e consultas ao banco com controle
 de acesso. Não há embeddings, banco vetorial ou treinamento de modelo.
@@ -127,7 +146,7 @@ configurada. Não há mecanismo OAuth de conexão interativa neste endpoint.
 ## Verificação
 
 ```bash
-python src/manage.py test contexts.ia_integrations.rag.tests contexts.ia_integrations.features.chat_bot.tests --noinput
+python src/manage.py test features.rag.tests contexts.ia_integrations.features.chat_bot.tests --noinput
 ```
 
 Os testes usam o SDK e transporte HTTP ASGI reais, com banco de testes, incluindo

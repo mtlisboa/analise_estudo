@@ -1,4 +1,4 @@
 """Compatibility import; implementation lives in the central RAG module."""
 import sys
-from contexts.ia_integrations.rag import retrieval as _implementation
+from features.rag.infrastructure import queries as _implementation
 sys.modules[__name__] = _implementation

@@ -1,17 +1,13 @@
 """Read-only MCP tools served on /mcp/questions by the existing ASGI process."""
-import json
 from typing import Any
 from contextvars import ContextVar
-from channels.db import database_sync_to_async
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.core.serializers.json import DjangoJSONEncoder
 from django.http.request import split_domain_port, validate_host
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.responses import JSONResponse
-from .auth import resolve_token
-from .retrieval import read_tool
+from ..bootstrap import build_repository
 
 credential = ContextVar('rag_mcp_credential', default='')
 mcp = FastMCP('Lumini Question Bank', stateless_http=True, json_response=True,
@@ -20,10 +16,8 @@ mcp = FastMCP('Lumini Question Bank', stateless_http=True, json_response=True,
     transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
 
 
-@database_sync_to_async
-def query(tool):
-    user = resolve_token(credential.get())  # Recheck expiry, account state and permissions per call.
-    return json.loads(json.dumps(read_tool(user, tool), cls=DjangoJSONEncoder))
+async def query(tool):
+    return await build_repository().read_by_token(credential.get(), tool)
 
 
 @mcp.tool()
@@ -62,7 +56,7 @@ class AuthenticatedMCP:
         auth = headers.get(b'authorization', b'').decode('latin1')
         token = auth[7:] if auth.startswith('Bearer ') else ''
         try:
-            await database_sync_to_async(resolve_token)(token)
+            await build_repository().authorize_token(token)
         except PermissionDenied:
             return await JSONResponse({'error': 'Credencial inválida ou expirada.'}, status_code=401,
                 headers={'WWW-Authenticate': 'Bearer'})(scope, receive, send)

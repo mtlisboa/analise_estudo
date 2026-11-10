@@ -1,7 +1,8 @@
-from django.contrib.auth import get_user_model
+from asgiref.sync import async_to_sync
 from django.core.management.base import BaseCommand, CommandError
 from django.core.exceptions import PermissionDenied
-from contexts.ia_integrations.rag.auth import issue_token
+from features.rag.bootstrap import build_repository
+from features.rag.exceptions import AgentUnavailable
 
 
 class Command(BaseCommand):
@@ -12,7 +13,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            user = get_user_model().objects.get(pk=options['user_id'])
-            self.stdout.write(issue_token(user))
-        except (get_user_model().DoesNotExist, PermissionDenied) as exc:
+            self.stdout.write(async_to_sync(build_repository().issue_token)(options['user_id']))
+        except (PermissionDenied, AgentUnavailable) as exc:
             raise CommandError('Usuário indisponível.') from exc

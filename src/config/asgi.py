@@ -25,7 +25,7 @@ _django_application = ProtocolTypeRouter(
 
 
 # MCP owns lifespan startup/shutdown; Django/Channels keep their existing routing.
-from contexts.ia_integrations.rag.mcp_server import application as questions_mcp
+from features.rag.presentation.mcp_server import application as questions_mcp
 
 async def application(scope, receive, send):
     if scope['type'] == 'lifespan' or (scope['type'] == 'http' and scope.get('path', '').rstrip('/') == '/mcp/questions'):

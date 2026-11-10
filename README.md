@@ -96,7 +96,7 @@ ficar em branco, o sistema aplica a técnica padrão do primeiro tipo selecionad
 ## Assistente IA e módulo RAG
 
 O chat, a geração/edição de questões e a montagem por IA usam o módulo central
-`src/contexts/ia_integrations/rag/`. `RAG_PROVIDER=ollama` usa a API local
+`src/features/rag/`. `RAG_PROVIDER=ollama` usa a API local
 `/api/chat`; `RAG_PROVIDER=mcp` usa uma ferramenta de inferência em um serviço
 externo MCP. Não há resposta simulada nem troca silenciosa de provedor em caso de
 falha. Veja [configuração e contrato MCP](docs/rag.md).
@@ -116,7 +116,7 @@ configure `OLLAMA_MODEL=qwen2.5:3b` (maior uso de memória e tempo em CPU), recr
 ### Recursos e limites
 
 - Consulta trechos relevantes do manual versionado em
-  `src/contexts/ia_integrations/knowledge/manual.md`, incluído na imagem Docker.
+  `src/features/rag/knowledge/manual.md`, incluído na imagem Docker.
 - Interpreta autoavaliações e resultados revisados do próprio usuário; gestores
   e professores consultam os mesmos indicadores e escopos do módulo institucional.
 - Mostra fontes e tabelas dos dados consultados. Catálogos e detalhes de alunos
@@ -299,7 +299,7 @@ src/
 ├── contexts/
 │   └── ia_integrations/    # contexto ia-integrations
 │       └── features/
-│           └── chat_bot/   # WebSocket, histórico e apresentação; lógica de IA em ia_integrations/rag
+│           └── chat_bot/   # WebSocket, histórico e apresentação; lógica de IA em features/rag
 ├── features/
 │   ├── accounts/           # feature de identidade e acesso
 │   │   ├── migrations/

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "features.organization_settings.apps.OrganizationSettingsConfig",
     "features.analytics_dashboard.apps.AnalyticsDashboardConfig",
     "contexts.ia_integrations.apps.IaIntegrationsConfig",
+    "features.rag.apps.RagConfig",
     "contexts.institutions.planning.apps.PlanningConfig",
     "contexts.institutions.family.apps.FamilyConfig",
     "contexts.institutions.coursework.apps.CourseworkConfig",
@@ -173,3 +174,5 @@ RAG_MCP_TOKEN = os.getenv('RAG_MCP_TOKEN', '')
 RAG_MCP_TOOL = os.getenv('RAG_MCP_TOOL', 'complete')
 RAG_MCP_TIMEOUT_SECONDS = max(1, min(300, float(os.getenv('RAG_MCP_TIMEOUT_SECONDS', '180'))))
 RAG_QUESTIONS_MCP_URL = os.getenv('RAG_QUESTIONS_MCP_URL', '')
+
+RAG_REPOSITORY_CLASS = os.getenv('RAG_REPOSITORY_CLASS', 'features.rag.infrastructure.repository.DjangoRepository')

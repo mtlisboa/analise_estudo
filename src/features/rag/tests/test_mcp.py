@@ -11,10 +11,10 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.server.fastmcp import FastMCP, Context
 from features.assessments.models import QuestionBankItem
-from contexts.ia_integrations.rag.auth import issue_token, resolve_token
-from contexts.ia_integrations.rag.exceptions import AgentUnavailable
-from contexts.ia_integrations.rag.service import acomplete
-from contexts.ia_integrations.rag.mcp_server import mcp, application
+from features.rag.infrastructure.auth import issue_token, resolve_token
+from features.rag.exceptions import AgentUnavailable
+from features.rag.bootstrap import acomplete
+from features.rag.presentation.mcp_server import mcp, application
 
 
 @override_settings(ALLOWED_HOSTS=['testserver'])
@@ -82,13 +82,13 @@ class RemoteProviderTests(TransactionTestCase):
             return {'message': 'Resposta remota', 'proposal': None}
         app = remote.streamable_http_app()
         factory = httpx.AsyncClient
-        with patch('contexts.ia_integrations.rag.providers.mcp.httpx.AsyncClient', side_effect=lambda **kw: factory(transport=httpx.ASGITransport(app=app), **kw)):
+        with patch('features.rag.infrastructure.providers.mcp.httpx.AsyncClient', side_effect=lambda **kw: factory(transport=httpx.ASGITransport(app=app), **kw)):
             async with remote.session_manager.run():
                 result = await acomplete([{'role':'user','content':'Oi'}], structured=True)
         self.assertEqual(result['message'], 'Resposta remota')
         self.assertEqual(calls[0][:3], ([{'role':'user','content':'Oi'}], True, 'Bearer service-secret'))
         from features.assessments.services import request_ai_json
-        with patch('contexts.ia_integrations.rag.service.acomplete', new_callable=AsyncMock, return_value={'question_ids':[1]}) as invoke:
+        with patch('features.rag.bootstrap.acomplete', new_callable=AsyncMock, return_value={'question_ids':[1]}) as invoke:
             response = await database_sync_to_async(request_ai_json)('Selecione', 17)
         self.assertEqual(response, {'question_ids':[1]})
         self.assertEqual(invoke.call_args.kwargs['user_id'], 17)
@@ -109,7 +109,7 @@ class RemoteProviderTests(TransactionTestCase):
             return {'message':'ok', 'proposal':None}
         app = remote.streamable_http_app()
         factory = httpx.AsyncClient
-        with patch('contexts.ia_integrations.rag.providers.mcp.httpx.AsyncClient', side_effect=lambda **kw: factory(transport=httpx.ASGITransport(app=app), **kw)):
+        with patch('features.rag.infrastructure.providers.mcp.httpx.AsyncClient', side_effect=lambda **kw: factory(transport=httpx.ASGITransport(app=app), **kw)):
             async with remote.session_manager.run():
                 result = await acomplete([{'role':'user','content':'Oi'}], structured=True, user_id=user.pk)
         self.assertEqual(result['message'], 'ok')
@@ -118,7 +118,7 @@ class RemoteProviderTests(TransactionTestCase):
     async def test_timeout_and_cancellation_propagate_without_fallback(self):
         async def hang(*args, **kw):
             await asyncio.sleep(10)
-        with patch('contexts.ia_integrations.rag.providers.mcp.token_for', side_effect=hang), override_settings(RAG_QUESTIONS_MCP_URL='https://app/mcp/questions', RAG_MCP_TIMEOUT_SECONDS=.02):
+        with patch('features.rag.bootstrap.token_for', side_effect=hang), override_settings(RAG_QUESTIONS_MCP_URL='https://app/mcp/questions', RAG_MCP_TIMEOUT_SECONDS=.02):
             with self.assertRaises(AgentUnavailable):
                 await acomplete([], structured=True, user_id=1)
             with self.assertRaises(asyncio.CancelledError):

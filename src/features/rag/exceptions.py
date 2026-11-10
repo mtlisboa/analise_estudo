@@ -8,3 +8,7 @@ class InvalidChatMessage(ChatBotError):
 
 class AgentUnavailable(ChatBotError):
     """The language model could not answer the request."""
+
+
+class ProposalRejected(ChatBotError):
+    """A proposal violated a domain rule or its source is no longer current."""

@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 
 from django.conf import settings
-from ..exceptions import AgentUnavailable
+from ...exceptions import AgentUnavailable
 
 
 def complete(messages, *, structured=False):

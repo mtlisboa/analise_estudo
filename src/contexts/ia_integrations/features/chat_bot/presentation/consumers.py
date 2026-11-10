@@ -5,18 +5,14 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import time
 import asyncio
 from django.conf import settings
-from ..application import history as history_store
 import json
 import logging
-from channels.db import database_sync_to_async
-from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
-from ..application.actions import execute_proposal
+from features.rag.exceptions import ProposalRejected
 
 from ..application.contracts import ChatRequest
 from ..application.exceptions import AgentUnavailable, InvalidChatMessage
 from ..application.service import ChatBotService
-from contexts.ia_integrations.rag.orchestrator import AssistantGateway
+from features.rag.bootstrap import AssistantGateway, build_repository
 
 
 def build_chat_bot_service() -> ChatBotService:
@@ -35,7 +31,8 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
 
         self.task = None
         self.pending = None
-        self.conversation_id, rows = await database_sync_to_async(history_store.load)(user.pk)
+        self.repository = build_repository()
+        self.conversation_id, rows = await self.repository.load(user.pk)
         self.history = [{'role': r['role'], 'content': r['content'], 'mode': r['metadata'].get('mode')} for r in rows[-8:]]
         await self.accept()
         await self.send_json({"type": "chat.ready", "conversation_id": self.conversation_id,
@@ -59,13 +56,13 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
                     pass
             self.pending = None
             self.history = []
-            self.conversation_id = await database_sync_to_async(history_store.clear)(self.scope['user'].pk)
+            self.conversation_id = await self.repository.clear(self.scope['user'].pk)
             await self.send_json({'type': 'chat.cleared', 'conversation_id': self.conversation_id})
             return
         if isinstance(content, dict) and content.get('type') == 'chat.history':
             before = content.get('before')
             if type(before) is int and before > 0:
-                rows = await database_sync_to_async(history_store.page)(self.scope['user'].pk, self.conversation_id, before)
+                rows = await self.repository.page(self.scope['user'].pk, self.conversation_id, before)
                 await self.send_json({'type': 'chat.history', 'conversation_id': self.conversation_id, 'messages': rows})
             return
         if self.task and not self.task.done():
@@ -118,7 +115,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
         if not message or len(message) > ChatBotService.MAX_MESSAGE_LENGTH:
             await self._send_error('invalid_message', 'Escreva uma mensagem de até 8000 caracteres.', conversation_id)
             return
-        if not await database_sync_to_async(history_store.append)(self.scope['user'].pk, conversation_id, 'user', message, {'mode': mode}):
+        if not await self.repository.append(self.scope['user'].pk, conversation_id, 'user', message, {'mode': mode}):
             await self._send_error('stale_conversation', 'A conversa foi limpa em outra aba. Recarregue o chat.', conversation_id)
             return
         # A new request invalidates an older unaccepted proposal.
@@ -152,7 +149,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             return
 
         response.metadata['mode'] = mode
-        if not await database_sync_to_async(history_store.append)(user.pk, conversation_id, 'assistant', response.message, response.metadata):
+        if not await self.repository.append(user.pk, conversation_id, 'assistant', response.message, response.metadata):
             await self._send_error('stale_conversation', 'A conversa foi limpa em outra aba. Recarregue o chat.', conversation_id)
             return
         self.history.extend([{"role": "user", "content": message[:8000], "mode": mode},
@@ -183,27 +180,17 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             return
         self.pending = None
         try:
-            result = await database_sync_to_async(self._execute)(pending[1])
-        except (ValidationError, ValueError, TypeError) as exc:
+            result = await self.repository.execute(self.scope['user'].pk, self.conversation_id, pending[1])
+        except (ProposalRejected, ValueError, TypeError) as exc:
             await self._send_error('invalid_proposal', 'Não foi possível salvar: ' + '; '.join(getattr(exc, 'messages', ['Proposta inválida.'])), pending[3])
             return
         except Exception:
             logging.getLogger(__name__).exception("Assistant action failed")
             await self._send_error('action_failed', 'Não foi possível salvar a proposta. Nenhuma alteração parcial foi mantida.', pending[3])
             return
-        await database_sync_to_async(history_store.append)(self.scope['user'].pk, pending[3], 'assistant', result['message'], {'url': result['url'], 'mode': 'assembly'})
+        await self.repository.append(self.scope['user'].pk, pending[3], 'assistant', result['message'], {'url': result['url'], 'mode': 'assembly'})
         self.history.append({'role': 'assistant', 'content': result['message'], 'mode': 'assembly'})
         await self.send_json({'type': 'chat.response', 'conversation_id': pending[3], 'message': result['message'], 'metadata': {'url': result['url'], 'mode': 'assembly'}})
-
-    def _execute(self, proposal):
-        user = get_user_model().objects.get(pk=self.scope['user'].pk, is_active=True)
-        from django.db import transaction
-        from contexts.ia_integrations.models import Conversation
-        with transaction.atomic():
-            conversation = Conversation.objects.select_for_update().get(user=user)
-            if str(conversation.generation) != self.conversation_id:
-                raise ValidationError('A conversa foi limpa. Solicite uma nova proposta.')
-            return execute_proposal(user, proposal)
 
     async def _send_error(
         self, code: str, message: str, conversation_id: str | None = None
