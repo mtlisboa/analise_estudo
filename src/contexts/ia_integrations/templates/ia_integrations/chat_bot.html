@@ -60,7 +60,7 @@
 
             <div class="chat-suggestions">
                 <span>Sugestões para começar</span>
-                <button type="button" data-suggestion-mode="doubts" data-chat-suggestion="Interprete meus dados de desempenho e explique as limitações.">Interpretar meus dados</button>
+                <button type="button" data-suggestion-mode="analysis" data-chat-suggestion="Interprete meus dados de desempenho e explique as limitações.">Interpretar meus dados</button>
                 <button type="button" data-suggestion-mode="assembly" data-chat-suggestion="Quero montar uma atividade no aplicativo. Quais informações você precisa?">Montar uma atividade</button>
                 <button type="button" data-suggestion-mode="doubts" data-chat-suggestion="Qual deve ser meu próximo passo de aprendizagem?">Definir o próximo passo</button>
             </div>
@@ -82,8 +82,9 @@
             <div class="chat-modes" role="group" aria-label="Modo do assistente">
                 <button type="button" data-chat-mode="assembly" aria-pressed="false">Montagem</button>
                 <button type="button" data-chat-mode="doubts" aria-pressed="true">Dúvidas</button>
+                <button type="button" data-chat-mode="analysis" aria-pressed="false">Análise</button>
             </div>
-            <p class="chat-mode-hint" data-chat-mode-hint aria-live="polite">Tire dúvidas sobre conteúdos, o aplicativo e seus resultados.</p>
+            <p class="chat-mode-hint" data-chat-mode-hint aria-live="polite">Tire dúvidas sobre conteúdos e o funcionamento do aplicativo.</p>
             <div class="chat-messages" data-chat-messages role="log" aria-live="polite" aria-label="Mensagens da conversa">
                 <div class="chat-message assistant-message">
                     <span class="message-avatar" aria-hidden="true">IA</span>
@@ -111,5 +112,5 @@
         </article>
     </div>
 </section>
-<script src="{% static 'js/chat_bot.js' %}?v=6" defer></script>
+<script src="{% static 'js/chat_bot.js' %}?v=7" defer></script>
 {% endblock %}

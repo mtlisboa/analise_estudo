@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const {JSDOM} = require('jsdom');
 const {readFileSync} = require('node:fs');
 const path = require('node:path');
-const dom = new JSDOM(`<section data-chat-root data-websocket-path="/ws/ia-integrations/chat-bot/"><button data-chat-mode="assembly" aria-pressed="false">Montagem</button><button data-chat-mode="doubts" aria-pressed="true">Dúvidas</button><p data-chat-mode-hint></p><form data-chat-form><textarea data-chat-input></textarea><button data-chat-send></button></form><div data-chat-messages></div><div data-chat-thinking hidden></div><div data-chat-status><strong></strong></div><button data-chat-clear></button></section>`, {runScripts:'outside-only',url:'http://localhost/'});
+const dom = new JSDOM(`<section data-chat-root data-websocket-path="/ws/ia-integrations/chat-bot/"><button data-chat-mode="assembly" aria-pressed="false">Montagem</button><button data-chat-mode="doubts" aria-pressed="true">Dúvidas</button><button data-chat-mode="analysis" aria-pressed="false">Análise</button><p data-chat-mode-hint></p><form data-chat-form><textarea data-chat-input></textarea><button data-chat-send></button></form><div data-chat-messages></div><div data-chat-thinking hidden></div><div data-chat-status><strong></strong></div><button data-chat-clear></button></section>`, {runScripts:'outside-only',url:'http://localhost/'});
 let socket;
 class Socket {
   static OPEN=1;
@@ -57,7 +57,14 @@ socket.receive({type:'chat.ready',conversation_id:'new-id',messages:[{id:1,role:
 assert.ok(d.body.textContent.includes('Persistida'));
 assert.ok(d.body.textContent.includes('Resposta salva'));
 assert.equal(d.querySelector('[data-chat-mode=assembly]').getAttribute('aria-pressed'),'true');
+socket.receive({type:'chat.response',conversation_id:'new-id',message:'Abra Questionários.',metadata:{sources:[],data:{user_id:1}}});
+const last=d.querySelector('[data-chat-messages]').lastElementChild;
+assert.equal(last.querySelector('details'),null);
+assert.ok(!last.textContent.includes('Fontes consultadas:'));
+d.querySelector('[data-chat-mode=analysis]').click();
+assert.equal(d.querySelector('[data-chat-mode=analysis]').getAttribute('aria-pressed'),'true');
 input.value='Falha visual';d.querySelector('form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+assert.equal(socket.sent.at(-1).mode,'analysis');
 socket.receive({type:'chat.response',conversation_id:'new-id',message:'Texto válido',metadata:{sources:42}});
 assert.equal(d.querySelector('[data-chat-thinking]').hidden,true);
 let watchdog;

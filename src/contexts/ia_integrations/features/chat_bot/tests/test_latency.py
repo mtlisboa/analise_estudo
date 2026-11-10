@@ -18,7 +18,7 @@ class LazyContextTests(TransactionTestCase):
         self.assertEqual(result.message, 'Olá!')
         prompt = provider.call_args.args[0]
         self.assertLess(sum(len(m['content']) for m in prompt), 4000)
-        self.assertEqual(result.metadata['data'], {'user_id': user.pk})
+        self.assertNotIn('data', result.metadata)
 
     def test_tool_data_is_bounded_json(self):
         result = compact_result({'rows':[{'text':'a'*20000} for _ in range(500)]})

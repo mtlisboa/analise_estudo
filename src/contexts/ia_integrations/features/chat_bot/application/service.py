@@ -9,7 +9,7 @@ class ChatBotService:
         self._agent_gateway = agent_gateway
 
     async def reply(self, request: ChatRequest) -> ChatResponse:
-        if request.mode not in ('assembly', 'doubts'):
+        if request.mode not in ('assembly', 'doubts', 'analysis'):
             raise InvalidChatMessage('Modo de conversa inválido.')
         message = request.message.strip()
         if not message:

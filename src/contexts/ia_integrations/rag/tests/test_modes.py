@@ -12,7 +12,7 @@ class ModeTests(TransactionTestCase):
         history = ({'role':'user', 'content':'SEGREDO DA MONTAGEM', 'mode':'assembly'},
                    {'role':'user', 'content':'Explique frações', 'mode':'doubts'})
         with patch('contexts.ia_integrations.rag.orchestrator.acomplete', new_callable=AsyncMock,
-                   return_value={'message':'Resposta'}) as provider:
+                   return_value='Uma fração representa uma parte de um todo.') as provider:
             await AssistantGateway().ask(ChatRequest('Uma dúvida', 'c', str(user.pk), history, mode='doubts'))
         prompt = str(provider.call_args.args[0])
         self.assertNotIn('SEGREDO DA MONTAGEM', prompt)
@@ -47,3 +47,42 @@ class ModeTests(TransactionTestCase):
             self.assertNotIn('proposal', result.metadata)
             self.assertIn('Montagem', result.message)
             validate.assert_not_called()
+
+    async def test_placeholder_is_repaired_once_without_reusing_example(self):
+        user = await get_user_model().objects.acreate_user(username='repair')
+        with patch('contexts.ia_integrations.rag.orchestrator.acomplete', new_callable=AsyncMock,
+                   side_effect=['resposta', 'Abra Questionários, crie um questionário e selecione as questões.']) as provider:
+            result = await AssistantGateway().ask(ChatRequest('como criar uma atividade', 'c', str(user.pk)))
+        self.assertEqual(provider.await_count, 2)
+        self.assertFalse(provider.call_args.kwargs['structured'])
+        self.assertIn('selecione as questões', result.message)
+        self.assertNotIn('data', result.metadata)
+        self.assertEqual(result.metadata['sources'], ['Manual Lumini — Questionários e atividades'])
+
+    async def test_repeated_placeholder_is_rejected(self):
+        user = await get_user_model().objects.acreate_user(username='bad-answer')
+        with patch('contexts.ia_integrations.rag.orchestrator.acomplete', new_callable=AsyncMock,
+                   return_value='resposta') as provider:
+            with self.assertRaises(AgentUnavailable):
+                await AssistantGateway().ask(ChatRequest('Como criar uma atividade?', 'c', str(user.pk)))
+        self.assertEqual(provider.await_count, 2)
+
+    async def test_analysis_uses_authorized_data_and_separate_history(self):
+        user = await get_user_model().objects.acreate_user(username='analysis-mode')
+        history = ({'role':'user', 'content':'QUESTAO ANTIGA', 'mode':'assembly'},)
+        with patch('contexts.ia_integrations.rag.orchestrator.acomplete', new_callable=AsyncMock,
+                   side_effect=[{'tool':{'name':'my_data'}}, {'message':'Você ainda não possui resultados revisados.'}]) as provider:
+            result = await AssistantGateway().ask(ChatRequest('Interprete meus dados', 'c', str(user.pk), history, mode='analysis'))
+        self.assertEqual(result.metadata['mode'], 'analysis')
+        self.assertEqual(result.metadata['consultations'][0]['result']['results'], [])
+        self.assertNotIn('QUESTAO ANTIGA', str(provider.call_args.args[0]))
+        self.assertNotIn('create_questionnaire', str(provider.call_args.args[0]))
+        self.assertFalse(provider.call_args.kwargs['allow_question_tools'])
+
+    async def test_analysis_does_not_present_unqueried_numbers_as_facts(self):
+        user = await get_user_model().objects.acreate_user(username='ungrounded')
+        with patch('contexts.ia_integrations.rag.orchestrator.acomplete', new_callable=AsyncMock,
+                   return_value={'message':'Sua média é 90%.'}):
+            result = await AssistantGateway().ask(ChatRequest('Analise', 'c', str(user.pk), mode='analysis'))
+        self.assertNotIn('90%', result.message)
+        self.assertIn('Ainda não consultei', result.message)

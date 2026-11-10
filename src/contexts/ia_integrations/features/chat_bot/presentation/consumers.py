@@ -107,8 +107,8 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             return
 
         mode = content.get('mode', 'doubts')
-        if mode not in ('assembly', 'doubts'):
-            await self._send_error('invalid_mode', 'Selecione Montagem ou Dúvidas.')
+        if mode not in ('assembly', 'doubts', 'analysis'):
+            await self._send_error('invalid_mode', 'Selecione Montagem, Dúvidas ou Análise.')
             return
         conversation_id = self.conversation_id
         if content.get('conversation_id') not in (None, conversation_id):
@@ -138,10 +138,10 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
         except InvalidChatMessage as exc:
             await self._send_error("invalid_message", str(exc), conversation_id)
             return
-        except AgentUnavailable:
+        except AgentUnavailable as exc:
             await self._send_error(
                 "agent_unavailable",
-                "O assistente está temporariamente indisponível.",
+                str(exc),
                 conversation_id,
             )
             return

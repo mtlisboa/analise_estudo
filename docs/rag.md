@@ -140,12 +140,14 @@ Referência: [SDK MCP oficial, versão 1](https://py.sdk.modelcontextprotocol.io
 
 ## Modos do chat
 
-Os botões **Montagem** e **Dúvidas** no topo do chat enviam `mode=assembly` ou
-`mode=doubts` junto de `chat.message`. Dúvidas é o padrão para clientes antigos.
+Os botões **Montagem**, **Dúvidas** e **Análise** no topo do chat enviam `mode=assembly`,
+`mode=doubts` ou `mode=analysis` junto de `chat.message`. Dúvidas é o padrão para clientes antigos.
 O servidor valida o modo; a escolha não depende de inferência do modelo.
 
-- Dúvidas: manual pertinente e consultas de desempenho; sem esquemas de criação,
-  propostas graváveis ou credencial MCP de questões.
+- Dúvidas: manual pertinente e resposta em texto natural; sem esquemas JSON,
+  consultas de desempenho, propostas graváveis ou credencial MCP de questões.
+- Análise: consultas autorizadas de desempenho, sem ferramentas de montagem.
+  Sem consulta, solicita o recorte em vez de apresentar números não verificados.
 - Montagem: esquemas de questões/questionários e consultas ao banco; sem manual
   nem instruções das análises institucionais.
 
@@ -154,3 +156,11 @@ modo são enviadas ao modelo. Mensagens anteriores a esta divisão, sem marcaç�
 continuam visíveis e não entram no contexto. Recarregar restaura o modo da última
 mensagem. Durante uma resposta, os botões ficam desabilitados para evitar trocar
 o modo de uma solicitação em andamento. Sugestões selecionam seu modo correspondente.
+
+Respostas vazias ou que apenas repetem marcadores como “resposta” são recusadas.
+Há no máximo uma tentativa de correção, dentro do prazo total existente. Se
+persistir, o chat exibe erro e não salva a saída inválida como resposta concluída.
+O manual prioriza correspondência no título, normaliza acentos/plurais e remove
+resultados com relevância muito inferior. Fontes vazias e dados contendo apenas
+identificadores não geram blocos de detalhes. Análises são exibidas após a resposta
+final, para não transmitir afirmações ainda não validadas durante o streaming.

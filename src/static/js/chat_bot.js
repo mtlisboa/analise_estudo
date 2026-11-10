@@ -18,7 +18,7 @@
     var mode = 'doubts';
     var modeButtons = root.querySelectorAll('[data-chat-mode]');
     function selectMode(value) {
-        if (waiting || (value !== 'assembly' && value !== 'doubts')) return;
+        if (waiting || (value !== 'assembly' && value !== 'doubts' && value !== 'analysis')) return;
         mode = value;
         modeButtons.forEach(function (button) {
             button.setAttribute('aria-pressed', String(button.dataset.chatMode === mode));
@@ -26,8 +26,8 @@
         var hint = root.querySelector('[data-chat-mode-hint]');
         if (hint) hint.textContent = mode === 'assembly'
             ? 'Crie questões, edite uma questão existente ou monte um questionário.'
-            : 'Tire dúvidas sobre conteúdos, o aplicativo e seus resultados.';
-        input.placeholder = mode === 'assembly' ? 'Descreva a atividade ou a questão que deseja preparar…' : 'Qual é sua dúvida?';
+            : mode === 'analysis' ? 'Interprete seus resultados ou consulte alunos e turmas dentro do seu acesso.' : 'Tire dúvidas sobre conteúdos e o funcionamento do aplicativo.';
+        input.placeholder = mode === 'assembly' ? 'Descreva a atividade ou a questão que deseja preparar…' : mode === 'analysis' ? 'Quais resultados, aluno ou turma você quer analisar?' : 'Qual é sua dúvida?';
     }
     modeButtons.forEach(function (button) {
         button.addEventListener('click', function () { selectMode(button.dataset.chatMode); });
@@ -129,16 +129,16 @@
     }
 
     function renderMetadata(parent, metadata) {
-        if (metadata.mode) element(parent, 'small', metadata.mode === 'assembly' ? 'Montagem' : 'Dúvidas');
+        if (metadata.mode) element(parent, 'small', ({assembly: 'Montagem', doubts: 'Dúvidas', analysis: 'Análise'})[metadata.mode] || '');
         if (metadata.url && metadata.url.charAt(0) === '/' && metadata.url.charAt(1) !== '/') {
             var link = element(parent, 'a', 'Abrir no aplicativo');
             link.href = metadata.url;
         }
-        if (metadata.sources) element(parent, 'small', 'Fontes consultadas: ' + metadata.sources.join('; '));
-        if (metadata.data) {
+        if (Array.isArray(metadata.sources) && metadata.sources.length) element(parent, 'small', 'Fontes consultadas: ' + metadata.sources.join('; '));
+        if (metadata.data && (metadata.data.limits || (metadata.data.results || []).length || (metadata.data.self_assessments || []).length || metadata.data.institutional_analysis)) {
             var details = element(parent, 'details');
             element(details, 'summary', 'Ver dados consultados e limites');
-            element(details, 'p', metadata.data.limits);
+            if (metadata.data.limits) element(details, 'p', metadata.data.limits);
             table(details, 'Meus resultados revisados', metadata.data.results, [['publication__title', 'Atividade'], ['score', 'Nota'], ['maximum_score', 'Máximo']]);
             table(details, 'Minhas autoavaliações', metadata.data.self_assessments, [['created_at', 'Data'], ['focus', 'Foco'], ['organization', 'Organização'], ['comprehension', 'Compreensão'], ['motivation', 'Motivação']]);
             var report = metadata.data.institutional_analysis;
@@ -167,10 +167,16 @@
                     table(queries, 'Autoavaliações', r.self_assessments, [['created_at', 'Data'], ['focus', 'Foco'], ['comprehension', 'Compreensão']]);
                 } else if (r.questions) {
                     table(queries, r.topic || 'Questões consultadas (até 30)', r.questions, [['id', 'Código'], ['statement', 'Enunciado']]);
+                } else if (r.offers || r.students || r.subjects) {
+                    table(queries, 'Turmas disponíveis', r.offers, [['id', 'Código'], ['name', 'Turma']]);
+                    table(queries, 'Alunos disponíveis', r.students, [['id', 'Código'], ['user__first_name', 'Nome'], ['user__last_name', 'Sobrenome']]);
+                    if ((r.subjects || []).length) element(queries, 'p', 'Disciplinas: ' + r.subjects.join(', '));
                 } else if (r.statement) {
                     element(queries, 'p', 'Questão ' + r.id + ': ' + r.statement);
                 }
-
+                if (r.limits) element(queries, 'small', r.limits);
+                var rows = ['results', 'self_assessments', 'questions', 'offers', 'students', 'subjects'].filter(function (key) { return Array.isArray(r[key]); });
+                if (rows.length && rows.every(function (key) { return !r[key].length; })) element(queries, 'p', 'Nenhum registro encontrado neste recorte.');
             });
         }
         if (metadata.proposal) {
