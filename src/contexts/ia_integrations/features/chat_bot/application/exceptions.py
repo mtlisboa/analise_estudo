@@ -1,10 +1,4 @@
-class ChatBotError(Exception):
-    """Base error exposed by the chat bot application layer."""
-
-
-class InvalidChatMessage(ChatBotError):
-    """The incoming message does not satisfy the chat contract."""
-
-
-class AgentUnavailable(ChatBotError):
-    """The language model could not answer the request."""
+"""Compatibility import; implementation lives in the central RAG module."""
+import sys
+from contexts.ia_integrations.rag import exceptions as _implementation
+sys.modules[__name__] = _implementation

@@ -93,12 +93,13 @@ ou mais tipos de questão (memorização, compreensão, dedução, aplicação, 
 e pensamento crítico). A técnica avaliativa pode ser escolhida manualmente; se
 ficar em branco, o sistema aplica a técnica padrão do primeiro tipo selecionado.
 
-## Assistente IA local
+## Assistente IA e módulo RAG
 
-O chat, a geração/edição de questões e a montagem por IA usam a API `/api/chat`
-do Ollama. Não há respostas simuladas nem dependência de servidor MCP. Se o
-modelo estiver indisponível ou retornar conteúdo inválido, a interface informa
-falha sem inventar uma resposta ou salvar dados parciais.
+O chat, a geração/edição de questões e a montagem por IA usam o módulo central
+`src/contexts/ia_integrations/rag/`. `RAG_PROVIDER=ollama` usa a API local
+`/api/chat`; `RAG_PROVIDER=mcp` usa uma ferramenta de inferência em um serviço
+externo MCP. Não há resposta simulada nem troca silenciosa de provedor em caso de
+falha. Veja [configuração e contrato MCP](docs/rag.md).
 
 No Compose, `web` acessa `http://ollama:11434`. Fora do Docker, configure:
 
@@ -298,7 +299,7 @@ src/
 ├── contexts/
 │   └── ia_integrations/    # contexto ia-integrations
 │       └── features/
-│           └── chat_bot/   # WebSocket, contexto autorizado e adaptador Ollama
+│           └── chat_bot/   # WebSocket, histórico e apresentação; lógica de IA em ia_integrations/rag
 ├── features/
 │   ├── accounts/           # feature de identidade e acesso
 │   │   ├── migrations/
@@ -704,7 +705,7 @@ máximo dois trechos pertinentes de 900 caracteres. O histórico enviado ao mode
 com indicação de amostragem. Os dados completos consultados continuam nos detalhes
 da interface. Esses limites são de caracteres, não estimativas exatas de tokens.
 
-A conexão HTTP do chat usa streaming assíncrono: o texto aparece durante a geração,
+Com Ollama, a conexão HTTP do chat usa streaming assíncrono: o texto aparece durante a geração,
 mas propostas só ficam disponíveis depois da resposta completa e validada. Limpar,
 desconectar ou atingir o prazo fecha a requisição ao Ollama. Respostas incompletas
 não são persistidas como concluídas. O log registra tempos e contagens de tokens,

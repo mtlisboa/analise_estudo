@@ -16,7 +16,7 @@ from ..application.actions import execute_proposal
 from ..application.contracts import ChatRequest
 from ..application.exceptions import AgentUnavailable, InvalidChatMessage
 from ..application.service import ChatBotService
-from ..infrastructure.assistant_gateway import AssistantGateway
+from contexts.ia_integrations.rag.orchestrator import AssistantGateway
 
 
 def build_chat_bot_service() -> ChatBotService:

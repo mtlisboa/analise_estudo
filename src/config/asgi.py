@@ -14,7 +14,7 @@ from features.notifications.routing import websocket_urlpatterns as notification
 
 websocket_urlpatterns = chat_patterns + notification_patterns
 
-application = ProtocolTypeRouter(
+_django_application = ProtocolTypeRouter(
     {
         "http": django_asgi_application,
         "websocket": AllowedHostsOriginValidator(
@@ -23,3 +23,14 @@ application = ProtocolTypeRouter(
     }
 )
 
+
+# MCP owns lifespan startup/shutdown; Django/Channels keep their existing routing.
+from contexts.ia_integrations.rag.mcp_server import application as questions_mcp
+
+async def application(scope, receive, send):
+    if scope['type'] == 'lifespan' or (scope['type'] == 'http' and scope.get('path', '').rstrip('/') == '/mcp/questions'):
+        scope = dict(scope)
+        if scope['type'] == 'http':
+            scope['path'] = '/mcp/questions'
+        return await questions_mcp(scope, receive, send)
+    return await _django_application(scope, receive, send)

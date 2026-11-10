@@ -165,3 +165,11 @@ OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
 IA_CHAT_TIMEOUT_SECONDS = max(1, min(300, float(os.getenv("IA_CHAT_TIMEOUT_SECONDS", "240"))))
 
 OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30m")
+
+# Central RAG provider; questions MCP is served by the web ASGI process.
+RAG_PROVIDER = os.getenv('RAG_PROVIDER', 'ollama')
+RAG_MCP_URL = os.getenv('RAG_MCP_URL', os.getenv('IA_MCP_SERVER_URL', ''))
+RAG_MCP_TOKEN = os.getenv('RAG_MCP_TOKEN', '')
+RAG_MCP_TOOL = os.getenv('RAG_MCP_TOOL', 'complete')
+RAG_MCP_TIMEOUT_SECONDS = max(1, min(300, float(os.getenv('RAG_MCP_TIMEOUT_SECONDS', '180'))))
+RAG_QUESTIONS_MCP_URL = os.getenv('RAG_QUESTIONS_MCP_URL', '')

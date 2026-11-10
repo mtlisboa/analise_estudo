@@ -1,22 +1,4 @@
-from dataclasses import dataclass, field
-from typing import Any, Protocol
-
-
-@dataclass(frozen=True, slots=True)
-class ChatRequest:
-    message: str
-    conversation_id: str
-    user_id: str
-    history: tuple = ()
-    on_partial: Any = None
-
-
-@dataclass(frozen=True, slots=True)
-class ChatResponse:
-    message: str
-    conversation_id: str
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-class AgentGateway(Protocol):
-    async def ask(self, request: ChatRequest) -> ChatResponse: ...
+"""Compatibility import; implementation lives in the central RAG module."""
+import sys
+from contexts.ia_integrations.rag import contracts as _implementation
+sys.modules[__name__] = _implementation

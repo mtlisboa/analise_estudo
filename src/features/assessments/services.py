@@ -10,17 +10,17 @@ from .models import Assessment, Question, QuestionBankItem
 
 
 def request_ai_json(prompt, user_id):
-    from contexts.ia_integrations.features.chat_bot.infrastructure.ollama_gateway import complete
+    from contexts.ia_integrations.rag.service import complete
     return complete([
         {"role": "system", "content": "Você cria material pedagógico em português. Responda somente o objeto JSON solicitado, sem inventar IDs."},
         {"role": "user", "content": prompt},
-    ], structured=True)
+    ], structured=True, user_id=user_id)
 
 
 def _question_from_payload(owner, subject, topic, payload, *, method, source=None, prompt=""):
     if not isinstance(payload, dict):
         raise ValidationError("A IA retornou uma questão inválida.")
-    from contexts.ia_integrations.features.chat_bot.application.actions import question_payload
+    from contexts.ia_integrations.rag.actions import question_payload
     payload = question_payload(payload)
     item = QuestionBankItem(
         owner=owner,
