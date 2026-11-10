@@ -137,3 +137,20 @@ a configuração de um fornecedor e sua inferência real precisam ser verificada
 no ambiente de implantação.
 
 Referência: [SDK MCP oficial, versão 1](https://py.sdk.modelcontextprotocol.io/v1/).
+
+## Modos do chat
+
+Os botões **Montagem** e **Dúvidas** no topo do chat enviam `mode=assembly` ou
+`mode=doubts` junto de `chat.message`. Dúvidas é o padrão para clientes antigos.
+O servidor valida o modo; a escolha não depende de inferência do modelo.
+
+- Dúvidas: manual pertinente e consultas de desempenho; sem esquemas de criação,
+  propostas graváveis ou credencial MCP de questões.
+- Montagem: esquemas de questões/questionários e consultas ao banco; sem manual
+  nem instruções das análises institucionais.
+
+O histórico continua salvo e visível, mas somente mensagens marcadas com o mesmo
+modo são enviadas ao modelo. Mensagens anteriores a esta divisão, sem marcação,
+continuam visíveis e não entram no contexto. Recarregar restaura o modo da última
+mensagem. Durante uma resposta, os botões ficam desabilitados para evitar trocar
+o modo de uma solicitação em andamento. Sugestões selecionam seu modo correspondente.

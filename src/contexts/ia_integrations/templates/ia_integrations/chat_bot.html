@@ -14,6 +14,14 @@
 .chat-proposal button { display: block; margin-top: .75rem; padding: .6rem 1rem; cursor: pointer; }
 .chat-message details { margin-top: .75rem; max-width: 100%; }
 .chat-message small { display: block; margin-top: .5rem; }
+.chat-panel { display: flex; flex-direction: column; }
+.chat-panel .chat-messages { flex: 1; min-height: 220px; }
+.chat-modes { display: flex; gap: .5rem; flex-wrap: wrap; padding: .75rem 1rem; border-bottom: 1px solid #8883; }
+.chat-modes button { padding: .55rem 1rem; border: 1px solid #8885; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.chat-modes button[aria-pressed="true"] { background: var(--primary, #315bcb); color: white; border-color: transparent; }
+.chat-modes button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.chat-modes button:disabled { opacity: .6; cursor: wait; }
+.chat-mode-hint { margin: 0; padding: .5rem 1rem; font-size: .85rem; }
 </style>
 <section class="chat-shell" data-chat-root data-websocket-path="/ws/ia-integrations/chat-bot/">
     {{ diagnostic_prompt|json_script:"diagnostic-prompt" }}
@@ -52,9 +60,9 @@
 
             <div class="chat-suggestions">
                 <span>Sugestões para começar</span>
-                <button type="button" data-chat-suggestion="Interprete meus dados de desempenho e explique as limitações.">Interpretar meus dados</button>
-                <button type="button" data-chat-suggestion="Quero montar uma atividade no aplicativo. Quais informações você precisa?">Montar uma atividade</button>
-                <button type="button" data-chat-suggestion="Qual deve ser meu próximo passo de aprendizagem?">Definir o próximo passo</button>
+                <button type="button" data-suggestion-mode="doubts" data-chat-suggestion="Interprete meus dados de desempenho e explique as limitações.">Interpretar meus dados</button>
+                <button type="button" data-suggestion-mode="assembly" data-chat-suggestion="Quero montar uma atividade no aplicativo. Quais informações você precisa?">Montar uma atividade</button>
+                <button type="button" data-suggestion-mode="doubts" data-chat-suggestion="Qual deve ser meu próximo passo de aprendizagem?">Definir o próximo passo</button>
             </div>
 
             <p class="chat-disclaimer"><span>i</span> As respostas podem conter imprecisões. Confirme informações importantes.</p>
@@ -71,6 +79,11 @@
                 </button>
             </div>
 
+            <div class="chat-modes" role="group" aria-label="Modo do assistente">
+                <button type="button" data-chat-mode="assembly" aria-pressed="false">Montagem</button>
+                <button type="button" data-chat-mode="doubts" aria-pressed="true">Dúvidas</button>
+            </div>
+            <p class="chat-mode-hint" data-chat-mode-hint aria-live="polite">Tire dúvidas sobre conteúdos, o aplicativo e seus resultados.</p>
             <div class="chat-messages" data-chat-messages role="log" aria-live="polite" aria-label="Mensagens da conversa">
                 <div class="chat-message assistant-message">
                     <span class="message-avatar" aria-hidden="true">IA</span>
@@ -98,5 +111,5 @@
         </article>
     </div>
 </section>
-<script src="{% static 'js/chat_bot.js' %}?v=5" defer></script>
+<script src="{% static 'js/chat_bot.js' %}?v=6" defer></script>
 {% endblock %}

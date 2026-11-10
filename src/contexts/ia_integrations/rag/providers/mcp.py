@@ -10,7 +10,7 @@ from ..auth import token_for
 from ..exceptions import AgentUnavailable
 
 
-async def acomplete(messages, *, structured=False, on_partial=None, user_id=None):
+async def acomplete(messages, *, structured=False, on_partial=None, user_id=None, allow_question_tools=True):
     endpoint = settings.RAG_MCP_URL
     if urlsplit(endpoint).scheme not in ('http', 'https') or not urlsplit(endpoint).hostname:
         raise AgentUnavailable('Configure RAG_MCP_URL para usar o provedor MCP.')
@@ -19,7 +19,7 @@ async def acomplete(messages, *, structured=False, on_partial=None, user_id=None
         async with asyncio.timeout(settings.RAG_MCP_TIMEOUT_SECONDS):
             # Credentials are transport metadata for the trusted service, never model messages.
             meta = None
-            if settings.RAG_QUESTIONS_MCP_URL:
+            if allow_question_tools and settings.RAG_QUESTIONS_MCP_URL:
                 meta = {'lumini/questions': {'url': settings.RAG_QUESTIONS_MCP_URL,
                         'bearer_token': await token_for(user_id), 'expires_in': 300}}
             async with httpx.AsyncClient(headers=headers, timeout=settings.RAG_MCP_TIMEOUT_SECONDS,

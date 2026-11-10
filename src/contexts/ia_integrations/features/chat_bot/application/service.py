@@ -9,6 +9,8 @@ class ChatBotService:
         self._agent_gateway = agent_gateway
 
     async def reply(self, request: ChatRequest) -> ChatResponse:
+        if request.mode not in ('assembly', 'doubts'):
+            raise InvalidChatMessage('Modo de conversa inválido.')
         message = request.message.strip()
         if not message:
             raise InvalidChatMessage("A mensagem não pode estar vazia.")
@@ -23,5 +25,6 @@ class ChatBotService:
             user_id=request.user_id,
             history=request.history,
             on_partial=request.on_partial,
+            mode=request.mode,
         )
         return await self._agent_gateway.ask(normalized_request)

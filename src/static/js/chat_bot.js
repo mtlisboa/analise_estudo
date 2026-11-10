@@ -15,6 +15,23 @@
     var initialMessage = messages.innerHTML;
     var socket;
     var waiting = false;
+    var mode = 'doubts';
+    var modeButtons = root.querySelectorAll('[data-chat-mode]');
+    function selectMode(value) {
+        if (waiting || (value !== 'assembly' && value !== 'doubts')) return;
+        mode = value;
+        modeButtons.forEach(function (button) {
+            button.setAttribute('aria-pressed', String(button.dataset.chatMode === mode));
+        });
+        var hint = root.querySelector('[data-chat-mode-hint]');
+        if (hint) hint.textContent = mode === 'assembly'
+            ? 'Crie questões, edite uma questão existente ou monte um questionário.'
+            : 'Tire dúvidas sobre conteúdos, o aplicativo e seus resultados.';
+        input.placeholder = mode === 'assembly' ? 'Descreva a atividade ou a questão que deseja preparar…' : 'Qual é sua dúvida?';
+    }
+    modeButtons.forEach(function (button) {
+        button.addEventListener('click', function () { selectMode(button.dataset.chatMode); });
+    });
     var conversationId = null;
     var responseTimer;
     var partialCopy = null;
@@ -40,6 +57,7 @@
     function startWaiting(limit) {
         window.clearTimeout(responseTimer);
         waiting = true;
+        modeButtons.forEach(function (button) { button.disabled = true; });
         thinking.hidden = false;
         if (thinking.querySelector('small')) thinking.querySelector('small').textContent = 'Preparando resposta…';
         sendButton.disabled = true;
@@ -111,6 +129,7 @@
     }
 
     function renderMetadata(parent, metadata) {
+        if (metadata.mode) element(parent, 'small', metadata.mode === 'assembly' ? 'Montagem' : 'Dúvidas');
         if (metadata.url && metadata.url.charAt(0) === '/' && metadata.url.charAt(1) !== '/') {
             var link = element(parent, 'a', 'Abrir no aplicativo');
             link.href = metadata.url;
@@ -199,6 +218,7 @@
         removePartial();
         window.clearTimeout(responseTimer);
         waiting = false;
+        modeButtons.forEach(function (button) { button.disabled = false; });
         thinking.hidden = true;
         setStatus(socket && socket.readyState === WebSocket.OPEN ? 'online' : 'offline',
             socket && socket.readyState === WebSocket.OPEN ? 'Online' : 'Desconectado');
@@ -232,9 +252,12 @@
                         try { renderMetadata(copy, row.metadata || {}); } catch (error) { /* Text remains readable. */ }
                     }
                 });
-                oldestId = (payload.messages || []).length ? payload.messages[0].id : null;
+                var restored = payload.messages || [];
+                var lastMode = restored.length ? (restored[restored.length - 1].metadata || {}).mode : null;
+                oldestId = restored.length ? restored[0].id : null;
                 olderButton.hidden = (payload.messages || []).length < 200;
                 finishWaiting();
+                if (lastMode) selectMode(lastMode);
             } else if (payload.type === 'chat.history') {
                 var anchor = messages.firstChild;
                 var previousHeight = messages.scrollHeight;
@@ -308,7 +331,8 @@
         socket.send(JSON.stringify({
             type: 'chat.message',
             message: message,
-            conversation_id: conversationId
+            conversation_id: conversationId,
+            mode: mode
         }));
         input.value = '';
         input.style.height = '';
@@ -336,6 +360,8 @@
 
     root.querySelectorAll('[data-chat-suggestion]').forEach(function (button) {
         button.addEventListener('click', function () {
+            if (waiting) return;
+            selectMode(button.dataset.suggestionMode || 'doubts');
             input.value = button.dataset.chatSuggestion;
             input.dispatchEvent(new Event('input'));
             input.focus();
@@ -353,5 +379,6 @@
         startWaiting(10000);
     });
 
+    selectMode('doubts');
     connect();
 }());

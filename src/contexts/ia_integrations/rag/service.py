@@ -11,12 +11,12 @@ def provider_name():
     return name
 
 
-async def acomplete(messages, *, structured=False, on_partial=None, user_id=None):
+async def acomplete(messages, *, structured=False, on_partial=None, user_id=None, allow_question_tools=True):
     if provider_name() == 'ollama':
         from .providers.ollama import acomplete as invoke
         return await invoke(messages, structured=structured, on_partial=on_partial)
     from .providers.mcp import acomplete as invoke
-    return await invoke(messages, structured=structured, on_partial=on_partial, user_id=user_id)
+    return await invoke(messages, structured=structured, on_partial=on_partial, user_id=user_id, allow_question_tools=allow_question_tools)
 
 
 def complete(messages, *, structured=False, user_id=None):

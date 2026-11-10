@@ -165,26 +165,26 @@ class AssistantPipelineTests(TransactionTestCase):
             {'message': 'Revise esta nova versão.', 'proposal': {'action':'edit_question', 'source_id':source.pk,'question':QUESTION}},
         ]
         with patch('contexts.ia_integrations.features.chat_bot.infrastructure.assistant_gateway.acomplete', new_callable=AsyncMock, side_effect=responses) as provider:
-            result = await AssistantGateway().ask(ChatRequest('Edite minha questão', 'thread', str(user.pk)))
+            result = await AssistantGateway().ask(ChatRequest('Edite minha questão', 'thread', str(user.pk), mode='assembly'))
         self.assertEqual(provider.await_count, 2)
         self.assertEqual(result.metadata['proposal']['source_id'], source.pk)
-        self.assertTrue(result.metadata['sources'])
+        self.assertEqual(result.metadata['sources'], [])
         self.assertEqual(result.metadata['consultations'][0]['result']['correct_answer'], '4')
         self.assertEqual(await QuestionBankItem.objects.acount(), 1)
         json.dumps(result.metadata)
 
     async def test_plain_reply_preserves_history_and_never_saves(self):
         user = await get_user_model().objects.acreate_user(username='plain-pipeline')
-        history = ({'role':'user', 'content':'Explique frações'}, {'role':'assistant', 'content':'Uma parte do todo.'})
+        history = ({'role':'user', 'content':'Explique frações', 'mode':'doubts'}, {'role':'assistant', 'content':'Uma parte do todo.', 'mode':'doubts'})
         with patch('contexts.ia_integrations.features.chat_bot.infrastructure.assistant_gateway.acomplete', new_callable=AsyncMock, return_value={'message':'Exercício: represente meio.', 'proposal':None}) as provider:
             result = await AssistantGateway().ask(ChatRequest('Crie exercício aqui na conversa', 'thread', str(user.pk), history))
-        self.assertIn(history[0], provider.call_args.args[0])
+        self.assertIn({'role':'user', 'content':'Explique frações'}, provider.call_args.args[0])
         self.assertNotIn('proposal', result.metadata)
         self.assertEqual(await QuestionBankItem.objects.acount(), 0)
 
     async def test_invalid_write_rejected_in_gateway(self):
         user = await get_user_model().objects.acreate_user(username='bad-pipeline')
         with patch('contexts.ia_integrations.features.chat_bot.infrastructure.assistant_gateway.acomplete', new_callable=AsyncMock, return_value={'message':'Proposta', 'proposal':{'action':'delete_all'}}):
-            result = await AssistantGateway().ask(ChatRequest('Teste', 'thread', str(user.pk)))
+            result = await AssistantGateway().ask(ChatRequest('Teste', 'thread', str(user.pk), mode='assembly'))
         self.assertNotIn('proposal', result.metadata)
         self.assertIn('Nenhuma alteração', result.message)

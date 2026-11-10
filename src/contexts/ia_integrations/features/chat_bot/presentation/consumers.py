@@ -36,7 +36,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
         self.task = None
         self.pending = None
         self.conversation_id, rows = await database_sync_to_async(history_store.load)(user.pk)
-        self.history = [{'role': r['role'], 'content': r['content']} for r in rows[-8:]]
+        self.history = [{'role': r['role'], 'content': r['content'], 'mode': r['metadata'].get('mode')} for r in rows[-8:]]
         await self.accept()
         await self.send_json({"type": "chat.ready", "conversation_id": self.conversation_id,
                               "messages": rows, "timeout_seconds": settings.IA_CHAT_TIMEOUT_SECONDS})
@@ -106,6 +106,10 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             await self._send_error("invalid_message", "O campo 'message' deve ser texto.")
             return
 
+        mode = content.get('mode', 'doubts')
+        if mode not in ('assembly', 'doubts'):
+            await self._send_error('invalid_mode', 'Selecione Montagem ou Dúvidas.')
+            return
         conversation_id = self.conversation_id
         if content.get('conversation_id') not in (None, conversation_id):
             await self._send_error('stale_conversation', 'A conversa mudou. Recarregue o chat.', content.get('conversation_id'))
@@ -114,7 +118,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
         if not message or len(message) > ChatBotService.MAX_MESSAGE_LENGTH:
             await self._send_error('invalid_message', 'Escreva uma mensagem de até 8000 caracteres.', conversation_id)
             return
-        if not await database_sync_to_async(history_store.append)(self.scope['user'].pk, conversation_id, 'user', message):
+        if not await database_sync_to_async(history_store.append)(self.scope['user'].pk, conversation_id, 'user', message, {'mode': mode}):
             await self._send_error('stale_conversation', 'A conversa foi limpa em outra aba. Recarregue o chat.', conversation_id)
             return
         # A new request invalidates an older unaccepted proposal.
@@ -126,6 +130,7 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             user_id=str(user.pk),
             history=tuple(self.history),
             on_partial=self._partial,
+            mode=mode,
         )
 
         try:
@@ -146,11 +151,12 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             await self._send_error("agent_unavailable", "Não foi possível concluir a consulta. Tente novamente.", conversation_id)
             return
 
+        response.metadata['mode'] = mode
         if not await database_sync_to_async(history_store.append)(user.pk, conversation_id, 'assistant', response.message, response.metadata):
             await self._send_error('stale_conversation', 'A conversa foi limpa em outra aba. Recarregue o chat.', conversation_id)
             return
-        self.history.extend([{"role": "user", "content": message[:8000]},
-                             {"role": "assistant", "content": json.dumps({"message": response.message, "proposal": response.metadata.get("proposal")}, ensure_ascii=False)[:16000]}])
+        self.history.extend([{"role": "user", "content": message[:8000], "mode": mode},
+                             {"role": "assistant", "mode": mode, "content": json.dumps({"message": response.message, "proposal": response.metadata.get("proposal")}, ensure_ascii=False)[:16000]}])
         self.history = self.history[-8:]
         while len(self.history) > 2 and sum(len(m["content"]) for m in self.history) > 24000:
             self.history = self.history[2:]
@@ -185,9 +191,9 @@ class ChatBotConsumer(AsyncJsonWebsocketConsumer):
             logging.getLogger(__name__).exception("Assistant action failed")
             await self._send_error('action_failed', 'Não foi possível salvar a proposta. Nenhuma alteração parcial foi mantida.', pending[3])
             return
-        await database_sync_to_async(history_store.append)(self.scope['user'].pk, pending[3], 'assistant', result['message'], {'url': result['url']})
-        self.history.append({'role': 'assistant', 'content': result['message']})
-        await self.send_json({'type': 'chat.response', 'conversation_id': pending[3], 'message': result['message'], 'metadata': {'url': result['url']}})
+        await database_sync_to_async(history_store.append)(self.scope['user'].pk, pending[3], 'assistant', result['message'], {'url': result['url'], 'mode': 'assembly'})
+        self.history.append({'role': 'assistant', 'content': result['message'], 'mode': 'assembly'})
+        await self.send_json({'type': 'chat.response', 'conversation_id': pending[3], 'message': result['message'], 'metadata': {'url': result['url'], 'mode': 'assembly'}})
 
     def _execute(self, proposal):
         user = get_user_model().objects.get(pk=self.scope['user'].pk, is_active=True)

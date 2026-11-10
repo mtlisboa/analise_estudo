@@ -94,3 +94,17 @@ class HistoryTests(TransactionTestCase):
         older = await socket.receive_json_from()
         self.assertEqual([m['content'] for m in older['messages']], ['0'])
         await socket.disconnect()
+
+    async def test_mode_survives_reload_and_invalid_mode_is_not_saved(self):
+        user = await get_user_model().objects.acreate_user(username='mode-history')
+        socket, ready = await self.connection(user)
+        await socket.send_json_to({'type':'chat.message', 'message':'Oi', 'mode':'invalid'})
+        self.assertEqual((await socket.receive_json_from())['code'], 'invalid_mode')
+        self.assertEqual(await ChatMessage.objects.acount(), 0)
+        with patch(FACTORY, return_value=FakeChatBotService()):
+            await socket.send_json_to({'type':'chat.message', 'message':'Monte uma questão', 'mode':'assembly'})
+            self.assertEqual((await socket.receive_json_from())['metadata']['mode'], 'assembly')
+        await socket.disconnect()
+        socket, ready = await self.connection(user)
+        self.assertEqual([m['metadata']['mode'] for m in ready['messages']], ['assembly', 'assembly'])
+        await socket.disconnect()

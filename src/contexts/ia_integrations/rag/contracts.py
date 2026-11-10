@@ -9,6 +9,7 @@ class ChatRequest:
     user_id: str
     history: tuple = ()
     on_partial: Any = None
+    mode: str = "doubts"
 
 
 @dataclass(frozen=True, slots=True)
