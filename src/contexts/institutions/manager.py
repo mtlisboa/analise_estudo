@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Avg, Count, FloatField, Q, Value
 from django.db.models.functions import Cast
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
@@ -95,3 +95,32 @@ def render_module(request, account, module='inicio'):
 def module_view(request, module):
     from .views import institutional_identity
     return render_module(request, institutional_identity(request.user), module)
+
+
+@login_required
+@never_cache
+@require_GET
+def teacher_profile(request, pk):
+    from .views import institutional_identity
+
+    identity = institutional_identity(request.user)
+    if identity.role not in (InstitutionalAccount.Role.ADMIN, InstitutionalAccount.Role.MANAGER):
+        raise PermissionDenied('Este contexto é exclusivo da gestão institucional.')
+
+    teacher = get_object_or_404(
+        identity.organization.institutional_accounts.select_related('user'),
+        pk=pk, role=InstitutionalAccount.Role.TEACHER,
+    )
+    from .profiles import active_classrooms, performance
+
+    classrooms = active_classrooms(teacher)
+    analysis = request.GET.get('tab') == 'analise'
+    return render(request, 'institutions/manager_teacher_profile.html', {
+        'teacher_name': teacher.user.get_full_name() or teacher.registration,
+        'registration': teacher.registration,
+        'institutional_email': teacher.email,
+        'institution': identity.organization.school,
+        'classrooms': classrooms.values_list('pk', 'name'),
+        'analysis_tab': analysis,
+        'performance_rows': performance(classrooms) if analysis else (),
+    })

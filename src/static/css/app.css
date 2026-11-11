@@ -775,7 +775,7 @@ body.analytics-chart-expanded { overflow: hidden; }
 .chat-connection span { width: 7px; height: 7px; border-radius: 50%; background: #c79837; box-shadow: 0 0 0 3px color-mix(in srgb, #c79837 18%, transparent); }
 .chat-connection[data-state="online"] span { background: #68ad37; box-shadow: 0 0 0 3px color-mix(in srgb, #68ad37 18%, transparent); }
 .chat-connection[data-state="offline"] span { background: #c4515e; box-shadow: 0 0 0 3px color-mix(in srgb, #c4515e 18%, transparent); }
-.chat-layout { display: grid; overflow: hidden; grid-template-columns: 300px 1fr; min-height: 650px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
+.chat-layout { display: grid; overflow: hidden; grid-template-columns: minmax(0, 1fr); min-height: 650px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
 .chat-sidebar { display: flex; padding: 27px 24px; flex-direction: column; border-right: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 87%, var(--primary-soft)); }
 .assistant-profile { display: flex; align-items: center; gap: 12px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
 .assistant-profile > div, .chat-panel-topbar > div > div { display: flex; min-width: 0; flex-direction: column; }
@@ -837,7 +837,6 @@ body.analytics-chart-expanded { overflow: hidden; }
     .solution-card { padding: 38px; }
     .auth-layout { gap: 50px; }
     .dashboard-grid { grid-template-columns: 1fr; }.ai-card { min-height: 260px; }
-    .chat-layout { grid-template-columns: 250px 1fr; }
     .analytics-filters { grid-template-columns: 1fr 1fr; }
     .analytics-metrics { grid-template-columns: repeat(3, 1fr); }
     .assessment-item { grid-template-columns: 1fr 1fr; }
@@ -904,7 +903,6 @@ body.analytics-chart-expanded { overflow: hidden; }
     .question-bank-actions { grid-column: 2; align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
     .chat-shell { width: min(calc(100% - 32px), var(--max-width)); padding-top: 34px; }
     .chat-page-heading { align-items: flex-start; flex-direction: column; gap: 15px; }
-    .chat-layout { grid-template-columns: 1fr; }
     .chat-sidebar { display: none; }
     .chat-panel { min-height: 650px; }
     .chat-messages { max-height: 480px; padding-inline: 20px; }

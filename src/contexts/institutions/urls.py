@@ -1,6 +1,6 @@
 from django.urls import path, include
 
-from . import manager, student, views, classrooms, teacher_analysis, teacher_administration
+from . import manager, student, views, classrooms, teacher_analysis, teacher_administration, profiles
 from .roles import WORKSPACES
 
 app_name = 'institutions'
@@ -10,12 +10,14 @@ urlpatterns = [
     path('professor/administracao/', teacher_administration.index, name='teacher-administration'),
     path('professor/analise/', teacher_analysis.index, name='teacher-analysis'),
     path('turmas/', classrooms.index, name='classrooms'),
+    path('turmas/<int:classroom_id>/alunos/<int:membership_id>/', profiles.student_profile, name='student-profile'),
     path('turmas/<int:pk>/', classrooms.detail, name='classroom'),
     path('aluno/disciplinas/', student.disciplines, name='student-disciplines'),
     path('aluno/disciplinas/<uuid:code>/<str:subject>/', student.disciplines, name='student-discipline'),
     path('', views.index, name='index'),
     path('gestor/academico/desempenho/', manager.module_view,
          {'module': 'desempenho'}, name='manager-performance'),
+    path('gestor/administracao/professores/<int:pk>/', manager.teacher_profile, name='manager-teacher-profile'),
     path('gestor/<slug:module>/', manager.module_view, name='manager-module'),
 ]
 urlpatterns += [

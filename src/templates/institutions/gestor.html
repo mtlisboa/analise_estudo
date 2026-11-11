@@ -17,7 +17,7 @@
     {% elif module == 'desempenho' %}{% include 'components/institutions/manager/performance.html' %}
     {% elif module == 'analise' %}{% include 'components/institutions/manager/analysis.html' %}
     {% elif module == 'administracao' %}
-        {% include 'components/institutions/directory.html' %}
+        {% include 'components/institutions/directory.html' with show_teacher_profiles=True %}
         <p class="manager-module-note">A criação e a redefinição de acessos são realizadas pelo administrativo da instituição.</p>
     {% elif module == 'institucional' %}{% include 'components/institutions/manager/institutional.html' %}{% endif %}
 </section>

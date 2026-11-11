@@ -146,7 +146,7 @@ def room_data(request, classroom):
             chat_data['room_teachers'] = classroom.memberships.filter(role='TEACHER',status='ACTIVE',user__is_active=True,user__institutional_account__role='TEACHER',user__institutional_account__organization=classroom.organization).select_related('user__institutional_account').exclude(user=request.user)
     from features.accounts.institutional import can_provision
     from contexts.institutions.coursework.pdf_modules import PDFModuleForm
-    return {**chat_data, 'can_publish_content': content_teacher, 'pdf_module_form': PDFModuleForm(), 'can_register_student': bool(identity and can_provision(request.user, classroom.organization)), 'is_classroom_environment': True, 'institutional_room': identity is not None, 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
+    return {**chat_data, 'can_publish_content': content_teacher, 'pdf_module_form': PDFModuleForm(), 'can_register_student': bool(identity and can_provision(request.user, classroom.organization)), 'is_classroom_environment': True, 'institutional_room': identity is not None, 'can_view_student_profiles': bool(identity and identity.role in ('TEACHER', 'MANAGER', 'ADMIN')), 'classroom': classroom, 'offers': offers, 'selected_offer': selected,
         'subject': subject, 'subject_choices': subject_choices, 'modules': modules, 'can_manage': manage, 'memberships': classroom.memberships.select_related('user', 'invited_by'),
         'tests': classroom.tests.all() if manage else classroom.tests.filter(is_published=True),
         'notices': list(notices[:3]), 'notice_count': notices.count(),

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Perfil de professor | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}
+<section class="manager-shell">
+    <p><a href="{% url 'institutions:manager-module' 'administracao' %}">Voltar à Administração</a></p>
+    <h1>{{ teacher_name }}</h1>
+    <p>Professor · {{ institution.display_name }}</p>
+
+    {% include 'components/institutions/profile_tabs.html' %}
+    {% if analysis_tab %}
+        {% include 'components/institutions/profile_performance.html' %}
+    {% else %}
+    <article class="dash-card manager-card">
+        <h2>Dados institucionais</h2>
+        <dl>
+            <dt>Matrícula ou registro</dt>
+            <dd>{{ registration }}</dd>
+            <dt>E-mail institucional</dt>
+            <dd>{{ institutional_email }}</dd>
+        </dl>
+        <p>Dados pessoais de contato e documentos são ocultos neste perfil.</p>
+    </article>
+
+    <article class="dash-card manager-card">
+        <h2>Turmas ativas</h2>
+        <ul>
+            {% for classroom_id, name in classrooms %}
+                <li><a href="{% url 'institutions:classroom' classroom_id %}">{{ name }}</a></li>
+            {% empty %}
+                <li>Nenhuma turma ativa vinculada.</li>
+            {% endfor %}
+        </ul>
+    </article>
+    {% endif %}
+</section>
+{% endblock %}

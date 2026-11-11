@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Perfil do aluno | Lumini{% endblock %}
+{% block main_class %}manager-page{% endblock %}
+{% block content %}
+<section class="manager-shell">
+    <p><a href="{% url 'institutions:classroom' classroom.pk %}">Voltar à turma</a></p>
+    <h1>{{ student_name }}</h1>
+    <p>Aluno · {{ classroom.name }}</p>
+    {% include 'components/institutions/profile_tabs.html' %}
+    {% if analysis_tab %}
+        {% include 'components/institutions/profile_performance.html' %}
+    {% endif %}
+</section>
+{% endblock %}

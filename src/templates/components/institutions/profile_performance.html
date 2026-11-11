@@ -1,0 +1,18 @@
+<article class="dash-card manager-card">
+    <h2>Desempenho por turma</h2>
+    <p>Média dos percentuais das avaliações corrigidas com pontuação válida.</p>
+    <div class="manager-list">
+        {% for row in performance_rows %}
+            <div class="manager-list-item">
+                <strong>{{ row.name }}</strong>
+                {% if row.count %}
+                    <span>{{ row.average|floatformat:1 }}% · {{ row.count }} resultado{{ row.count|pluralize }}</span>
+                {% else %}
+                    <span>Sem resultados corrigidos.</span>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p>Nenhuma turma ativa vinculada.</p>
+        {% endfor %}
+    </div>
+</article>

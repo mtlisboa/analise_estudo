@@ -9,7 +9,11 @@
         {% for account in account_page %}<div class="manager-list-item"><div class="list-copy">
             <strong>{{ account.user.get_full_name|default:account.registration }}</strong>
             <small>{{ account.registration }} · {{ account.get_role_display }}</small>
-        </div></div>{% empty %}{% include 'components/institutions/empty.html' with text='Nenhum registro encontrado.' %}{% endfor %}
+        </div>
+        {% if show_teacher_profiles and account.role == "TEACHER" %}
+            <a class="button button-small button-secondary" href="{% url 'institutions:manager-teacher-profile' account.pk %}" aria-label="Ver perfil institucional de {{ account.user.get_full_name|default:account.registration }}">Ver perfil</a>
+        {% endif %}
+        </div>{% empty %}{% include 'components/institutions/empty.html' with text='Nenhum registro encontrado.' %}{% endfor %}
     </div>
     {% if account_page.paginator.num_pages > 1 %}<nav class="manager-actions" aria-label="Páginas de registros">
         {% if account_page.has_previous %}<a href="?q={{ query|urlencode }}&amp;page={{ account_page.previous_page_number }}">Anterior</a>{% endif %}
