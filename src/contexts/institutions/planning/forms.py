@@ -51,8 +51,14 @@ class OfferForm(ScopedForm):
         fields = ["name", "grade", "shift", "capacity", "responsible_teacher"]
 
     def scope(self):
-        self.fields["responsible_teacher"].queryset = self.period.teachers.select_related("account__user").filter(
+        responsible = self.fields["responsible_teacher"]
+        responsible.queryset = self.period.teachers.select_related("account__user").filter(
             account__organization=self.period.organization, account__role="TEACHER", account__user__is_active=True,
+        )
+        responsible.required = self.instance.pk is None or bool(self.instance.responsible_teacher_id)
+        responsible.help_text = (
+            "O número da oferta é gerado ao salvar, usando o ano letivo e os três últimos "
+            "dígitos da matrícula do professor responsável."
         )
 
 

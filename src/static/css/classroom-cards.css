@@ -1,88 +1,46 @@
-.classroom-card {
-    display: grid;
-    grid-template-columns: minmax(120px, 24%) minmax(0, 1fr);
-    position: relative;
-    overflow: hidden;
-    padding: 0;
-}
-
-.classroom-card-image {
-    grid-area: 1 / 1;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    object-fit: cover;
-}
-
-.classroom-card-body {
-    padding: clamp(16px, 3vw, 28px);
-    overflow-wrap: anywhere;
-}
-
-.classroom-card-body h2 { margin: 0; }
-
-.classroom-card-body dl {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 8px 16px;
-    margin: 16px 0;
-}
-
-.classroom-card-body dt { font-weight: 700; }
-.classroom-card-body dd { margin: 0; }
-.classroom-card-time { display: block; }
-
-@media (max-width: 640px) {
-    .classroom-card { grid-template-columns: minmax(0, 1fr); }
-    .classroom-card-image { height: clamp(120px, 38vw, 210px); }
-}
-
-.classroom-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-    gap: 16px;
-    margin-block: 16px;
-}
-
-.classroom-card-grid > .empty-state {
-    grid-column: 1 / -1;
-}
-
-@media (max-width: 640px) {
-    .classroom-card-grid { grid-template-columns: minmax(0, 1fr); }
+.classroom-directory-shell {
+    --classroom-accent: #ff922e;
+    --classroom-ink: #241307;
+    padding-block: clamp(22px, 4vw, 48px);
 }
 
 .classroom-directory-heading {
-    padding: clamp(24px, 5vw, 56px);
-    border-radius: 18px;
-    background: #ff922e;
-    color: #241307;
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 14px 24px;
+    padding: clamp(24px, 4vw, 44px);
+    border-radius: 16px;
+    background: var(--classroom-accent);
+    color: var(--classroom-ink);
 }
 
 .classroom-directory-heading .section-kicker {
+    flex-basis: 100%;
     color: inherit;
-    margin: 0 0 8px;
+    margin: 0;
 }
 
 .classroom-directory-heading h1 {
     margin: 0;
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-size: clamp(2.5rem, 5vw, 4rem);
     letter-spacing: -.05em;
-    line-height: 1.04;
+    line-height: 1;
 }
 
 .classroom-directory-heading .button {
-    background: #aa2c0b;
-    border-color: #aa2c0b;
-    color: white;
+    background: var(--classroom-ink);
+    border-color: var(--classroom-ink);
+    color: #fff;
 }
 
 .classroom-search {
     display: grid;
-    grid-template-columns: minmax(0, 26rem) auto;
+    grid-template-columns: minmax(0, 27rem) auto;
     justify-content: start;
     align-items: center;
-    gap: 8px 12px;
+    gap: 8px;
     margin-block: 24px;
 }
 
@@ -102,42 +60,88 @@
     border-radius: 8px;
 }
 
+.classroom-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+    gap: 16px;
+}
+
+.classroom-card-grid > .empty-state { grid-column: 1 / -1; }
+
 .classroom-directory .classroom-card {
+    display: grid;
+    grid-template-columns: minmax(0, 32%) minmax(0, 1fr);
+    overflow: hidden;
+    padding: 0;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 16px;
+    background: var(--surface);
     box-shadow: none;
+}
+
+.classroom-card-cover {
+    position: relative;
+    background: var(--classroom-accent);
+    min-height: 132px;
+}
+
+.classroom-card-image {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .classroom-card-body {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    padding: clamp(16px, 2vw, 24px);
+    overflow-wrap: anywhere;
+}
+
+.classroom-card-body .classroom-card-subject {
+    margin: 0 0 5px;
+    color: var(--primary);
+    font-size: .875rem;
+    font-weight: 700;
 }
 
 .classroom-card-body h2 {
-    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    margin: 0;
+    font-size: clamp(1.25rem, 2vw, 1.65rem);
+    letter-spacing: -.035em;
     line-height: 1.15;
-    letter-spacing: -.025em;
 }
 
 .classroom-card-body dl {
-    font-size: .875rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 12px;
     width: 100%;
+    padding-top: 14px;
+    margin: 14px 0;
+    border-top: 1px solid var(--border);
+    font-size: .875rem;
 }
 
 .classroom-card-body dt { color: var(--text-soft); }
+.classroom-card-body dd { margin: 0; }
+.classroom-card-time { display: block; }
 
 .classroom-card-body .classroom-offer {
-    justify-self: start;
-    border-radius: 5px;
-    padding: 2px 6px;
-    background: #ff922e;
-    color: #241307;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
 }
 
 .classroom-card-body > .button { margin-top: auto; }
+.classroom-pagination { margin-top: 24px; }
 
 @media (max-width: 640px) {
-    .classroom-directory-heading { border-radius: 12px; }
+    .classroom-card-grid,
+    .classroom-directory .classroom-card { grid-template-columns: minmax(0, 1fr); }
+
+    .classroom-card-cover { aspect-ratio: 2.25; }
 }
