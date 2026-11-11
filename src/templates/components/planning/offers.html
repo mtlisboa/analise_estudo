@@ -5,7 +5,7 @@
 <div class="planning-grid">
 {% for item in offers %}<section class="planning-offer">
 <h3>{{ item.name }}</h3><p>{{ item.grade }} · {{ item.get_shift_display }} · {{ item.students.count }}/{{ item.capacity }} alunos</p>
-<small>Código da oferta</small><code class="planning-code">{{ item.code }}</code>
+<small>Código da oferta</small><code class="planning-code">{{ item.number|default:"A definir" }}</code>
 {% include 'components/planning/row_actions.html' with kind='offer' %}
 </section>{% empty %}<p>Nenhuma oferta cadastrada.</p>{% endfor %}
 </div></article>

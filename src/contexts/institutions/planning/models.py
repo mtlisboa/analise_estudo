@@ -35,6 +35,10 @@ class Period(models.Model):
 class Offer(models.Model):
     code = models.UUIDField("código da oferta", default=uuid.uuid4, unique=True, editable=False)
     period = models.ForeignKey(Period, on_delete=models.CASCADE, related_name="offers")
+    responsible_teacher = models.ForeignKey(
+        "Teacher", verbose_name="professor responsável", null=True, blank=True,
+        on_delete=models.PROTECT, related_name="responsible_offers",
+    )
     name = models.CharField("turma", max_length=100)
     grade = models.CharField("série / etapa", max_length=60)
     shift = models.CharField("turno", max_length=10, choices=Classroom.Shift.choices)
@@ -50,7 +54,23 @@ class Offer(models.Model):
         ordering = ["grade", "shift", "name"]
         constraints = [models.UniqueConstraint(fields=["period", "name"], name="planning_offer_name")]
 
+    @property
+    def number(self):
+        if not self.pk or not self.responsible_teacher_id:
+            return None
+        suffix = self.responsible_teacher.account.registration[-3:]
+        if len(suffix) != 3 or not suffix.isascii() or not suffix.isdigit():
+            return None
+        return f"{self.period.starts_on.year % 100:02d}-{self.pk % 10000:04d}-{suffix}"
+
     def clean(self):
+        if self.responsible_teacher_id:
+            teacher = self.responsible_teacher
+            if teacher.period_id != self.period_id:
+                raise ValidationError({"responsible_teacher": "Selecione um professor deste período letivo."})
+            suffix = teacher.account.registration[-3:]
+            if len(suffix) != 3 or not suffix.isascii() or not suffix.isdigit():
+                raise ValidationError({"responsible_teacher": "A matrícula deve terminar em três dígitos."})
         self.grade = self.grade.strip().upper()
         if self.pk and self.capacity is not None and self.students.count() > self.capacity:
             raise ValidationError("A capacidade não pode ficar abaixo da quantidade de alunos.")

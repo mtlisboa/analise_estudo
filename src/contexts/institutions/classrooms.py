@@ -27,17 +27,28 @@ def index(request):
         rows = rows.filter(Q(name__icontains=query) | Q(letter__icontains=query))
     # Existing group records are internal to planning, never used as navigation.
     offers = Offer.objects.filter(period__published_at__isnull=False,
-        period__organization=account.organization).select_related('period').order_by('-period__starts_on', '-pk')
+        period__organization=account.organization).select_related('period', 'responsible_teacher__account').order_by('-period__starts_on', '-pk')
     rows = rows.prefetch_related(Prefetch('planning_offer', queryset=offers, to_attr='room_offer'))
     entries = []
     from copy import copy
     for classroom in rows.order_by('name', 'pk'):
         offer = classroom.room_offer
-        subjects = sorted({lesson['subject'] for lesson in offer.published_schedule
-            if account.role != 'TEACHER' or lesson.get('teacher_id') == account.pk}) if offer else []
+        lessons = [
+            lesson for lesson in (offer.published_schedule if offer else [])
+            if account.role != 'TEACHER' or str(lesson.get('teacher_id')) == str(account.pk)
+        ]
+        subjects = sorted({lesson['subject'] for lesson in lessons})
         for subject in subjects or ['']:
             entry = copy(classroom)
             entry.subject = subject
+            schedule = [lesson for lesson in lessons if lesson['subject'] == subject]
+            entry.teacher_names = ', '.join(dict.fromkeys(
+                lesson['teacher'] for lesson in schedule if lesson.get('teacher')
+            ))
+            entry.schedule_labels = list(dict.fromkeys(
+                f"{lesson['weekday']}, {lesson['start']}–{lesson['end']}"
+                for lesson in sorted(schedule, key=lambda lesson: (lesson['day'], lesson['start']))
+            ))
             entries.append(entry)
     return render(request, 'institutions/classrooms.html', {
         'institution': account.organization.school, 'identity': account, 'query': query,

@@ -48,7 +48,12 @@ class PeriodEditForm(ScopedForm):
 class OfferForm(ScopedForm):
     class Meta:
         model = Offer
-        fields = ["name", "grade", "shift", "capacity"]
+        fields = ["name", "grade", "shift", "capacity", "responsible_teacher"]
+
+    def scope(self):
+        self.fields["responsible_teacher"].queryset = self.period.teachers.select_related("account__user").filter(
+            account__organization=self.period.organization, account__role="TEACHER", account__user__is_active=True,
+        )
 
 
 class StudentForm(ScopedForm):
