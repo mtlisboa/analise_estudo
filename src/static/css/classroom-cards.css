@@ -1,38 +1,26 @@
 .classroom-directory-shell {
-    --classroom-accent: #ff922e;
-    --classroom-ink: #241307;
     padding-block: clamp(22px, 4vw, 48px);
 }
 
 .classroom-directory-heading {
     display: flex;
-    align-items: end;
+    align-items: center;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 14px 24px;
-    padding: clamp(24px, 4vw, 44px);
-    border-radius: 16px;
-    background: var(--classroom-accent);
-    color: var(--classroom-ink);
+    gap: 16px;
 }
 
 .classroom-directory-heading .section-kicker {
     flex-basis: 100%;
-    color: inherit;
     margin: 0;
+    color: var(--primary);
 }
 
 .classroom-directory-heading h1 {
     margin: 0;
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    letter-spacing: -.05em;
-    line-height: 1;
-}
-
-.classroom-directory-heading .button {
-    background: var(--classroom-ink);
-    border-color: var(--classroom-ink);
-    color: #fff;
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: -.04em;
+    line-height: 1.1;
 }
 
 .classroom-search {
@@ -41,7 +29,9 @@
     justify-content: start;
     align-items: center;
     gap: 8px;
-    margin-block: 24px;
+    margin-block: 20px;
+    padding-block: 16px;
+    border-block: 1px solid var(--border);
 }
 
 .classroom-search label {
@@ -70,18 +60,21 @@
 
 .classroom-directory .classroom-card {
     display: grid;
-    grid-template-columns: minmax(0, 32%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 28%) minmax(0, 1fr);
     overflow: hidden;
     padding: 0;
     border: 1px solid var(--border);
     border-radius: 16px;
     background: var(--surface);
     box-shadow: none;
+    transition: border-color .15s ease;
 }
+
+.classroom-directory .classroom-card:focus-within { border-color: var(--primary); }
 
 .classroom-card-cover {
     position: relative;
-    background: var(--classroom-accent);
+    background: var(--primary-soft);
     min-height: 132px;
 }
 

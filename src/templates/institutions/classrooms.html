@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/classroom-cards.css' %}?v=2">{% endblock %}
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/classroom-cards.css' %}?v=3">{% endblock %}
 {% block title %}Turmas · {{ institution.display_name }} | Lumini{% endblock %}
 {% block main_class %}manager-page classroom-directory{% endblock %}
 {% block content %}
 <section class="manager-shell classroom-directory-shell">
 <header class="classroom-directory-heading"><p class="section-kicker">{{ institution.display_name }}</p><h1>Turmas</h1>{% if can_plan %}<a class="button button-small" href="{% url 'planning:index' %}">Montagem de turmas</a>{% endif %}</header>
-<form method="get" class="classroom-search" role="search"><label for="classroom-q">Buscar turma</label><input id="classroom-q" type="search" name="q" value="{{ query }}" maxlength="100"><button class="button button-small" type="submit">Buscar</button></form>
+<form method="get" class="classroom-search" role="search"><label for="classroom-q">Buscar turma</label><input id="classroom-q" type="search" name="q" value="{{ query }}" maxlength="100"><button class="button button-small button-secondary" type="submit">Buscar</button></form>
 <div class="classroom-card-grid">
     {% for classroom in classroom_page %}
         <article class="dash-card classroom-card">
