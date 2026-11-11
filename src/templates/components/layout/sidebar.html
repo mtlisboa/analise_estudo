@@ -1,7 +1,7 @@
     <a class="mobile-account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências">
         {% if user.avatar %}<img class="mobile-user-photo user-photo" src="{% url 'accounts:avatar' %}" alt="">{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>{% endif %}
     </a>
-    <aside class="app-sidebar{% if teacher_sidebar %} teacher-sidebar{% endif %}{% if management_sidebar %} management-sidebar{% endif %}{% if family_sidebar %} family-sidebar{% endif %}" aria-label="Navegação principal">
+    <aside id="app-sidebar" class="app-sidebar{% if teacher_sidebar %} teacher-sidebar{% endif %}{% if management_sidebar %} management-sidebar{% endif %}{% if family_sidebar %} family-sidebar{% endif %}" aria-label="Navegação principal">
         <div class="sidebar-brand-row">
             <a class="brand sidebar-brand" href="{% url 'accounts:dashboard' %}" aria-label="Lumini, meu painel">
                 <span class="brand-mark" aria-hidden="true">
@@ -15,6 +15,9 @@
             </button>
         </div>
 
+        <button class="sidebar-collapse-toggle" type="button" hidden aria-controls="app-sidebar" aria-expanded="true" aria-label="Recolher menu lateral" title="Recolher menu lateral">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
         <nav class="sidebar-nav">
             {% if teacher_sidebar %}
                 {% include 'components/layout/teacher_navigation.html' %}

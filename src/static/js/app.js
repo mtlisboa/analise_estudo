@@ -37,3 +37,44 @@
         }
     });
 }());
+
+(function () {
+    const button = document.querySelector('.sidebar-collapse-toggle');
+    if (!button) return;
+
+    const sidebar = document.getElementById('app-sidebar');
+    const key = 'lumini-sidebar-collapsed';
+    let collapsed = false;
+    try { collapsed = localStorage.getItem(key) === 'true'; } catch {}
+
+    for (const control of sidebar.querySelectorAll('.sidebar-link')) {
+        const label = control.querySelector('.sidebar-label')?.textContent.trim();
+        if (!label) continue;
+        if (!control.hasAttribute('aria-label')) control.setAttribute('aria-label', label);
+        if (!control.hasAttribute('title')) control.title = label;
+    }
+
+    function render() {
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+        const label = collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral';
+        button.setAttribute('aria-expanded', String(!collapsed));
+        button.setAttribute('aria-label', label);
+        button.title = label;
+    }
+
+    sidebar.addEventListener("click", (event) => {
+        const summary = event.target.closest("summary.sidebar-link");
+        if (!summary || !collapsed || !window.matchMedia("(min-width: 761px)").matches) return;
+        event.preventDefault();
+        button.click();
+        summary.parentElement.open = true;
+    });
+
+    button.hidden = false;
+    render();
+    button.addEventListener('click', () => {
+        collapsed = !collapsed;
+        render();
+        try { localStorage.setItem(key, String(collapsed)); } catch {}
+    });
+}());
