@@ -212,3 +212,60 @@
     .sidebar-collapsed .app-sidebar .sidebar-user { width: 40px; height: 40px; padding: 2px; box-sizing: border-box; }
     .sidebar-collapsed .app-sidebar .sidebar-logout .sidebar-link { width: 40px; height: 40px; padding: 10px; }
 }
+
+@media (min-width: 761px) {
+    .app-sidebar .theme-toggle.sidebar-theme {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+        background: transparent;
+        border: 0;
+        border-radius: 50%;
+        box-shadow: none;
+    }
+    .app-sidebar .theme-toggle.sidebar-theme svg {
+        width: 19px;
+        height: 19px;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .app-sidebar .theme-toggle.sidebar-theme:hover {
+        background: color-mix(in srgb, var(--text) 7%, transparent);
+    }
+    .app-sidebar .sidebar-collapse-toggle:not([hidden]) {
+        position: absolute;
+        top: 102px;
+        right: 0;
+        z-index: 2;
+        width: 22px;
+        min-width: 22px;
+        height: 44px;
+        min-height: 44px;
+        padding: 3px;
+        margin: 0;
+        border: 1px solid var(--border);
+        border-right: 0;
+        border-radius: 9px 0 0 9px;
+        background: var(--surface);
+        color: var(--text-soft);
+        box-shadow: -2px 0 6px rgb(0 0 0 / 3%);
+    }
+    .app-sidebar .sidebar-collapse-toggle:hover {
+        color: var(--primary);
+        background: var(--primary-soft);
+        border-color: var(--border);
+    }
+    .sidebar-collapsed .app-sidebar .sidebar-brand-row {
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 0;
+    }
+    .sidebar-collapsed .app-sidebar .sidebar-collapse-toggle:not([hidden]) {
+        top: 118px;
+    }
+    .sidebar-collapsed .app-sidebar .sidebar-nav {
+        padding-top: 44px;
+    }
+}
