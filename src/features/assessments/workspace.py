@@ -155,8 +155,8 @@ def questionnaires(request):
 @require_http_methods(['GET','POST'])
 def questionnaire(request, pk=None):
     identity = getattr(request.user, 'institutional_account', None)
-    if identity and identity.role != 'TEACHER':
-        raise PermissionDenied('Criação de questionários exclusiva do professor.')
+    if identity and identity.role not in ('TEACHER', 'MANAGER', 'ADMIN'):
+        raise PermissionDenied('Criação de questionários disponível para professores e gestão institucional.')
     assessment = get_object_or_404(Assessment, pk=pk, owner=request.user) if pk else Assessment(owner=request.user)
     initial = {'subject': request.GET.get('subject','')}
     account = account_for(request.user)

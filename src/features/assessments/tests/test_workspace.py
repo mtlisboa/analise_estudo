@@ -38,6 +38,19 @@ class QuestionnaireWorkspaceTests(TestCase):
         response = self.client.post(reverse('coursework:apply', args=[assessment.pk]), data)
         self.assertEqual(response.status_code, 302, response.context['form'].errors if response.context else '')
 
+    def test_management_can_create_and_edit_owned_questionnaires(self):
+        for user in (self.admin, self.users['MANAGER']):
+            self.client.force_login(user)
+            url = reverse('assessments:questionnaire-create')
+            self.assertEqual(self.client.get(url).status_code, 200)
+            response = self.client.post(url, self.payload(questions=[self.public.pk]))
+            self.assertEqual(response.status_code, 302)
+            assessment = Assessment.objects.get(owner=user, topic='Questionário compacto')
+            edit_url = reverse('assessments:questionnaire-edit', args=[assessment.pk])
+            self.assertEqual(self.client.get(edit_url).status_code, 200)
+            self.client.force_login(self.teacher.user)
+            self.assertEqual(self.client.get(edit_url).status_code, 404)
+
     def test_two_sidebar_entries_and_bank_visibility_preview_permissions(self):
         response=self.client.get(reverse('assessments:index'))
         self.assertEqual([row['label'] for row in response.context['evaluation_links']],['Banco de questões','Questionários'])
