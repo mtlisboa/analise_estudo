@@ -78,6 +78,9 @@ def build(scope, f):
     for result in latest_results.values():
         run=run_map[result.sheet.run_id]
         offer=getattr(run.classroom,'planning_offer',None)
+        subject = run.subject or run.assessment.subject
+        if offer and (offer.pk, subject) not in scope.pairs:
+            continue
         questions=effective_questions(run, result.sheet)
         total=Decimal(0); score=Decimal(0); used=0
         for i,q in enumerate(questions):
@@ -166,9 +169,18 @@ def build(scope, f):
     if f.get('student'): submissions = submissions.filter(student_id=f['student'].user_id)
     if f.get('start'): submissions = submissions.filter(submitted_at__date__gte=f['start'])
     if f.get('end'): submissions = submissions.filter(submitted_at__date__lte=f['end'])
+    scored_submissions = []
+    recorded_assessments = {(r['offer'], r['student'], r['assessment']) for r in rows}
     for submission in submissions:
         publication = submission.publication
         names[submission.student_id] = submission.student.get_full_name() or submission.student.username
+        assessment_key = (publication.offer_id, submission.student_id, publication.assessment_id)
+        if not skills_filter and assessment_key not in recorded_assessments and submission.maximum_score > 0:
+            scored_submissions.append({
+                'student': submission.student_id, 'offer': publication.offer_id, 'subject': publication.subject,
+                'date': submission.submitted_at.date().isoformat(), 'id': str(submission.pk),
+                'percentage': percent(submission.score, submission.maximum_score),
+            })
         keys = {str(k.get('question_id')): k for k in publication.grading_snapshot}
         for index, question in enumerate(publication.public_snapshot.get('questions', [])):
             key = keys.get(str(question.get('id')), {})
@@ -232,18 +244,27 @@ def build(scope, f):
         attendance_rows.append({'student':records[0].student.user.get_full_name() or records[0].student.registration,
             'subject':subject,'offer':oid,'hours':hours,'present':present,'percentage':value,'absences':trailing,'change':round(last-first,2) if mid and first is not None else None})
         policy=getattr(records[0].offer,'analysis_context',None)
-        if policy and policy.attendance_alert is not None and value<policy.attendance_alert:
-            alerts.append(f'{attendance_rows[-1]["student"]}: frequência de {value}% em {subject}, abaixo do alerta interno de {policy.attendance_alert}%.')
-        if mid and first is not None and last<first:alerts.append(f'{attendance_rows[-1]["student"]}: frequência em queda no recorte; conferir registros e carga horária.')
-    for student in summaries:
-        vals=[r for r in numeric if r['student']==student['id']]
-        vals.sort(key=lambda r:r['date'])
-        for o in offers:
-            policy=getattr(o,'analysis_context',None)
-            if policy and policy.stage!='infantil' and policy.low_score is not None:
-                recent=[r for r in vals if r['offer']==o.pk][-policy.minimum_evidence:]
-                if len(recent)>=policy.minimum_evidence and all(r['percentage']<policy.low_score for r in recent):
-                    alerts.append(f'{student["name"]}: baixo rendimento recorrente; {len(recent)} evidências abaixo de {policy.low_score}%. Considerar intervenção.')
+        if policy and policy.attendance_alert is not None and value is not None and value<policy.attendance_alert:
+            alerts.append({
+                'key': f'attendance:{records[0].student.user_id}:{subject}',
+                'offer': records[0].offer,
+                'message': f'{attendance_rows[-1]["student"]}: frequência de {value}% em {subject}, abaixo do limite de {policy.attendance_alert}%.',
+            })
+    performance = defaultdict(list)
+    for row in (*numeric, *scored_submissions):
+        performance[(row['student'], row['offer'], row['subject'])].append(row)
+    for (student_id, offer_id, subject), results in performance.items():
+        offer = offer_map.get(offer_id)
+        policy = getattr(offer, 'analysis_context', None)
+        if not policy or policy.stage == 'infantil' or policy.low_score is None:
+            continue
+        recent = sorted(results, key=lambda row: (row['date'], row['id']))[-policy.minimum_evidence:]
+        if len(recent) == policy.minimum_evidence and all(row['percentage'] < policy.low_score for row in recent):
+            alerts.append({
+                'key': f'performance:{student_id}:{subject}',
+                'offer': offer,
+                'message': f'{names[student_id]}: {len(recent)} resultados consecutivos abaixo de {policy.low_score}% em {subject}.',
+            })
     interventions=filtered(scope,Intervention,f,'starts_on').select_related('student__user','before','after','responsible__user')
     if skills_filter:interventions=interventions.filter(skill=skills_filter)
     trajectory=Trajectory.objects.filter(offer__in=offers) if scope.manager else Trajectory.objects.none()

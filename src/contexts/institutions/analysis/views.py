@@ -16,7 +16,7 @@ from .forms import Filters, REGISTRY, MANAGER_ONLY, record_form
 from .models import Audit, Evidence, KeyRevision
 from .services import build, effective_questions
 
-SECTIONS=[('overview','Visão geral'),('learning','Aprendizagem e habilidades'),('classes','Turmas e disciplinas'),('students','Alunos'),('items','Questões e distratores'),('attendance','Frequência e atividades'),('interventions','Intervenções e recuperação'),('trajectory','Rendimento e permanência'),('official','Indicadores oficiais e contexto escolar')]
+SECTIONS=[('overview','Visão geral'),('alerts','Alertas pedagógicos'),('learning','Aprendizagem e habilidades'),('classes','Turmas e disciplinas'),('students','Alunos'),('items','Questões e distratores'),('attendance','Frequência e atividades'),('interventions','Intervenções e recuperação'),('trajectory','Rendimento e permanência'),('official','Indicadores oficiais e contexto escolar')]
 
 def snapshot(obj):
     return json.loads(json.dumps(model_to_dict(obj),cls=DjangoJSONEncoder))
@@ -58,6 +58,7 @@ def index(request, teacher_only=False):
     if request.GET.get('format')=='json':
         return JsonResponse({k:data[k] for k in ('metrics','eligible','evaluated','participation','missing','distribution','timeline','skills','items','hypotheses','method','version','demo')})
     context.update(data)
+    context['alert_page'] = Paginator(data['alerts'], 25).get_page(request.GET.get('page'))
     context['chart_data'] = {
         'distribution': data['distribution'], 'timeline': data['timeline'],
         'participation': {'eligible': data['eligible'], 'evaluated': data['evaluated'], 'missing': data['missing']},

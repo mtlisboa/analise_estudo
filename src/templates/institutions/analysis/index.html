@@ -24,7 +24,28 @@
     <article class="dash-card manager-card analysis-evolution"><div class="analysis-card-heading"><div><span class="analysis-eyebrow">AO LONGO DO TEMPO</span><h2>Evolução dos resultados</h2></div><span class="analysis-unit">0–100%</span></div><p>Média por data de avaliação. Passe sobre um ponto para ver os detalhes.</p><div class="pedagogy-chart" data-analysis-chart="timeline" role="img" aria-label="Evolução das médias por data"></div><details class="analysis-chart-data"><summary>Consultar datas e valores</summary><div class="analytics-table-wrap"><table><thead><tr><th>Data</th><th>Resultados</th><th>Média</th></tr></thead><tbody>{% for row in timeline %}<tr><td>{{ row.date }}</td><td>{{ row.count }}</td><td>{{ row.average|floatformat:1 }}%</td></tr>{% empty %}<tr><td colspan="3">Sem resultados numéricos neste período.</td></tr>{% endfor %}</tbody></table></div></details><small class="analysis-footnote">Variação descritiva: conteúdo, dificuldade e composição não estão equiparados.</small></article>
     <article class="dash-card manager-card analysis-distribution"><div class="analysis-card-heading"><div><span class="analysis-eyebrow">PANORAMA</span><h2>Distribuição dos resultados</h2></div></div><p>Quantidade de resultados por faixa de aproveitamento.</p><div class="pedagogy-chart" data-analysis-chart="distribution" role="img" aria-label="Resultados por faixa percentual"></div><details class="analysis-chart-data"><summary>Consultar valores por faixa</summary>{% for row in distribution %}<p>{{ row.label }} <strong>{{ row.count }} resultados</strong></p>{% endfor %}</details><small class="analysis-footnote">Faixas descritivas, sem regra automática de aprovação.</small></article>
 </div>
-<article class="dash-card manager-card analysis-alerts"><h2>Alertas pedagógicos</h2><p>Regras configuráveis por oferta. Não determinam aprovação, reprovação ou probabilidade de evasão.</p>{% for alert in alerts %}<p>{{ alert }}</p>{% empty %}<p>Nenhum alerta sustentado pelos registros e regras configuradas.</p>{% endfor %}</article>
+{% endif %}
+{% if section == 'alerts' %}
+<article class="dash-card manager-card analysis-alerts">
+    <h2>Alertas pedagógicos</h2>
+    {% if scope.manager %}
+    <p><a href="{% url 'institutions:institution-analysis:record' 'configuracao' %}">Configurar limites por oferta</a></p>
+    {% endif %}
+    <ul>
+        {% for alert in alert_page %}
+        <li><strong>{{ alert.offer.name }} · {{ alert.offer.code }}</strong><p>{{ alert.message }}</p></li>
+        {% empty %}
+        <li>Nenhum alerta no recorte selecionado.</li>
+        {% endfor %}
+    </ul>
+    {% if alert_page.has_other_pages %}
+    <nav aria-label="Páginas de alertas">
+        {% if alert_page.has_previous %}<a href="?{{ query }}&amp;section=alerts&amp;page={{ alert_page.previous_page_number }}">Anterior</a>{% endif %}
+        Página {{ alert_page.number }} de {{ alert_page.paginator.num_pages }}
+        {% if alert_page.has_next %}<a href="?{{ query }}&amp;section=alerts&amp;page={{ alert_page.next_page_number }}">Próxima</a>{% endif %}
+    </nav>
+    {% endif %}
+</article>
 {% endif %}
 {% if section == 'learning' or section == 'students' %}
 <article class="dash-card manager-card"><h2>Evidências individuais e histórico</h2>{% for e in evidence_history %}<details><summary>{{ e.student.user.get_full_name }} · {{ e.skill }} · {{ e.date }} · tentativa {{ e.attempt }} · {{ e.get_status_display }}</summary><p>{{ e.observation }} · {{ e.concept }}</p><p>{{ e.score|default_if_none:'Qualitativo' }} / {{ e.maximum|default_if_none:'—' }} · {{ e.instrument_notes }}</p><a href="{% url 'institutions:institution-analysis:edit' 'evidencia' e.pk %}">Revisar e consultar histórico</a></details>{% empty %}<p>Sem rubricas registradas.</p>{% endfor %}</article>

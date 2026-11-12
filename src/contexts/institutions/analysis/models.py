@@ -189,3 +189,14 @@ class KeyRevision(models.Model):
             letters = 'ABCDE'[:len(self.run.questions[self.question_index-1]['options'])]
             if not self.annulled and self.correct not in letters:
                 raise ValidationError('Selecione um gabarito válido.')
+
+
+class ActiveAlert(models.Model):
+    recipient = models.ForeignKey('users_manager.InstitutionalAccount', on_delete=models.CASCADE)
+    offer = models.ForeignKey('institution_planning.Offer', on_delete=models.CASCADE)
+    key = models.CharField(max_length=120)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['recipient', 'offer', 'key'], name='analysis_active_alert_unique'),
+        ]

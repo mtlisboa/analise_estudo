@@ -204,3 +204,28 @@ class AnalysisTests(TestCase):
         data = build(Scope(self.teacher.user), {})
         self.assertEqual(data['items'][0]['choices'][1]['legend'], 'Confusão conceitual')
         self.assertEqual(data['hypotheses'][0]['count'], 1)
+
+    def test_configured_attendance_alert_notifies_once_and_can_recur(self):
+        from features.notifications.models import Notification
+
+        OfferContext.objects.create(offer=self.offer, stage='fundamental', attendance_alert=75)
+        with self.captureOnCommitCallbacks(execute=True):
+            attendance = Attendance.objects.create(
+                offer=self.offer, subject='MATEMÁTICA', student=self.student,
+                date=date(2026, 10, 1), hours=4, present=2,
+            )
+        notifications = Notification.objects.filter(recipient=self.teacher.user, title='Alerta pedagógico')
+        notice = notifications.get()
+        self.assertContains(self.client.get(notice.target_url), 'frequência de 50.0%')
+
+        with self.captureOnCommitCallbacks(execute=True):
+            attendance.save()
+        self.assertEqual(notifications.count(), 1)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            attendance.present = 4
+            attendance.save()
+        with self.captureOnCommitCallbacks(execute=True):
+            attendance.present = 2
+            attendance.save()
+        self.assertEqual(notifications.count(), 2)
