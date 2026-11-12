@@ -1,0 +1,30 @@
+<nav class="sidebar-nav sidebar-mobile-compact" aria-label="Navegação rápida">
+{% if teacher_sidebar %}
+    <a class="sidebar-link{% if request.resolver_match.view_name == 'accounts:dashboard' %} active{% endif %}" href="{% url 'accounts:dashboard' %}" title="Início"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg><span class="mobile-nav-label">Início</span></a>
+    <details class="sidebar-academic">
+        <summary class="sidebar-link" title="Acadêmico"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5-10-5Zm4 3v6c4 3 8 3 12 0v-6M22 9v7"/></svg><span class="mobile-nav-label">Acadêmico</span></summary>
+        <div class="sidebar-children sidebar-mobile-academic">
+            <a class="sidebar-link{% if request.resolver_match.view_name == 'paper-exams:students' %} active{% endif %}" href="{% url 'paper-exams:students' %}" title="Meus alunos"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg><span class="sidebar-label">Meus alunos</span><span class="mobile-nav-label">Alunos</span></a>
+            {% include 'components/layout/evaluations_navigation.html' %}
+            <a class="sidebar-link{% if request.resolver_match.view_name == 'institutions:teacher-analysis' %} active{% endif %}" href="{% url 'institutions:teacher-analysis' %}"{% if request.resolver_match.view_name == 'institutions:teacher-analysis' %} aria-current="page"{% endif %} title="Análise"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span class="sidebar-label">Análise</span><span class="mobile-nav-label">Análise</span></a>
+        </div>
+    </details>
+    <a class="sidebar-link{% if request.resolver_match.view_name == 'institutions:classrooms' or request.resolver_match.view_name == 'institutions:classroom' %} active{% endif %}" href="{% url 'institutions:classrooms' %}" title="Minhas turmas"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5-10-5Zm4 3v6c4 3 8 3 12 0v-6"/></svg><span class="sidebar-label">Minhas turmas</span><span class="mobile-nav-label">Turmas</span></a>
+{% elif management_sidebar %}
+    <a class="sidebar-link{% if request.resolver_match.view_name == 'institutions:gestor' %} active{% endif %}" href="{% url 'institutions:gestor' %}" title="Início"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg><span class="mobile-nav-label">Início</span></a>
+    <a class="sidebar-link{% if sidebar_performance %} active{% endif %}" href="{% url 'institutions:manager-performance' %}"{% if sidebar_performance %} aria-current="page"{% endif %} title="Análise"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span class="sidebar-label">Análise</span><span class="mobile-nav-label">Análise</span></a>
+    <a class="sidebar-link{% if request.resolver_match.view_name == 'institutions:classrooms' %} active{% endif %}" href="{% url 'institutions:classrooms' %}"{% if request.resolver_match.view_name == 'institutions:classrooms' %} aria-current="page"{% endif %} title="Turmas"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5-10-5Zm4 3v6c4 3 8 3 12 0v-6M22 9v7"/></svg><span class="sidebar-label">Turmas</span><span class="mobile-nav-label">Turmas</span></a>
+{% else %}
+    <a class="sidebar-link{% if request.resolver_match.view_name == 'accounts:dashboard' %} active{% endif %}" href="{% url 'accounts:dashboard' %}" title="Início"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg><span class="mobile-nav-label">Início</span></a>
+    <a class="sidebar-link{% if request.resolver_match.namespace == 'analytics-dashboard' %} active{% endif %}" href="{% url 'analytics-dashboard:dashboard' %}"{% if request.resolver_match.namespace == 'analytics-dashboard' %} aria-current="page"{% endif %} title="Análise">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 7 6-4 6 6 5-5"/></svg>
+                <span class="sidebar-label">Análise</span>
+                <span class="mobile-nav-label">Análise</span>
+            </a>
+    <a class="sidebar-link{% if request.resolver_match.namespace == 'users-manager' or request.resolver_match.namespace == 'organization-settings' %} active{% endif %}" href="{% url 'users-manager:dashboard' %}"{% if request.resolver_match.namespace == 'users-manager' or request.resolver_match.namespace == 'organization-settings' %} aria-current="page"{% endif %} title="Organizações e turmas">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20v-9l8-5 8 5v9"/><path d="M8 20v-5h8v5M9 11h.01M15 11h.01"/></svg>
+                <span class="sidebar-label">Organizações e turmas</span>
+                <span class="mobile-nav-label">Turmas</span>
+            </a>
+{% endif %}
+</nav>

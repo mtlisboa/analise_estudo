@@ -16,7 +16,7 @@
         <button class="sidebar-collapse-toggle" type="button" hidden aria-controls="app-sidebar" aria-expanded="true" aria-label="Recolher menu lateral" title="Recolher menu lateral">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
         </button>
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav{% if teacher_sidebar or management_sidebar or not family_sidebar and not student_sidebar %} sidebar-full-nav{% endif %}">
             {% if teacher_sidebar %}
                 {% include 'components/layout/teacher_navigation.html' %}
             {% elif family_sidebar %}
@@ -45,6 +45,10 @@
             {% include 'components/layout/evaluations_navigation.html' %}
             {% endif %}
         </nav>
+
+        {% if teacher_sidebar or management_sidebar or not family_sidebar and not student_sidebar %}
+            {% include 'components/layout/mobile_navigation.html' %}
+        {% endif %}
 
         <div class="sidebar-footer">
             <a class="sidebar-user account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências">

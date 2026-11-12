@@ -101,3 +101,44 @@
         transform: none;
     }
 }
+
+.app-sidebar .sidebar-mobile-compact { display: none; }
+
+@media (max-width: 760px) {
+    .app-sidebar .sidebar-full-nav { display: none; }
+    .app-sidebar .sidebar-mobile-compact {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        overflow: visible;
+        padding: 0;
+    }
+
+    .sidebar-mobile-compact .sidebar-mobile-academic {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        inset-inline: 10px;
+        margin: 0;
+        padding: 8px;
+        max-height: 60vh;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--surface);
+        box-shadow: 0 4px 20px #0002;
+    }
+
+    .sidebar-mobile-academic .sidebar-link {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .sidebar-mobile-academic .sidebar-evaluations .sidebar-children {
+        position: static;
+        margin: 4px 0 4px 12px;
+        padding: 0 0 0 8px;
+        border: 0;
+        box-shadow: none;
+    }
+}
