@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% load static %}
 {% block title %}Análise pedagógica | Lumini{% endblock %}
 {% block main_class %}manager-page institution-analysis-page{% endblock %}
-{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/institution_analysis.css' %}?v=3">{% endblock %}
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/institution_analysis.css' %}?v=4">{% endblock %}
 {% block content %}
 
 <script src="{% static 'js/institution_analysis.js' %}?v=2" defer></script>
@@ -37,6 +37,40 @@
     <article class="dash-card manager-card analysis-evolution"><div class="analysis-card-heading"><div><span class="analysis-eyebrow">AO LONGO DO TEMPO</span><h2>Evolução dos resultados</h2></div><span class="analysis-unit">0–100%</span></div><p>Média por data de avaliação. Passe sobre um ponto para ver os detalhes.</p><div class="pedagogy-chart" data-analysis-chart="timeline" role="img" aria-label="Evolução das médias por data"></div><details class="analysis-chart-data"><summary>Consultar datas e valores</summary><div class="analytics-table-wrap"><table><thead><tr><th>Data</th><th>Resultados</th><th>Média</th></tr></thead><tbody>{% for row in timeline %}<tr><td>{{ row.date }}</td><td>{{ row.count }}</td><td>{{ row.average|floatformat:1 }}%</td></tr>{% empty %}<tr><td colspan="3">Sem resultados numéricos neste período.</td></tr>{% endfor %}</tbody></table></div></details><small class="analysis-footnote">Variação descritiva: conteúdo, dificuldade e composição não estão equiparados.</small></article>
     <article class="dash-card manager-card analysis-distribution"><div class="analysis-card-heading"><div><span class="analysis-eyebrow">PANORAMA</span><h2>Distribuição dos resultados</h2></div></div><p>Quantidade de resultados por faixa de aproveitamento.</p><div class="pedagogy-chart" data-analysis-chart="distribution" role="img" aria-label="Resultados por faixa percentual"></div><details class="analysis-chart-data"><summary>Consultar valores por faixa</summary>{% for row in distribution %}<p>{{ row.label }} <strong>{{ row.count }} resultados</strong></p>{% endfor %}</details><small class="analysis-footnote">Faixas descritivas, sem regra automática de aprovação.</small></article>
 </div>
+{% endif %}
+{% if section == 'overview' or section == 'teachers' %}
+<article class="dash-card manager-card">
+<h2>Resultados por professor e turma</h2>
+<p>Leia média e participação em conjunto. Diferenças de conteúdo, dificuldade e composição das turmas limitam a comparação e a atribuição dos resultados ao professor.</p>
+{% if scope.manager %}
+{% for teacher in teacher_results %}
+<details class="analysis-teacher" {% if section == 'teachers' %}open{% endif %}>
+<summary>{{ teacher.name }} · {{ teacher.classes|length }} oferta{{ teacher.classes|length|pluralize }}</summary>
+{% for c in teacher.classes %}
+<div class="analysis-result-row">
+<div><a href="?{{ query }}&amp;offer={{ c.offer.pk }}&amp;section=classes">{{ c.offer.name }}</a><small>Oferta {{ c.offer.number|default:'sem número' }}</small></div>
+<div><span>Aproveitamento</span><strong>{{ c.average|floatformat:1|default_if_none:'—' }}{% if c.average != None %}%{% endif %}</strong>{% if c.average != None %}<meter min="0" max="100" value="{{ c.average|stringformat:'f' }}">{{ c.average }}%</meter>{% endif %}</div>
+<div><span>Participação</span><strong>{{ c.evaluated }}/{{ c.eligible }}</strong><small>{{ c.missing }} sem avaliação</small></div>
+</div>
+{% endfor %}
+</details>
+{% empty %}<p>Sem ofertas no recorte selecionado.</p>{% endfor %}
+{% endif %}
+</article>
+{% endif %}
+{% if section == 'students' %}
+<article class="dash-card manager-card">
+<h2>Resultados individuais</h2>
+<p>Média dos percentuais avaliados e quantidade de resultados por aluno no recorte selecionado.</p>
+{% for student in student_page %}
+<div class="analysis-result-row">
+<strong>{{ student.name }}</strong>
+<div><span>Aproveitamento</span><strong>{{ student.average|floatformat:1|default_if_none:'—' }}{% if student.average != None %}%{% endif %}</strong>{% if student.average != None %}<meter min="0" max="100" value="{{ student.average|stringformat:'f' }}">{{ student.average }}%</meter>{% endif %}</div>
+<div><span>Resultados avaliados</span><strong>{{ student.total }}</strong></div>
+</div>
+{% empty %}<p>Sem resultados individuais no recorte.</p>{% endfor %}
+<nav aria-label="Páginas de alunos">{% if student_page.has_previous %}<a href="?{{ query }}&amp;section=students&amp;page={{ student_page.previous_page_number }}">Anterior</a>{% endif %} {{ student_page.number }} / {{ student_page.paginator.num_pages }} {% if student_page.has_next %}<a href="?{{ query }}&amp;section=students&amp;page={{ student_page.next_page_number }}">Próxima</a>{% endif %}</nav>
+</article>
 {% endif %}
 {% if section == 'learning' or section == 'students' %}
 <article class="dash-card manager-card"><h2>Evidências individuais e histórico</h2>{% for e in evidence_history %}<details><summary>{{ e.student.user.get_full_name }} · {{ e.skill }} · {{ e.date }} · tentativa {{ e.attempt }} · {{ e.get_status_display }}</summary><p>{{ e.observation }} · {{ e.concept }}</p><p>{{ e.score|default_if_none:'Qualitativo' }} / {{ e.maximum|default_if_none:'—' }} · {{ e.instrument_notes }}</p><a href="{% url 'institutions:institution-analysis:edit' 'evidencia' e.pk %}">Revisar e consultar histórico</a></details>{% empty %}<p>Sem rubricas registradas.</p>{% endfor %}</article>

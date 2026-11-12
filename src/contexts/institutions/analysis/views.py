@@ -16,7 +16,7 @@ from .forms import Filters, REGISTRY, MANAGER_ONLY, record_form
 from .models import Audit, Evidence, KeyRevision
 from .services import build, effective_questions
 
-SECTIONS=[('overview','Visão geral'),('alerts','Alertas pedagógicos'),('learning','Aprendizagem e habilidades'),('classes','Turmas e disciplinas'),('students','Alunos'),('items','Questões e distratores'),('attendance','Frequência e atividades'),('interventions','Intervenções e recuperação'),('trajectory','Rendimento e permanência'),('official','Indicadores oficiais e contexto escolar')]
+SECTIONS=[('overview','Visão geral'),('alerts','Alertas pedagógicos'),('learning','Aprendizagem e habilidades'),('classes','Turmas e disciplinas'),('teachers','Professores'),('students','Alunos'),('items','Questões e distratores'),('attendance','Frequência e atividades'),('interventions','Intervenções e recuperação'),('trajectory','Rendimento e permanência'),('official','Indicadores oficiais e contexto escolar')]
 
 def snapshot(obj):
     return json.loads(json.dumps(model_to_dict(obj),cls=DjangoJSONEncoder))
@@ -40,7 +40,7 @@ def index(request, teacher_only=False):
         params['start']=(timezone.localdate()-timedelta(days=int(params['period']))).isoformat()
     form=Filters(scope,params)
     section=request.GET.get('section','overview')
-    sections=[(key,label) for key,label in SECTIONS if scope.manager or key not in ('official','trajectory')]
+    sections=[(key,label) for key,label in SECTIONS if scope.manager or key not in ('official','trajectory','teachers')]
     if section not in dict(sections):raise PermissionDenied
     context={'scope':scope,'institution':scope.organization.school,'filter_form':form,'sections':sections,'section':section,
         'title':dict(sections)[section], 'collect':[(k,v[2]) for k,v in REGISTRY.items() if scope.manager or k not in MANAGER_ONLY]}
@@ -65,6 +65,13 @@ def index(request, teacher_only=False):
                      'evaluated': row['evaluated'], 'eligible': row['eligible']}
                     for row in data['class_summary']],
     }
+    teacher_results = {}
+    for row in data['class_summary']:
+        teacher = row['offer'].responsible_teacher
+        key = teacher.pk if teacher else None
+        group = teacher_results.setdefault(key, {'name': str(teacher) if teacher else 'Responsável não informado', 'classes': []})
+        group['classes'].append(row)
+    context['teacher_results'] = list(teacher_results.values())
     context['active_filters'] = sum(value not in (None, '') for value in form.cleaned_data.values())
     if request.resolver_match.view_name == 'institutions:manager-performance':
         context['metrics'] = [m for m in data['metrics'] if m[0] != 'Alunos avaliados']

@@ -134,3 +134,10 @@
 @media (max-width: 760px) {
     .analysis-alert-columns { grid-template-columns: minmax(0, 1fr); }
 }
+
+.analysis-result-row { display:grid; grid-template-columns:2fr 1fr 1fr; gap:24px; padding:18px 0; border-bottom:1px solid var(--pa-border); align-items:center; }
+.analysis-result-row span,.analysis-result-row small { display:block; color:var(--pa-muted); font-size:12px; }
+.analysis-result-row strong { display:block; font-size:18px; }
+.analysis-result-row meter { display:block; width:100%; height:12px; accent-color:var(--pa-accent); }
+.analysis-teacher summary { padding:12px 0; }
+@media(max-width:650px) { .analysis-result-row { grid-template-columns:1fr 1fr; gap:12px; }.analysis-result-row > :first-child { grid-column:1/-1; } }
