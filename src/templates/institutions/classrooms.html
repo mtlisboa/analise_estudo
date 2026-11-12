@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/classroom-cards.css' %}?v=3">{% endblock %}
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/classroom-cards.css' %}?v=4">{% endblock %}
 {% block title %}Turmas · {{ institution.display_name }} | Lumini{% endblock %}
 {% block main_class %}manager-page classroom-directory{% endblock %}
 {% block content %}
@@ -10,7 +10,7 @@
 {% static 'images/lumini-subject-cover.webp' as default_classroom_cover %}
 <div class="classroom-card-grid">
     {% for classroom in classroom_page %}
-        <article class="dash-card classroom-card">
+        <a class="classroom-card" href="{% url 'institutions:classroom' classroom.pk %}{% if classroom.subject %}?subject={{ classroom.subject|urlencode }}{% endif %}" aria-labelledby="classroom-title-{{ forloop.counter }}">
             <div class="classroom-card-cover">
             {% if classroom.cover_image %}
                 <img class="classroom-card-image" src="{{ classroom.cover_image.url }}" alt="{{ classroom.cover_description }}" loading="lazy"
@@ -22,7 +22,7 @@
             </div>
             <div class="classroom-card-body">
                 {% if classroom.subject %}<p class="classroom-card-subject">{{ classroom.subject }}</p>{% endif %}
-                <h2>{{ classroom.name }}{% if classroom.letter %} · {{ classroom.letter }}{% endif %}</h2>
+                <h2 id="classroom-title-{{ forloop.counter }}">{{ classroom.name }}{% if classroom.letter %} · {{ classroom.letter }}{% endif %}</h2>
                 <dl>
                     <dt>Professor</dt>
                     <dd>{{ classroom.teacher_names|default:"A definir" }}</dd>
@@ -37,9 +37,8 @@
                         {% endfor %}
                     </dd>
                 </dl>
-                <a class="button button-small button-secondary" href="{% url 'institutions:classroom' classroom.pk %}{% if classroom.subject %}?subject={{ classroom.subject|urlencode }}{% endif %}">Entrar na turma</a>
             </div>
-        </article>
+        </a>
     {% empty %}
         <p class="empty-state">Nenhuma turma disponível para este acesso.</p>
     {% endfor %}

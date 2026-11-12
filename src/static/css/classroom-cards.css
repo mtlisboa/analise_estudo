@@ -67,10 +67,31 @@
     border-radius: 16px;
     background: var(--surface);
     box-shadow: none;
-    transition: border-color .15s ease;
+    color: var(--text);
+    text-decoration: none;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
-.classroom-directory .classroom-card:focus-within { border-color: var(--primary); }
+.classroom-directory .classroom-card:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .classroom-directory .classroom-card:hover {
+        position: relative;
+        z-index: 1;
+        border-color: var(--primary);
+        box-shadow: 0 10px 24px rgb(0 0 0 / 12%);
+        text-decoration: none;
+        transform: scale(1.025);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .classroom-directory .classroom-card { transition: none; }
+    .classroom-directory .classroom-card:hover { transform: none; }
+}
 
 .classroom-card-cover {
     position: relative;
@@ -114,7 +135,7 @@
     gap: 8px 12px;
     width: 100%;
     padding-top: 14px;
-    margin: 14px 0;
+    margin: 14px 0 0;
     border-top: 1px solid var(--border);
     font-size: .875rem;
 }
@@ -128,7 +149,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-.classroom-card-body > .button { margin-top: auto; }
 .classroom-pagination { margin-top: 24px; }
 
 @media (max-width: 640px) {
