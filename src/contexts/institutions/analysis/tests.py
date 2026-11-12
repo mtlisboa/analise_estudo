@@ -100,7 +100,7 @@ class AnalysisTests(TestCase):
             self.assertEqual(self.client.get(self.url,{'section':section}).status_code,200)
         for kind in ('evidencia','oficial','trajetoria','configuracao','curriculo','intervencao','frequencia','gabarito'):
             self.assertEqual(self.client.get(reverse('institutions:institution-analysis:record',args=[kind])).status_code,200)
-    def test_overview_prioritizes_alerts_and_links_to_filtered_details(self):
+    def test_dedicated_alerts_page_links_to_filtered_details(self):
         from urllib.parse import parse_qs
 
         OfferContext.objects.update_or_create(
@@ -124,8 +124,9 @@ class AnalysisTests(TestCase):
         response = self.client.get(url, {'section': 'alerts'})
         self.assertContains(response, 'Turmas abaixo do limite')
         self.assertContains(response, 'Alunos em alerta')
-        self.assertNotContains(response, 'section=alerts')
-        self.assertEqual(response.context['section'], 'overview')
+        self.assertEqual(response.context['section'], 'alerts')
+        self.assertNotContains(self.client.get(url), 'id="alertas-pedagogicos"')
+        self.assertContains(self.client.get(url), 'section=alerts')
         self.assertEqual(len(response.context['class_alert_page']), 1)
         alerts = response.context['student_alert_page']
         self.assertEqual([alert['level'] for alert in alerts], ['critical', 'watch'])

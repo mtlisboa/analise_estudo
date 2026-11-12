@@ -17,7 +17,7 @@
     <form method="get" class="analysis-filters"><input type="hidden" name="section" value="{{ section }}">{{ filter_form.as_p }}<div class="analysis-filter-actions"><button class="button" type="submit">Aplicar filtros</button><a href="?section={{ section }}">Limpar filtros</a></div></form>
 </details>
 {% if filter_form.errors %}<p role="alert">Não foi possível aplicar os filtros. Corrija os campos indicados.</p>{% else %}
-{% if section == 'overview' %}
+{% if section == 'alerts' %}
 <section class="analysis-alerts" id="alertas-pedagogicos" aria-labelledby="analysis-alert-title">
     <div class="analysis-alert-heading">
         <h2 id="analysis-alert-title">Alertas pedagógicos</h2>
@@ -28,9 +28,10 @@
         {% include 'institutions/analysis/alert_list.html' with heading='Alunos em alerta' page=student_alert_page page_query=student_alert_page_query page_key='student_alert_page' %}
     </div>
 </section>
-{% endif %}
+{% else %}
 <div class="analysis-metrics" aria-label="Indicadores do recorte">{% for label,value in metrics %}<article><span>{{ label }}</span><strong>{{ value }}</strong><small>{% if forloop.last %}dos resultados avaliados{% else %}no recorte selecionado{% endif %}</small></article>{% endfor %}</div>
 <div class="analysis-cohort"><div><span class="analysis-status-dot" aria-hidden="true"></span><strong>Participação do recorte</strong></div><span><b>{{ evaluated }}</b> de {{ eligible }} alunos avaliados</span><span><b>{{ missing }}</b> sem avaliação</span><span>{% if participation != None %}<b>{{ participation|floatformat:1 }}%</b> de participação{% else %}Participação indisponível{% endif %}</span></div>
+{% endif %}
 {% if section == 'overview' or section == 'learning' %}
 <div class="analysis-grid">
     <article class="dash-card manager-card analysis-evolution"><div class="analysis-card-heading"><div><span class="analysis-eyebrow">AO LONGO DO TEMPO</span><h2>Evolução dos resultados</h2></div><span class="analysis-unit">0–100%</span></div><p>Média por data de avaliação. Passe sobre um ponto para ver os detalhes.</p><div class="pedagogy-chart" data-analysis-chart="timeline" role="img" aria-label="Evolução das médias por data"></div><details class="analysis-chart-data"><summary>Consultar datas e valores</summary><div class="analytics-table-wrap"><table><thead><tr><th>Data</th><th>Resultados</th><th>Média</th></tr></thead><tbody>{% for row in timeline %}<tr><td>{{ row.date }}</td><td>{{ row.count }}</td><td>{{ row.average|floatformat:1 }}%</td></tr>{% empty %}<tr><td colspan="3">Sem resultados numéricos neste período.</td></tr>{% endfor %}</tbody></table></div></details><small class="analysis-footnote">Variação descritiva: conteúdo, dificuldade e composição não estão equiparados.</small></article>
