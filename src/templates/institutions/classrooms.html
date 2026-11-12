@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/classroom-cards.css' %}?v=5">{% endblock %}
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/classroom-cards.css' %}?v=6">{% endblock %}
 {% block title %}Turmas · {{ institution.display_name }} | Lumini{% endblock %}
 {% block main_class %}manager-page classroom-directory{% endblock %}
 {% block content %}
@@ -11,7 +11,7 @@
 <div class="classroom-card-grid">
     {% for classroom in classroom_page %}
         <a class="classroom-card" href="{% url 'institutions:classroom' classroom.pk %}{% if classroom.subject %}?subject={{ classroom.subject|urlencode }}{% endif %}" aria-labelledby="classroom-title-{{ forloop.counter }}">
-            <div class="classroom-card-cover">
+            <header class="classroom-card-cover">
             {% if classroom.cover_image %}
                 <img class="classroom-card-image" src="{{ classroom.cover_image.url }}" alt="{{ classroom.cover_description }}" loading="lazy"
                      data-fallback-src="{{ default_classroom_cover }}"
@@ -19,7 +19,7 @@
             {% else %}
                 <img class="classroom-card-image" src="{{ default_classroom_cover }}" alt="" loading="lazy">
             {% endif %}
-            </div>
+            </header>
             <div class="classroom-card-body">
                 {% if classroom.subject %}<p class="classroom-card-subject">{{ classroom.subject }}</p>{% endif %}
                 <h2 id="classroom-title-{{ forloop.counter }}">{{ classroom.name }}{% if classroom.letter %} · {{ classroom.letter }}{% endif %}</h2>

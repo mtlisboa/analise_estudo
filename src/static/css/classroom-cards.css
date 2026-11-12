@@ -61,7 +61,8 @@
 
 .classroom-directory .classroom-card {
     display: grid;
-    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(160px, 65fr) minmax(auto, 35fr);
     overflow: hidden;
     padding: 0;
     border: 1px solid var(--border);
@@ -96,7 +97,6 @@
 
 .classroom-card-cover {
     position: relative;
-    min-height: 160px;
 }
 
 .classroom-card-image {
@@ -153,10 +153,8 @@
 .classroom-pagination { margin-top: 24px; }
 
 @media (max-width: 640px) {
-    .classroom-card-grid { grid-auto-rows: auto; }
-
-    .classroom-card-grid,
-    .classroom-directory .classroom-card { grid-template-columns: minmax(0, 1fr); }
-
-    .classroom-card-cover { aspect-ratio: 16 / 9; }
+    .classroom-card-grid {
+        grid-auto-rows: auto;
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
