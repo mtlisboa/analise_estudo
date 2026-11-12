@@ -1,0 +1,30 @@
+<section class="analysis-alert-list dash-card manager-card">
+    <h3>{{ heading }} <span>{{ page.paginator.count }}</span></h3>
+    <ul>
+        {% for alert in page %}
+        <li class="analysis-alert analysis-alert--{{ alert.level }}">
+            <div class="analysis-alert-identity">
+                <strong>{{ alert.student_name|default:alert.offer.name }}</strong>
+                <span class="analysis-alert-level">{{ alert.level_label }}</span>
+            </div>
+            <p>Oferta {{ alert.offer.number|default:'sem número' }}{% if alert.student_name %} · {{ alert.offer.name }}{% endif %}</p>
+            <p>Professor responsável · {{ alert.offer.responsible_teacher|default:'Não informado' }}</p>
+            {% if alert.subject %}<p>{{ alert.subject }}</p>{% endif %}
+            <div class="analysis-alert-data">
+                <p><strong>{{ alert.value|floatformat:1 }}%</strong> · limite {{ alert.threshold }}%</p>
+                <p>{{ alert.summary }}</p>
+            </div>
+            <a href="?{{ alert.detail_query }}" aria-label="Ver dados de {{ alert.student_name|default:alert.offer.name }} em mais detalhes">Ver dados em mais detalhes</a>
+        </li>
+        {% empty %}
+        <li class="analysis-alert-empty">Nenhum alerta neste recorte.</li>
+        {% endfor %}
+    </ul>
+    {% if page.has_other_pages %}
+    <nav class="analysis-alert-pagination" aria-label="Paginação de {{ heading|lower }}">
+        {% if page.has_previous %}<a href="?{{ page_query }}&amp;{{ page_key }}={{ page.previous_page_number }}#alertas-pedagogicos">Anterior</a>{% endif %}
+        <span>{{ page.number }} de {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a href="?{{ page_query }}&amp;{{ page_key }}={{ page.next_page_number }}#alertas-pedagogicos">Próxima</a>{% endif %}
+    </nav>
+    {% endif %}
+</section>

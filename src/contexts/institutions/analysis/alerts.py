@@ -47,5 +47,5 @@ def sync_offer_alerts(offer_id):
                         recipient=account.user,
                         title='Alerta pedagógico',
                         message='Há um novo alerta pedagógico em uma oferta sob seu acompanhamento.',
-                        target_url=f'{reverse(route)}?section=alerts&offer={offer.pk}',
+                        target_url=f'{reverse(route)}?section=overview&offer={offer.pk}#alertas-pedagogicos',
                     )

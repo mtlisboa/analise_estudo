@@ -16,7 +16,7 @@ from .forms import Filters, REGISTRY, MANAGER_ONLY, record_form
 from .models import Audit, Evidence, KeyRevision
 from .services import build, effective_questions
 
-SECTIONS=[('overview','Visão geral'),('alerts','Alertas pedagógicos'),('learning','Aprendizagem e habilidades'),('classes','Turmas e disciplinas'),('students','Alunos'),('items','Questões e distratores'),('attendance','Frequência e atividades'),('interventions','Intervenções e recuperação'),('trajectory','Rendimento e permanência'),('official','Indicadores oficiais e contexto escolar')]
+SECTIONS=[('overview','Visão geral'),('learning','Aprendizagem e habilidades'),('classes','Turmas e disciplinas'),('students','Alunos'),('items','Questões e distratores'),('attendance','Frequência e atividades'),('interventions','Intervenções e recuperação'),('trajectory','Rendimento e permanência'),('official','Indicadores oficiais e contexto escolar')]
 
 def snapshot(obj):
     return json.loads(json.dumps(model_to_dict(obj),cls=DjangoJSONEncoder))
@@ -40,6 +40,8 @@ def index(request, teacher_only=False):
         params['start']=(timezone.localdate()-timedelta(days=int(params['period']))).isoformat()
     form=Filters(scope,params)
     section=request.GET.get('section','overview')
+    if section == 'alerts':
+        section = 'overview'
     sections=[(key,label) for key,label in SECTIONS if scope.manager or key not in ('official','trajectory')]
     if section not in dict(sections):raise PermissionDenied
     context={'scope':scope,'institution':scope.organization.school,'filter_form':form,'sections':sections,'section':section,
@@ -58,7 +60,6 @@ def index(request, teacher_only=False):
     if request.GET.get('format')=='json':
         return JsonResponse({k:data[k] for k in ('metrics','eligible','evaluated','participation','missing','distribution','timeline','skills','items','hypotheses','method','version','demo')})
     context.update(data)
-    context['alert_page'] = Paginator(data['alerts'], 25).get_page(request.GET.get('page'))
     context['chart_data'] = {
         'distribution': data['distribution'], 'timeline': data['timeline'],
         'participation': {'eligible': data['eligible'], 'evaluated': data['evaluated'], 'missing': data['missing']},
@@ -70,12 +71,45 @@ def index(request, teacher_only=False):
     if request.resolver_match.view_name == 'institutions:manager-performance':
         context['metrics'] = [m for m in data['metrics'] if m[0] != 'Alunos avaliados']
     context['performance_page'] = Paginator(list({r['classroom'] for r in data['rows']}),25).get_page(request.GET.get('page'))
-    context['row_page']=Paginator(data['rows'],25).get_page(request.GET.get('page'))
+    detail_rows = data['rows']
+    if section in ('classes', 'students'):
+        detail_rows = sorted(
+            [*detail_rows, *data['online_detail_rows']],
+            key=lambda row: (row['date'], row['id']), reverse=True,
+        )
+    context['row_page'] = Paginator(detail_rows, 25).get_page(request.GET.get('page'))
     context['student_page']=Paginator(data['student_rows'],25).get_page(request.GET.get('page'))
     context['classroom_summary']={r['offer'] for r in data['rows']}
     query=params.copy();query.pop('page',None);query.pop('format',None);query.pop('section',None)
     context['query']=query.urlencode()
     student_ids=dict(scope.students.values_list('user_id','pk'))
+    if section == 'overview':
+        for key, alerts in (('class_alert_page', data['class_alerts']), ('student_alert_page', data['alerts'])):
+            alerts = sorted(alerts, key=lambda alert: alert['threshold'] - alert['value'], reverse=True)
+            page = Paginator(alerts, 10).get_page(request.GET.get(key))
+            context[key] = page
+            pagination_query = query.copy()
+            pagination_query['section'] = 'overview'
+            other_key = 'student_alert_page' if key == 'class_alert_page' else 'class_alert_page'
+            if request.GET.get(other_key):
+                pagination_query[other_key] = request.GET[other_key]
+            context[f'{key}_query'] = pagination_query.urlencode()
+            for alert in page:
+                detail = query.copy()
+                detail.pop('classroom', None)
+                detail['offer'] = alert['offer'].pk
+                detail['section'] = alert['section']
+                if 'subject' in alert:
+                    detail['subject'] = alert['subject']
+                    student_id = alert.get('student_id') or student_ids.get(alert.get('student_user_id'))
+                    if student_id:
+                        detail['student'] = student_id
+                gap = alert['threshold'] - alert['value']
+                alert['level'], alert['level_label'] = (
+                    ('critical', 'Crítico') if gap >= 20 else
+                    ('high', 'Prioridade alta') if gap >= 10 else ('watch', 'Atenção')
+                )
+                alert['detail_query'] = detail.urlencode()
     for r in context['row_page']:
         r['detail_query']=query.copy();
         if r['offer']: r['detail_query']['offer']=r['offer']

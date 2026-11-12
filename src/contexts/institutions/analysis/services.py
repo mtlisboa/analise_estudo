@@ -165,7 +165,7 @@ def build(scope, f):
     publications = filtered(scope, Publication, f).filter(is_published=True).filter(
         Q(delivery_mode='online') | Q(delivery_mode='', assessment__delivery_mode='online'))
     if f.get('assessment'): publications = publications.filter(assessment=f['assessment'])
-    submissions = Submission.objects.filter(publication__in=publications, score__isnull=False).select_related('publication', 'student')
+    submissions = Submission.objects.filter(publication__in=publications, score__isnull=False).select_related('publication__offer', 'student')
     if f.get('student'): submissions = submissions.filter(student_id=f['student'].user_id)
     if f.get('start'): submissions = submissions.filter(submitted_at__date__gte=f['start'])
     if f.get('end'): submissions = submissions.filter(submitted_at__date__lte=f['end'])
@@ -179,6 +179,9 @@ def build(scope, f):
             scored_submissions.append({
                 'student': submission.student_id, 'offer': publication.offer_id, 'subject': publication.subject,
                 'date': submission.submitted_at.date().isoformat(), 'id': str(submission.pk),
+                'assessment': publication.assessment_id, 'name': names[submission.student_id],
+                'classroom': publication.offer.name, 'code': str(publication.offer.code),
+                'score': submission.score, 'maximum': submission.maximum_score, 'source': 'Avaliação virtual',
                 'percentage': percent(submission.score, submission.maximum_score),
             })
         keys = {str(k.get('question_id')): k for k in publication.grading_snapshot}
@@ -213,7 +216,7 @@ def build(scope, f):
         vals=[r['percentage'] for r in numeric if r['date']==day]
         timeline.append({'date':day,'average':round(mean(vals),2),'count':len(vals)})
     skill_matrix=[]
-    offer_map={o.pk:o for o in offers}
+    offer_map={o.pk:o for o in offers.select_related('analysis_context', 'period', 'responsible_teacher__account__user')}
     for (uid,oid,subject,skill),s in sorted(skill_rows.items(),key=lambda item:str(item[0])):
         policy=getattr(offer_map.get(oid),'analysis_context',None)
         minimum=policy.minimum_evidence if policy else 3
@@ -247,7 +250,11 @@ def build(scope, f):
         if policy and policy.attendance_alert is not None and value is not None and value<policy.attendance_alert:
             alerts.append({
                 'key': f'attendance:{records[0].student.user_id}:{subject}',
-                'offer': records[0].offer,
+                'offer': offer_map.get(oid, records[0].offer),
+                'student_id': uid, 'student_name': attendance_rows[-1]['student'],
+                'subject': subject, 'value': value, 'threshold': policy.attendance_alert,
+                'section': 'attendance',
+                'summary': f'Frequência de {value}% · {present} de {hours} horas presentes.',
                 'message': f'{attendance_rows[-1]["student"]}: frequência de {value}% em {subject}, abaixo do limite de {policy.attendance_alert}%.',
             })
     performance = defaultdict(list)
@@ -263,6 +270,10 @@ def build(scope, f):
             alerts.append({
                 'key': f'performance:{student_id}:{subject}',
                 'offer': offer,
+                'student_user_id': student_id, 'student_name': names[student_id],
+                'subject': subject, 'value': mean(row['percentage'] for row in recent),
+                'threshold': policy.low_score, 'section': 'students',
+                'summary': f'{len(recent)} resultados consecutivos abaixo de {policy.low_score}%.',
                 'message': f'{names[student_id]}: {len(recent)} resultados consecutivos abaixo de {policy.low_score}% em {subject}.',
             })
     interventions=filtered(scope,Intervention,f,'starts_on').select_related('student__user','before','after','responsible__user')
@@ -286,17 +297,35 @@ def build(scope, f):
     class_summary=[]
     for o in offers:
         cohort=set(students.filter(user__classroom_memberships__classroom_id=o.classroom_id).values_list('user_id',flat=True))
-        selected=[r for r in rows if r['offer']==o.pk]
+        selected=[r for r in (*rows, *scored_submissions) if r['offer']==o.pk]
         assessed={r['student'] for r in selected};values=[r['percentage'] for r in selected if r['percentage'] is not None]
         class_summary.append({'offer':o,'eligible':len(cohort|assessed),'evaluated':len(assessed),'missing':len(cohort-assessed),'average':mean(values) if values else None, 'participation':percent(len(assessed),len(cohort|assessed))})
+    class_alerts = []
+    if not f.get('student'):
+        results_by_offer = defaultdict(list)
+        for result in (*numeric, *scored_submissions):
+            results_by_offer[result['offer']].append(result)
+        for offer_id, results in results_by_offer.items():
+            offer = offer_map.get(offer_id)
+            policy = getattr(offer, 'analysis_context', None)
+            if not policy or policy.stage == 'infantil' or policy.low_score is None:
+                continue
+            average_score = mean(result['percentage'] for result in results)
+            if len(results) >= policy.minimum_evidence and average_score < policy.low_score:
+                student_count = len({result['student'] for result in results})
+                class_alerts.append({
+                    'offer': offer, 'value': average_score, 'threshold': policy.low_score,
+                    'section': 'classes',
+                    'summary': f'{student_count} alunos avaliados · {len(results)} resultados com nota.',
+                })
     line_points=' '.join(f'{20+i*560/max(1,len(timeline)-1):.1f},{180-t["average"]*1.5:.1f}' for i,t in enumerate(timeline))
     purposes=[e for e in current.values() if e.purpose in ('retention','transfer') and e.instrument_notes]
-    return dict(rows=sorted(rows,key=lambda r:(r['date'],r['id']),reverse=True),student_rows=summaries,
+    return dict(rows=sorted(rows,key=lambda r:(r['date'],r['id']),reverse=True),student_rows=summaries, online_detail_rows=scored_submissions,
         metrics=[('Provas corrigidas',sum(r['source']=='Prova impressa' for r in rows)),('Aguardando revisão',review),('Alunos avaliados',len(evaluated)),('Aproveitamento médio',f'{average:.1f}%'.replace('.',',') if average is not None else '—')],
         eligible=len(eligible),evaluated=len(evaluated),participation=percent(len(evaluated),len(eligible)),missing=len(eligible-evaluated),
         distribution=distribution,result_count=len(numeric),timeline=timeline,line_points=line_points,class_summary=class_summary,skills=skill_matrix,coverage=coverage,items=list(items.values()),
         hypotheses=[{'student':names.get(uid,str(uid)),'offer':oid,'hypothesis':h,'count':n} for (uid,oid,h),n in hypotheses.items()],
-        attendance=attendance_rows,alerts=alerts,interventions=interventions,official=official.order_by('-year','indicator'),
+        attendance=attendance_rows,alerts=alerts,class_alerts=class_alerts,interventions=interventions,official=official.order_by('-year','indicator'),
         rates=rates,rate_denominator=den,trajectory_missing=outcomes['unknown']+outcomes['ongoing'],transferred=outcomes['transferred'],
         transition_rates=transition_rates,transition_denominator=td,age_grade=percent(age_n,age_d),age_denominator=age_d,
         pending=evidence.exclude(status='evaluated').count(),evidence=list(current.values()),evidence_history=evidence_history,purposes=purposes,

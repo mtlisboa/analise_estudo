@@ -100,6 +100,41 @@ class AnalysisTests(TestCase):
             self.assertEqual(self.client.get(self.url,{'section':section}).status_code,200)
         for kind in ('evidencia','oficial','trajetoria','configuracao','curriculo','intervencao','frequencia','gabarito'):
             self.assertEqual(self.client.get(reverse('institutions:institution-analysis:record',args=[kind])).status_code,200)
+    def test_overview_prioritizes_alerts_and_links_to_filtered_details(self):
+        from urllib.parse import parse_qs
+
+        OfferContext.objects.update_or_create(
+            offer=self.offer,
+            defaults={'stage': 'medio', 'minimum_evidence': 2, 'low_score': 70, 'attendance_alert': 80},
+        )
+        self.result()
+        second_result = self.result()
+        second_assessment = type(self.assessment).objects.create(
+            owner=self.teacher.user, subject='MATEMÁTICA', topic='Segunda avaliação', technique=self.technique,
+        )
+        run = second_result.sheet.run
+        run.assessment = second_assessment
+        run.save(update_fields=['assessment'])
+        Attendance.objects.create(
+            offer=self.offer, subject='MATEMÁTICA', student=self.student,
+            date=date(2026, 10, 1), hours=4, present=3,
+        )
+        self.client.force_login(self.admin)
+        url = reverse('institutions:manager-performance')
+        response = self.client.get(url, {'section': 'alerts'})
+        self.assertContains(response, 'Turmas abaixo do limite')
+        self.assertContains(response, 'Alunos em alerta')
+        self.assertNotContains(response, 'section=alerts')
+        self.assertEqual(response.context['section'], 'overview')
+        self.assertEqual(len(response.context['class_alert_page']), 1)
+        alerts = response.context['student_alert_page']
+        self.assertEqual([alert['level'] for alert in alerts], ['critical', 'watch'])
+        for alert in alerts:
+            params = parse_qs(alert['detail_query'])
+            self.assertEqual(params['student'], [str(self.student.pk)])
+            self.assertEqual(params['offer'], [str(self.offer.pk)])
+            self.assertEqual(self.client.get(url + '?' + alert['detail_query']).status_code, 200)
+
     def test_tampered_write_foreign_keys_are_form_errors(self):
         url=reverse('institutions:institution-analysis:record',args=['evidencia'])
         response=self.client.post(url,{'offer':999999,'subject':'MATEMÁTICA','student':999999,'publication':999999,
@@ -167,7 +202,7 @@ class AnalysisTests(TestCase):
             response = self.client.get(reverse(route, args=args))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, 'institutions/analysis/index.html')
-            self.assertContains(response, 'institution_analysis.css?v=2')
+            self.assertContains(response, 'institution_analysis.css')
             self.assertContains(response, 'data-analysis-chart="timeline"')
             self.assertEqual(response.context['chart_data']['timeline'][0]['average'], 50)
             self.assertEqual(response.context['chart_data']['distribution'][2]['count'], 1)
@@ -216,7 +251,7 @@ class AnalysisTests(TestCase):
             )
         notifications = Notification.objects.filter(recipient=self.teacher.user, title='Alerta pedagógico')
         notice = notifications.get()
-        self.assertContains(self.client.get(notice.target_url), 'frequência de 50.0%')
+        self.assertContains(self.client.get(notice.target_url), '50,0%')
 
         with self.captureOnCommitCallbacks(execute=True):
             attendance.save()
