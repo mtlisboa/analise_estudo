@@ -60,7 +60,7 @@
 
 .classroom-directory .classroom-card {
     display: grid;
-    grid-template-columns: minmax(0, 28%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
     overflow: hidden;
     padding: 0;
     border: 1px solid var(--border);
@@ -74,8 +74,7 @@
 
 .classroom-card-cover {
     position: relative;
-    background: var(--primary-soft);
-    min-height: 132px;
+    min-height: 160px;
 }
 
 .classroom-card-image {
@@ -136,5 +135,5 @@
     .classroom-card-grid,
     .classroom-directory .classroom-card { grid-template-columns: minmax(0, 1fr); }
 
-    .classroom-card-cover { aspect-ratio: 2.25; }
+    .classroom-card-cover { aspect-ratio: 16 / 9; }
 }
