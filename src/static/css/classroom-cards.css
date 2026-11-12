@@ -62,7 +62,7 @@
 .classroom-directory .classroom-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(160px, 65fr) minmax(auto, 35fr);
+    grid-template-rows: minmax(112px, 1fr) minmax(auto, 1fr);
     overflow: hidden;
     padding: 0;
     border: 1px solid var(--border);
