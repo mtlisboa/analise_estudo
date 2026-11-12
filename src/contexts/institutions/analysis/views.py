@@ -72,6 +72,31 @@ def index(request, teacher_only=False):
         group = teacher_results.setdefault(key, {'name': str(teacher) if teacher else 'Responsável não informado', 'classes': []})
         group['classes'].append(row)
     context['teacher_results'] = list(teacher_results.values())
+    if section == 'learning':
+        skill_groups = {}
+        for row in data['skills']:
+            key = (row['offer'], row['subject'], row['skill'])
+            group = skill_groups.setdefault(key, {
+                'skill': row['skill'], 'subject': row['subject'], 'offer': row['offer'],
+                'students': [], 'values': [], 'count': 0, 'qualitative': 0,
+            })
+            group['students'].append(row)
+            group['count'] += row['count']
+            group['qualitative'] += row['qualitative']
+            if row['percentage'] is not None:
+                group['values'].append(row['percentage'])
+        for group in skill_groups.values():
+            values = group.pop('values')
+            group['average'] = sum(values) / len(values) if values else None
+            group['numeric_students'] = len(values)
+        context['learning_groups'] = sorted(
+            skill_groups.values(),
+            key=lambda group: (group['average'] is None, group['average'] or 0, group['skill']),
+        )
+        context['learning_students'] = len({row['student_id'] for row in data['skills']})
+        context['learning_evidence'] = sum(row['count'] for row in data['skills'])
+        context['learning_covered'] = sum(row['status'] == 'Avaliada' for row in data['coverage'])
+        context['learning_planned'] = len(data['coverage'])
     context['active_filters'] = sum(value not in (None, '') for value in form.cleaned_data.values())
     if request.resolver_match.view_name == 'institutions:manager-performance':
         context['metrics'] = [m for m in data['metrics'] if m[0] != 'Alunos avaliados']

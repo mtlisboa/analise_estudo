@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% load static %}
 {% block title %}Análise pedagógica | Lumini{% endblock %}
 {% block main_class %}manager-page institution-analysis-page{% endblock %}
-{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/institution_analysis.css' %}?v=4">{% endblock %}
+{% block extra_styles %}<link rel="stylesheet" href="{% static 'css/institution_analysis.css' %}?v=5">{% endblock %}
 {% block content %}
 
 <script src="{% static 'js/institution_analysis.js' %}?v=2" defer></script>
@@ -28,11 +28,11 @@
         {% include 'institutions/analysis/alert_list.html' with heading='Alunos em alerta' page=student_alert_page page_query=student_alert_page_query page_key='student_alert_page' %}
     </div>
 </section>
-{% else %}
+{% elif section != 'learning' %}
 <div class="analysis-metrics" aria-label="Indicadores do recorte">{% for label,value in metrics %}<article><span>{{ label }}</span><strong>{{ value }}</strong><small>{% if forloop.last %}dos resultados avaliados{% else %}no recorte selecionado{% endif %}</small></article>{% endfor %}</div>
 <div class="analysis-cohort"><div><span class="analysis-status-dot" aria-hidden="true"></span><strong>Participação do recorte</strong></div><span><b>{{ evaluated }}</b> de {{ eligible }} alunos avaliados</span><span><b>{{ missing }}</b> sem avaliação</span><span>{% if participation != None %}<b>{{ participation|floatformat:1 }}%</b> de participação{% else %}Participação indisponível{% endif %}</span></div>
 {% endif %}
-{% if section == 'overview' or section == 'learning' %}
+{% if section == 'overview' %}
 <div class="analysis-grid">
     <article class="dash-card manager-card analysis-evolution"><div class="analysis-card-heading"><div><span class="analysis-eyebrow">AO LONGO DO TEMPO</span><h2>Evolução dos resultados</h2></div><span class="analysis-unit">0–100%</span></div><p>Média por data de avaliação. Passe sobre um ponto para ver os detalhes.</p><div class="pedagogy-chart" data-analysis-chart="timeline" role="img" aria-label="Evolução das médias por data"></div><details class="analysis-chart-data"><summary>Consultar datas e valores</summary><div class="analytics-table-wrap"><table><thead><tr><th>Data</th><th>Resultados</th><th>Média</th></tr></thead><tbody>{% for row in timeline %}<tr><td>{{ row.date }}</td><td>{{ row.count }}</td><td>{{ row.average|floatformat:1 }}%</td></tr>{% empty %}<tr><td colspan="3">Sem resultados numéricos neste período.</td></tr>{% endfor %}</tbody></table></div></details><small class="analysis-footnote">Variação descritiva: conteúdo, dificuldade e composição não estão equiparados.</small></article>
     <article class="dash-card manager-card analysis-distribution"><div class="analysis-card-heading"><div><span class="analysis-eyebrow">PANORAMA</span><h2>Distribuição dos resultados</h2></div></div><p>Quantidade de resultados por faixa de aproveitamento.</p><div class="pedagogy-chart" data-analysis-chart="distribution" role="img" aria-label="Resultados por faixa percentual"></div><details class="analysis-chart-data"><summary>Consultar valores por faixa</summary>{% for row in distribution %}<p>{{ row.label }} <strong>{{ row.count }} resultados</strong></p>{% endfor %}</details><small class="analysis-footnote">Faixas descritivas, sem regra automática de aprovação.</small></article>
@@ -72,7 +72,8 @@
 <nav aria-label="Páginas de alunos">{% if student_page.has_previous %}<a href="?{{ query }}&amp;section=students&amp;page={{ student_page.previous_page_number }}">Anterior</a>{% endif %} {{ student_page.number }} / {{ student_page.paginator.num_pages }} {% if student_page.has_next %}<a href="?{{ query }}&amp;section=students&amp;page={{ student_page.next_page_number }}">Próxima</a>{% endif %}</nav>
 </article>
 {% endif %}
-{% if section == 'learning' or section == 'students' %}
+{% if section == 'learning' %}{% include 'institutions/analysis/learning.html' %}{% endif %}
+{% if section == 'students' %}
 <article class="dash-card manager-card"><h2>Evidências individuais e histórico</h2>{% for e in evidence_history %}<details><summary>{{ e.student.user.get_full_name }} · {{ e.skill }} · {{ e.date }} · tentativa {{ e.attempt }} · {{ e.get_status_display }}</summary><p>{{ e.observation }} · {{ e.concept }}</p><p>{{ e.score|default_if_none:'Qualitativo' }} / {{ e.maximum|default_if_none:'—' }} · {{ e.instrument_notes }}</p><a href="{% url 'institutions:institution-analysis:edit' 'evidencia' e.pk %}">Revisar e consultar histórico</a></details>{% empty %}<p>Sem rubricas registradas.</p>{% endfor %}</article>
 <article class="dash-card manager-card"><h2>Matriz de habilidades</h2><div class="analytics-table-wrap"><table><thead><tr><th>Aluno</th><th>Habilidade</th><th>Itens / critérios</th><th>Acertos / erros objetivos</th><th>Pontos</th><th>Evidências qualitativas</th><th>Datas e leitura</th></tr></thead><tbody>{% for s in skills %}<tr><td>{{ s.student }}</td><td>{{ s.skill }} · {{ s.subject }} · oferta {{ s.offer }}</td><td>{{ s.count }}</td><td>{{ s.correct }} / {{ s.wrong }}</td><td>{{ s.score }} / {{ s.maximum }}</td><td>{{ s.qualitative }}</td><td>{{ s.dates|join:', ' }} · {{ s.status }}</td></tr>{% empty %}<tr><td colspan="7">Não avaliado: ainda não há habilidades vinculadas às evidências deste recorte.</td></tr>{% endfor %}</tbody></table></div></article>
 <article class="dash-card manager-card"><h2>Cobertura do currículo avaliado</h2><p>Cobertura não significa domínio do aluno. Um acerto isolado não comprova domínio.</p>{% for row in coverage %}<p><strong>{{ row.skill }}</strong> · {{ row.subject }} · oferta {{ row.offer }} · {{ row.description }} · {{ row.status }}</p>{% empty %}<p>Cadastre as habilidades previstas para a oferta e disciplina.</p>{% endfor %}</article>

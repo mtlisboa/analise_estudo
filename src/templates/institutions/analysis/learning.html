@@ -1,0 +1,36 @@
+<section class="learning-dashboard">
+<div class="analysis-metrics">
+<article><span>Habilidades observadas</span><strong>{{ learning_groups|length }}</strong><small>por oferta e disciplina</small></article>
+<article><span>Alunos com evidências</span><strong>{{ learning_students }}</strong><small>no recorte selecionado</small></article>
+<article><span>Itens e critérios avaliados</span><strong>{{ learning_evidence }}</strong><small>inclui registros qualitativos</small></article>
+<article><span>Cobertura do planejamento</span><strong>{{ learning_covered }} / {{ learning_planned }}</strong><small>habilidades previstas com evidências</small></article>
+</div>
+<article class="dash-card manager-card">
+<div class="analysis-card-heading"><div><span class="analysis-eyebrow">ONDE CONCENTRAR A ANÁLISE</span><h2>Aproveitamento por habilidade</h2></div></div>
+<p>Da menor para a maior média. Abra uma habilidade para consultar os alunos, a quantidade de evidências e os resultados individuais.</p>
+<p class="analysis-footnote">Média dos percentuais individuais por habilidade. A quantidade de evidências e a dificuldade dos instrumentos devem ser consideradas na interpretação.</p>
+{% for group in learning_groups %}
+<details class="learning-skill">
+<summary>
+<span><strong>{{ group.skill }}</strong><small>{{ group.subject }} · Oferta {{ group.offer }}</small></span>
+<span class="learning-bar">{% if group.average != None %}<meter min="0" max="100" value="{{ group.average|stringformat:'f' }}" aria-label="Aproveitamento médio de {{ group.skill }}">{{ group.average|floatformat:1 }}%</meter>{% endif %}</span>
+<span class="learning-value">{% if group.average != None %}{{ group.average|floatformat:1 }}%{% else %}Qualitativo{% endif %}<small>{{ group.students|length }} aluno{{ group.students|length|pluralize }}</small></span>
+</summary>
+<div class="learning-detail">
+<p>{{ group.count }} itens / critérios · {{ group.numeric_students }} alunos com pontuação · {{ group.qualitative }} evidências qualitativas</p>
+<div class="analytics-table-wrap"><table><thead><tr><th>Aluno</th><th>Aproveitamento</th><th>Evidências</th><th>Acertos / erros</th><th>Leitura</th></tr></thead><tbody>
+{% for student in group.students %}<tr><td>{{ student.student }}</td><td>{% if student.percentage != None %}{{ student.percentage|floatformat:1 }}%{% else %}Qualitativo{% endif %}</td><td>{{ student.count }}<small>{{ student.dates|join:', ' }}</small></td><td>{{ student.correct }} / {{ student.wrong }}</td><td>{{ student.status }}</td></tr>{% endfor %}
+</tbody></table></div>
+</div>
+</details>
+{% empty %}
+<div class="learning-empty"><h3>Vincule habilidades às avaliações para analisar a aprendizagem</h3><p>Este recorte ainda não possui resultados associados a habilidades. Vincule os códigos ou objetivos às questões e registre as evidências avaliadas.</p><a href="{% url 'institutions:institution-analysis:record' 'evidencia' %}">Registrar evidência</a></div>
+{% endfor %}
+</article>
+<article class="dash-card manager-card"><h2>O que foi avaliado do currículo</h2><p>Confira os objetivos previstos que ainda precisam de avaliação.</p>
+{% for row in coverage %}<div class="learning-curriculum"><div><strong>{{ row.skill }}</strong><p>{{ row.description }}</p><small>{{ row.subject }} · Oferta {{ row.offer }}</small></div><span class="learning-coverage {% if row.status == 'Avaliada' %}is-covered{% endif %}">{{ row.status }}</span></div>
+{% empty %}<p>O currículo previsto ainda não foi registrado para este recorte.</p><a href="{% url 'institutions:institution-analysis:record' 'curriculo' %}">Cadastrar habilidades previstas</a>{% endfor %}
+</article>
+{% if evidence_history %}<details class="dash-card manager-card"><summary>Consultar registros e observações individuais</summary>{% for e in evidence_history %}<div class="learning-curriculum"><div><strong>{{ e.student.user.get_full_name }} · {{ e.skill }}</strong><p>{{ e.observation }} {{ e.concept }}</p><small>{{ e.date }} · tentativa {{ e.attempt }} · {{ e.get_status_display }}</small></div><a href="{% url 'institutions:institution-analysis:edit' 'evidencia' e.pk %}">Ver registro</a></div>{% endfor %}</details>{% endif %}
+{% if purposes %}<details class="dash-card manager-card"><summary>Evidências de retenção e aplicação</summary>{% for e in purposes %}<p>{{ e.student }} · {{ e.skill }} · {{ e.get_purpose_display }} · {{ e.date }} · {{ e.instrument_notes }}</p>{% endfor %}</details>{% endif %}
+</section>
