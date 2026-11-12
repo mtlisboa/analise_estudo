@@ -142,3 +142,73 @@
         box-shadow: none;
     }
 }
+
+/* Utility controls share the same size and visual treatment. */
+.app-sidebar .theme-toggle.sidebar-theme {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+    color: var(--text-soft);
+    box-shadow: none;
+}
+.app-sidebar .theme-toggle.sidebar-theme:hover {
+    transform: none;
+    background: color-mix(in srgb, var(--text) 10%, transparent);
+    color: var(--text);
+    border-color: var(--border);
+}
+.app-sidebar :is(.sidebar-theme, .sidebar-collapse-toggle, .sidebar-user, .sidebar-logout button):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+@media (min-width: 761px) {
+    .app-sidebar .sidebar-collapse-toggle:not([hidden]) {
+        width: 40px;
+        height: 40px;
+        padding: 10px;
+        margin-top: 12px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--text) 5%, transparent);
+        color: var(--text-soft);
+    }
+    .app-sidebar .sidebar-collapse-toggle:hover {
+        background: color-mix(in srgb, var(--text) 10%, transparent);
+        color: var(--text);
+        border-color: var(--border);
+    }
+    .app-sidebar .sidebar-collapse-toggle svg { width: 18px; height: 18px; stroke-width: 1.8; }
+    .app-sidebar .sidebar-footer { gap: 6px; padding-top: 12px; }
+    .app-sidebar .sidebar-user { padding: 10px; border-radius: 12px; gap: 10px; }
+    .app-sidebar .sidebar-user:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+    .app-sidebar .sidebar-avatar {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+        border-radius: 11px;
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .app-sidebar .sidebar-logout .sidebar-link {
+        min-height: 40px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        color: var(--text-soft);
+        background: transparent;
+    }
+    .app-sidebar .sidebar-logout .sidebar-link:hover {
+        color: #dc6573;
+        background: color-mix(in srgb, #dc6573 10%, transparent);
+    }
+    .app-sidebar .sidebar-logout svg { width: 18px; height: 18px; stroke-width: 1.8; }
+    .sidebar-collapsed .app-sidebar .sidebar-brand-row { gap: 16px; padding-bottom: 16px; }
+    .sidebar-collapsed .app-sidebar .sidebar-footer { justify-items: center; }
+    .sidebar-collapsed .app-sidebar .sidebar-user { width: 40px; height: 40px; padding: 2px; box-sizing: border-box; }
+    .sidebar-collapsed .app-sidebar .sidebar-logout .sidebar-link { width: 40px; height: 40px; padding: 10px; }
+}

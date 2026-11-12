@@ -1,5 +1,5 @@
 {% load static %}
-    <a class="mobile-account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências">
+    <a class="mobile-account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências" title="Minha conta e preferências">
         {% if user.avatar %}<img class="mobile-user-photo user-photo" src="{% url 'accounts:avatar' %}" alt="">{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>{% endif %}
     </a>
     <aside id="app-sidebar" class="app-sidebar{% if teacher_sidebar %} teacher-sidebar{% endif %}{% if management_sidebar %} management-sidebar{% endif %}{% if family_sidebar %} family-sidebar{% endif %}" aria-label="Navegação principal">
@@ -51,13 +51,13 @@
         {% endif %}
 
         <div class="sidebar-footer">
-            <a class="sidebar-user account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências">
+            <a class="sidebar-user account-link" href="{% url 'accounts:account' %}" aria-label="Minha conta e preferências" title="Minha conta e preferências">
                 {% if user.avatar %}<img class="sidebar-avatar user-photo" src="{% url 'accounts:avatar' %}" alt="">{% else %}<span class="sidebar-avatar">{{ user.first_name|default:user.username|first|upper }}</span>{% endif %}
                 <span class="sidebar-user-copy sidebar-label"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.email|default:"Conta Lumini" }}</small><small>Minha conta e preferências</small></span>
             </a>
             <form class="sidebar-logout" method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}
-                <button class="sidebar-link" type="submit" title="Sair">
+                <button class="sidebar-link" type="submit" title="Sair" aria-label="Sair da conta">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>
                     <span class="sidebar-label">Sair</span>
                 </button>
