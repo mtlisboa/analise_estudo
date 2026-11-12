@@ -1,0 +1,25 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }} | Lumini</title>
+    <style>
+        :root { color-scheme: light dark; font: 100%/1.5 system-ui, sans-serif; }
+        body { margin: 0; min-height: 100svh; display: grid; place-items: center; }
+        main { box-sizing: border-box; max-width: 34rem; padding: 2rem; text-align: center; }
+        img { display: block; margin: 0 auto 1rem; }
+        h1 { margin: 0; font-size: clamp(1.75rem, 5vw, 2.75rem); line-height: 1.15; }
+        p { margin-block: 1rem; }
+        a { color: inherit; text-underline-offset: .2em; }
+    </style>
+</head>
+<body>
+    <main>
+        <img src="{% static 'images/lumini-icon.webp' %}" width="128" height="110" alt="Capivara do Lumini">
+        <h1>{{ title }}</h1>
+        <p>{{ description }}</p>
+        {% if show_home %}<a href="/">Voltar para o início</a>{% endif %}
+    </main>
+</body>
+</html>

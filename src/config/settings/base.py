@@ -12,6 +12,7 @@ load_dotenv(PROJECT_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes"}
+MAINTENANCE_MODE = os.getenv("DJANGO_MAINTENANCE_MODE", "False").lower() in {"1", "true", "yes"}
 ALLOWED_HOSTS = csv_values(
     os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 )
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "config.maintenance.MaintenanceMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
