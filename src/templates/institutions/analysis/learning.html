@@ -9,8 +9,15 @@
 <div class="analysis-card-heading"><div><span class="analysis-eyebrow">ONDE CONCENTRAR A ANÁLISE</span><h2>Aproveitamento por habilidade</h2></div></div>
 <p>Da menor para a maior média. Abra uma habilidade para consultar os alunos, a quantidade de evidências e os resultados individuais.</p>
 <p class="analysis-footnote">Média dos percentuais individuais por habilidade. A quantidade de evidências e a dificuldade dos instrumentos devem ser consideradas na interpretação.</p>
+<div class="learning-controls" hidden>
+<label>Buscar habilidade<input type="search" data-skill-search placeholder="Código ou disciplina"></label>
+<label>Ordenar por<select data-skill-sort><option value="asc">Menor aproveitamento</option><option value="desc">Maior aproveitamento</option><option value="name">Habilidade</option></select></label>
+<button type="button" class="button button-secondary" data-skill-expand>Expandir todas</button>
+</div>
+<p data-skill-empty hidden role="status">Nenhuma habilidade corresponde à busca.</p>
+<div data-skill-list>
 {% for group in learning_groups %}
-<details class="learning-skill">
+<details class="learning-skill" data-score="{{ group.average|default_if_none:''|stringformat:'s' }}" data-skill="{{ group.skill }}" data-subject="{{ group.subject }}">
 <summary>
 <span><strong>{{ group.skill }}</strong><small>{{ group.subject }} · Oferta {{ group.offer }}</small></span>
 <span class="learning-bar">{% if group.average != None %}<meter min="0" max="100" value="{{ group.average|stringformat:'f' }}" aria-label="Aproveitamento médio de {{ group.skill }}">{{ group.average|floatformat:1 }}%</meter>{% endif %}</span>
@@ -26,6 +33,7 @@
 {% empty %}
 <div class="learning-empty"><h3>Vincule habilidades às avaliações para analisar a aprendizagem</h3><p>Este recorte ainda não possui resultados associados a habilidades. Vincule os códigos ou objetivos às questões e registre as evidências avaliadas.</p><a href="{% url 'institutions:institution-analysis:record' 'evidencia' %}">Registrar evidência</a></div>
 {% endfor %}
+</div>
 </article>
 <article class="dash-card manager-card"><h2>O que foi avaliado do currículo</h2><p>Confira os objetivos previstos que ainda precisam de avaliação.</p>
 {% for row in coverage %}<div class="learning-curriculum"><div><strong>{{ row.skill }}</strong><p>{{ row.description }}</p><small>{{ row.subject }} · Oferta {{ row.offer }}</small></div><span class="learning-coverage {% if row.status == 'Avaliada' %}is-covered{% endif %}">{{ row.status }}</span></div>

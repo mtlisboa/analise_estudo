@@ -83,3 +83,36 @@ window.addEventListener('pageshow', () => {
   charts.forEach(chart => observer.observe(chart));
   document.querySelectorAll('.analysis-shell .analytics-table-wrap').forEach(table => { table.tabIndex = 0; table.setAttribute('role','region'); table.setAttribute('aria-label','Tabela de dados, role para consultar todas as colunas'); });
 })();
+
+(() => {
+  const list = document.querySelector('[data-skill-list]');
+  if (!list) return;
+  const rows = [...list.querySelectorAll('.learning-skill')];
+  if (!rows.length) return;
+  const controls = document.querySelector('.learning-controls');
+  const search = controls.querySelector('[data-skill-search]');
+  const sort = controls.querySelector('[data-skill-sort]');
+  const expand = controls.querySelector('[data-skill-expand]');
+  const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+  function update() {
+    const query = normalize(search.value.trim());
+    rows.forEach(row => { row.hidden = !normalize(row.dataset.skill + ' ' + row.dataset.subject).includes(query); });
+    rows.sort((a, b) => {
+      if (sort.value === 'name') return a.dataset.skill.localeCompare(b.dataset.skill, 'pt-BR');
+      if (!a.dataset.score) return b.dataset.score ? 1 : 0;
+      if (!b.dataset.score) return -1;
+      const difference = Number(a.dataset.score.replace(',', '.')) - Number(b.dataset.score.replace(',', '.'));
+      return sort.value === 'desc' ? -difference : difference;
+    }).forEach(row => list.append(row));
+    document.querySelector('[data-skill-empty]').hidden = rows.some(row => !row.hidden);
+  }
+  search.addEventListener('input', update);
+  sort.addEventListener('change', update);
+  expand.addEventListener('click', () => {
+    const visible = rows.filter(row => !row.hidden);
+    const open = visible.some(row => !row.open);
+    visible.forEach(row => { row.open = open; });
+    expand.textContent = open ? 'Recolher todas' : 'Expandir todas';
+  });
+  controls.hidden = false;
+})();
