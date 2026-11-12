@@ -7,14 +7,17 @@
 <section class="manager-shell classroom-directory-shell">
 <header class="classroom-directory-heading"><p class="section-kicker">{{ institution.display_name }}</p><h1>Turmas</h1>{% if can_plan %}<a class="button button-small" href="{% url 'planning:index' %}">Montagem de turmas</a>{% endif %}</header>
 <form method="get" class="classroom-search" role="search"><label for="classroom-q">Buscar turma</label><input id="classroom-q" type="search" name="q" value="{{ query }}" maxlength="100"><button class="button button-small button-secondary" type="submit">Buscar</button></form>
+{% static 'images/lumini-subject-cover.webp' as default_classroom_cover %}
 <div class="classroom-card-grid">
     {% for classroom in classroom_page %}
         <article class="dash-card classroom-card">
             <div class="classroom-card-cover">
             {% if classroom.cover_image %}
-                <img class="classroom-card-image" src="{{ classroom.cover_image.url }}" alt="{{ classroom.cover_description }}" loading="lazy">
+                <img class="classroom-card-image" src="{{ classroom.cover_image.url }}" alt="{{ classroom.cover_description }}" loading="lazy"
+                     data-fallback-src="{{ default_classroom_cover }}"
+                     onerror="this.onerror = null; this.alt = ''; this.src = this.dataset.fallbackSrc;">
             {% else %}
-                <img class="classroom-card-image" src="{% static 'images/lumini-subject-cover.webp' %}" alt="" loading="lazy">
+                <img class="classroom-card-image" src="{{ default_classroom_cover }}" alt="" loading="lazy">
             {% endif %}
             </div>
             <div class="classroom-card-body">
